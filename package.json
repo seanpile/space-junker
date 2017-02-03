@@ -6,7 +6,7 @@
   "scripts": {
     "clean": "rm -rf build",
     "start": "nodemon --watch webpack.config.js --exec \"webpack-dev-server --env development\"",
-    "build": "webpack --env production",
+    "build": "npm run clean && webpack --env production",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
