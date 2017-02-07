@@ -1,6 +1,7 @@
 import SolarSystem from './app/SolarSystem';
 import Simulation from './app/Simulation';
-import ThreeRenderer from './app/ThreeRenderer';
+import CameraViewRenderer from './app/CameraViewRenderer';
+import OrbitalMapRenderer from './app/OrbitalMapRenderer';
 import Stats from 'stats.js';
 
 // Main container that will house the main content
@@ -12,7 +13,6 @@ let stats = new Stats();
 document.body.appendChild(stats.dom);
 
 const solarSystem = new SolarSystem();
-const renderer = new ThreeRenderer(container);
+const renderer = new OrbitalMapRenderer(container);
 const simulation = new Simulation(solarSystem, renderer, stats);
-simulation.initialize();
 simulation.run();

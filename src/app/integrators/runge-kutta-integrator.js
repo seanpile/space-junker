@@ -12,15 +12,20 @@ function Derivitives() {
 RungeKuttaIntegrator.prototype._acceleration =
   function (primary, state, t) {
 
-    // Simplified two-body problem; only force that can influence this body
-    // is from its 'primary' body .
+    const acc = new Vector3(0, 0, 0);
 
-    const r = state.position.clone()
-      .sub(primary.position);
-    const distance = state.position.distanceToSquared(primary.position);
-    return r.negate()
-      .multiplyScalar(primary.u / distance);
+    do {
+      const r = state.position.clone()
+        .sub(primary.position);
+      const distance = state.position.distanceToSquared(primary.position);
 
+      acc.add(r.negate()
+        .multiplyScalar(primary.u / distance));
+      primary = primary.primary;
+
+    } while (primary !== null && primary !== undefined);
+
+    return acc;
   };
 
 RungeKuttaIntegrator.prototype._evaluate =
@@ -46,8 +51,9 @@ RungeKuttaIntegrator.prototype.integrate =
   function (bodies, t, dt) {
     bodies.forEach((body) => {
 
-      if (body.id === 'sun')
+      if (!body.primary) {
         return;
+      }
 
       let a, b, c, d;
 
