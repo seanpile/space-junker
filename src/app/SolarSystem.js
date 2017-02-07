@@ -28,6 +28,10 @@ SolarSystem.prototype.update = function (t, dt) {
 
     // Don't calculate data for the sun; treat as stationary
     if (planet.name === 'sun') {
+      planet.derived = {
+        position: new Vector3(0, 0, 0)
+      };
+
       return;
     }
 

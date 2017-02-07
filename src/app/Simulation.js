@@ -51,22 +51,6 @@ function Simulation(solarSystem, renderer, stats) {
   window.addEventListener("keypress", keypresses);
 };
 
-function runAnimation(frameFunc) {
-  var lastTime = null;
-
-  function frame(time) {
-    var stop = false;
-    if (lastTime != null) {
-      var timeStep = (time - lastTime);
-      stop = frameFunc(timeStep) === false;
-    }
-    lastTime = time;
-    if (!stop)
-      requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-};
-
 Simulation.prototype.speedUp = function () {
   if (this.isStopped) {
     return;
@@ -155,6 +139,22 @@ Simulation.prototype.run = function () {
     this.stats.end();
 
   }.bind(this));
+};
+
+function runAnimation(frameFunc) {
+  var lastTime = null;
+
+  function frame(time) {
+    var stop = false;
+    if (lastTime != null) {
+      var timeStep = (time - lastTime);
+      stop = frameFunc(timeStep) === false;
+    }
+    lastTime = time;
+    if (!stop)
+      requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 };
 
 export default Simulation;

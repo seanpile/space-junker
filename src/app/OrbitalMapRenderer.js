@@ -3,6 +3,7 @@ import OrbitControls from './lib/OrbitControls';
 import * as THREE from 'three';
 
 const AU_SCALE = 1;
+const DEFAULT_FOCUS = 'sun';
 
 const PLANET_COLOURS = {
   "mercury": "silver",
@@ -83,10 +84,17 @@ OrbitalMapRenderer.prototype.recenter = function () {
 OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
   console.log("Initializing OrbitalMapRenderer.js");
 
+  // Add event handlers, orbit controls
+  this.addHandlers();
+
   // Maintain a mapping from planet -> THREE object representing the planet
   // This will allow us to update the existing THREE object on each iteration
   // of the render loop.
   solarSystem.planets.forEach(function (planet) {
+
+    if (planet.name === DEFAULT_FOCUS) {
+      this.focus = planet;
+    }
 
     let threeObjects = this.planetMap[planet.name] || {};
     for (let threeObject of Object.values(threeObjects))
@@ -136,12 +144,49 @@ OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
   }, this);
 
   this.scene.background = new THREE.Color('black');
-  this.addHandlers();
   return Promise.resolve();
 };
 
 OrbitalMapRenderer.prototype.uninitialize = function () {
   this.removeHandlers();
+};
+
+OrbitalMapRenderer.prototype.render = function (time, solarSystem) {
+
+  solarSystem.planets.forEach(function updatePositions(planet) {
+
+    let threeBody = this.planetMap[planet.name].body;
+    let derived = planet.derived;
+
+    // Adjust position to re-center the coordinate system on the focus
+    let position = this._adjustCoordinates(derived.position);
+
+    threeBody.position.set(position.x, position.y, position.z);
+
+    if (planet.name !== 'sun') {
+      let apoapsis = this._adjustCoordinates(derived.apoapsis);
+      let periapsis = this._adjustCoordinates(derived.periapsis);
+
+      let threePeriapsis = this.planetMap[planet.name].periapsis;
+      let threeApoapsis = this.planetMap[planet.name].apoapsis;
+      threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
+      threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
+
+      this._updateTrajectory(planet);
+    }
+
+  }, this);
+
+  this.timeCounter.innerHTML = `${moment(time).format()}`;
+  this.renderer.render(this.scene, this.camera);
+};
+
+/**
+ * Recenter the coordinate system on the focus being the 'center'.
+ */
+OrbitalMapRenderer.prototype._adjustCoordinates = function (position) {
+  return position.clone()
+    .sub(this.focus.derived.position);
 };
 
 OrbitalMapRenderer.prototype._updateTrajectory = function (planet) {
@@ -151,7 +196,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (planet) {
   let derived = planet.derived;
   let semiMajorAxis = derived.semiMajorAxis;
   let semiMinorAxis = derived.semiMinorAxis;
-  let center = derived.center;
+  let center = this._adjustCoordinates(derived.center);
 
   // Reset the trajectory to a fresh state to allow for updated coordinates
   let prev = this.prevTrajectory[planet.name];
@@ -173,35 +218,6 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (planet) {
   this.prevTrajectory[planet.name].argumentPerihelion = derived.argumentPerihelion;
   this.prevTrajectory[planet.name].I = derived.I;
   this.prevTrajectory[planet.name].omega = derived.omega;
-};
-
-OrbitalMapRenderer.prototype.render = function (time, solarSystem) {
-
-  solarSystem.planets.forEach(function updatePositions(planet) {
-
-    if (planet.name === 'sun') {
-      return;
-    }
-
-    let threeBody = this.planetMap[planet.name].body;
-    let threePeriapsis = this.planetMap[planet.name].periapsis;
-    let threeApoapsis = this.planetMap[planet.name].apoapsis;
-
-    let derived = planet.derived;
-    let position = derived.position;
-    let apoapsis = derived.apoapsis;
-    let periapsis = derived.periapsis;
-
-    threeBody.position.set(position.x, position.y, position.z);
-    threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
-    threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
-
-    this._updateTrajectory(planet);
-
-  }, this);
-
-  this.timeCounter.innerHTML = `${moment(time).format()}`;
-  this.renderer.render(this.scene, this.camera);
 };
 
 export default OrbitalMapRenderer;
