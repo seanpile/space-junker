@@ -41,45 +41,18 @@ function OrbitalMapRenderer(container, backgroundImage) {
   container.appendChild(this.renderer.domElement);
 
   this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
-  this.camera.position.z = 5;
+  this.camera.position.z = 1;
 
   this.scene = new THREE.Scene();
   this.planetMap = new Map();
-  this.focus = DEFAULT_FOCUS;
   this.prevTrajectory = Object.create(null);
 
   const scope = this;
   const onClick = (event) => {
-    let pixelMultiplier = window.devicePixelRatio;
-    let target = new THREE.Vector2(
-      (event.clientX - width / 2) * pixelMultiplier,
-      (height / 2 - event.clientY) * pixelMultiplier);
-
-    // Do a hit-test check for all planets
-    let found = Object.keys(scope.planetMap)
-      .map((id) => {
-
-        let projection = scope.planetMap[id].body.position.clone()
-          .project(scope.camera);
-        let body = new THREE.Vector2(projection.x * width, projection.y * height);
-
-        return {
-          id: id,
-          distance: body.distanceTo(target)
-        };
-      })
-      .sort((left, right) => left.distance - right.distance)
-      .find(({
-        id,
-        distance
-      }) => distance < 50);
-
-    // Update the focus to the target planet
-    if (found) {
-      scope.focus = found.id;
-    }
+    let x = event.clientX - width / 2;
+    let y = height / 2 - event.clientY;
+    console.log(`x = ${x}, y = ${y}`);
   };
-
   const onChangeOrbit = (event) => {
     scope.cameraChanged = true;
   };
@@ -115,7 +88,10 @@ OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
   // of the render loop.
   solarSystem.planets.forEach(function (planet) {
 
-    // Remove all existing objects from scene map
+    if (planet.name === DEFAULT_FOCUS) {
+      this.focus = planet;
+    }
+
     let threeObjects = this.planetMap[planet.name] || {};
     for (let threeObject of Object.values(threeObjects))
       this.scene.remove(threeObject);
@@ -141,7 +117,7 @@ OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
           color: 'aqua'
         }));
 
-      const trajectory = new THREE.Line(new THREE.RingGeometry(1, 1, 1024),
+      const trajectory = new THREE.Line(new THREE.RingGeometry(1, 1, 32),
         new THREE.LineBasicMaterial({
           color: PLANET_COLOURS[planet.name]
         }));
@@ -163,7 +139,7 @@ OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
 
   }, this);
 
-  this.scene.background = new THREE.Color('black');
+  this.scene.background = new THREE.Color('gray');
   this.cameraChanged = true;
   return Promise.resolve();
 };
@@ -174,28 +150,26 @@ OrbitalMapRenderer.prototype.uninitialize = function () {
 
 OrbitalMapRenderer.prototype.render = function (solarSystem) {
 
-  const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
-
   solarSystem.planets.forEach((planet) => {
 
     let threeBody = this.planetMap[planet.name].body;
     let derived = planet.derived;
 
     // Adjust position to re-center the coordinate system on the focus
-    let position = this._adjustCoordinates(focus, derived.position);
+    let position = this._adjustCoordinates(derived.position);
 
     threeBody.position.set(position.x, position.y, position.z);
 
     if (planet.name !== 'sun') {
-      let apoapsis = this._adjustCoordinates(focus, derived.apoapsis);
-      let periapsis = this._adjustCoordinates(focus, derived.periapsis);
+      let apoapsis = this._adjustCoordinates(derived.apoapsis);
+      let periapsis = this._adjustCoordinates(derived.periapsis);
 
       let threePeriapsis = this.planetMap[planet.name].periapsis;
       let threeApoapsis = this.planetMap[planet.name].apoapsis;
       threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
       threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
-      this._updateTrajectory(focus, planet);
+      this._updateTrajectory(planet);
     }
 
     this._scalePlanet(planet);
@@ -209,15 +183,9 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
 /**
  * Recenter the coordinate system on the focus being the 'center'.
  */
-OrbitalMapRenderer.prototype._adjustCoordinates = function (focus, position) {
-
-  if (!focus)
-    return position.clone();
-
-  let coordinates = position.clone()
-    .sub(focus.derived.position);
-
-  return coordinates;
+OrbitalMapRenderer.prototype._adjustCoordinates = function (position) {
+  return position.clone()
+    .sub(this.focus.derived.position);
 };
 
 OrbitalMapRenderer.prototype._scalePlanet = function (planet) {
@@ -237,14 +205,14 @@ OrbitalMapRenderer.prototype._scalePlanet = function (planet) {
   threeBody.scale.set(scale, scale, scale);
 };
 
-OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
+OrbitalMapRenderer.prototype._updateTrajectory = function (planet) {
   // Redraw the trajectory for this planet
   let trajectory = this.planetMap[planet.name].trajectory;
 
   let derived = planet.derived;
   let semiMajorAxis = derived.semiMajorAxis;
   let semiMinorAxis = derived.semiMinorAxis;
-  let center = this._adjustCoordinates(focus, derived.center);
+  let center = this._adjustCoordinates(derived.center);
 
   // Reset the trajectory to a fresh state to allow for updated coordinates
   let prev = this.prevTrajectory[planet.name];

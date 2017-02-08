@@ -1,15 +1,23 @@
 import moment from 'moment';
 
-const numToRun = 1000;
+const numToRun = 100000;
 
-function Simulation(solarSystem, renderer, stats) {
+function Simulation(solarSystem, renderers, stats, container) {
   this.solarSystem = solarSystem;
-  this.renderer = renderer;
+  this.renderers = renderers;
+  this.rendererIdx = 0;
+  this.renderer = renderers[this.rendererIdx];
   this.stats = stats;
   this.isStopped = true;
   this.time = Date.now();
   this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6, 10e7, 10e8];
   this.timeWarpIdx = 6;
+
+  this.metaContainer = document.getElementById('meta');
+  this.metaContainer.appendChild(stats.dom);
+
+  this.timeCounter = document.createElement('h4');
+  this.metaContainer.appendChild(this.timeCounter);
 
   /**
    * Handle window event listeners
@@ -18,25 +26,14 @@ function Simulation(solarSystem, renderer, stats) {
   const pause = (event) => {
     sim.pause();
   };
-  const toggleRun = (event) => {
-    if (sim.isRunning()) {
-      sim.pause();
-    } else {
-      sim.run();
-    }
-  };
-  const slowDown = (event) => {
-    sim.slowDown();
-  };
-  const speedUp = (event) => {
-    sim.speedUp();
-  };
+
   const keypresses = (event) => {
     const keyCodes = {
       32: sim.toggleRun,
       44: sim.slowDown,
       46: sim.speedUp,
       99: sim.recenter,
+      122: sim.toggleView,
     };
 
     if (event.type === "keypress" && keyCodes.hasOwnProperty(event.keyCode)) {
@@ -45,14 +42,32 @@ function Simulation(solarSystem, renderer, stats) {
     }
   };
 
-  console.log("Adding event listeners for simulation");
   window.addEventListener("blur", pause);
   window.addEventListener("unload", pause);
   window.addEventListener("keypress", keypresses);
 };
 
+Simulation.prototype.toggleView = function () {
+
+  this.rendererIdx = (this.rendererIdx + 1) % this.renderers.length;
+  const oldRenderer = this.renderer;
+  const newRenderer = this.renderers[this.rendererIdx];
+
+  newRenderer.initialize(this.solarSystem)
+    .then(() => {
+      newRenderer.render(this.solarSystem);
+    });
+
+  this.renderer = newRenderer;
+
+  oldRenderer.container.style = 'display: none;';
+  newRenderer.container.style = '';
+
+  oldRenderer.uninitialize();
+}
+
 Simulation.prototype.speedUp = function () {
-  if (this.isStopped) {
+  if (!this.isRunning()) {
     return;
   }
 
@@ -60,7 +75,7 @@ Simulation.prototype.speedUp = function () {
 };
 
 Simulation.prototype.slowDown = function () {
-  if (this.isStopped) {
+  if (!this.isRunning()) {
     return;
   }
 
@@ -84,6 +99,10 @@ Simulation.prototype.toggleRun = function () {
 };
 
 Simulation.prototype.recenter = function () {
+  if (!this.isRunning()) {
+    return;
+  }
+
   this.renderer.recenter();
 };
 
@@ -91,7 +110,7 @@ Simulation.prototype.initialize = function () {
   this.solarSystem.update(this.time, 0);
   this.renderer.initialize(this.solarSystem)
     .then(() => {
-      this.renderer.render(this, this.solarSystem);
+      this.renderer.render(this.solarSystem);
     });
 };
 
@@ -125,7 +144,7 @@ Simulation.prototype.run = function () {
 
     // Update physics
     this.solarSystem.update(t, dt);
-    this.renderer.render(this.time, this.solarSystem);
+    this.renderer.render(this.solarSystem);
 
     numTimes++;
     if (numTimes >= numToRun) {
@@ -134,6 +153,8 @@ Simulation.prototype.run = function () {
       this.uninitialize();
       return false;
     }
+
+    this.timeCounter.innerHTML = `${moment(this.time).format()}`;
 
     this.time += dt;
     this.stats.end();
