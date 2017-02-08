@@ -7,6 +7,7 @@ const PLANET_COLOURS = {
   "mercury": "silver",
   "mars": "red",
   "earth": "skyblue",
+  "moon": "pink",
   "venus": "green",
   "sun": "yellow",
   "jupiter": "orange",
@@ -20,7 +21,7 @@ const PLANET_SIZES = {
   "mercury": 2.5,
   "venus": 6,
   "earth": 3,
-  "iss": 0.5,
+  "moon": 2,
   "pluto": 6,
   "mars": 3.5,
   "jupiter": 10,
@@ -148,8 +149,8 @@ OrbitalMapRenderer.prototype.viewWillAppear = function (solarSystem) {
           color: PLANET_COLOURS[planet.name]
         }));
 
-      this.scene.add(periapsis);
-      this.scene.add(apoapsis);
+      //this.scene.add(periapsis);
+      //this.scene.add(apoapsis);
       this.scene.add(trajectory);
 
       this.planetMap[planet.name].periapsis = periapsis;

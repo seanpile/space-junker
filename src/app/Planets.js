@@ -45,6 +45,24 @@ export default {
       omega: [49.71320984, -0.26852431],
     }
   },
+  "moon": {
+    primary: "earth",
+    constants: {
+      u: 4.902794e12 / Math.pow(AU, 3),
+      radius: 1738e3 / AU
+    },
+    kepler_elements: {
+      a: [0.00257, 0],
+      e: [0.0549, 0],
+      I: [5.145, 0],
+      // mean longitude,
+      L: [0, 500000],
+      // longitude of perihelion
+      w: [0, 0],
+      // longitude of the ascending node
+      omega: [0, 0],
+    }
+  },
   "earth": {
     primary: "sun",
     constants: {

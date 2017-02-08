@@ -107,7 +107,11 @@ Simulation.prototype.recenter = function () {
 };
 
 Simulation.prototype.initialize = function () {
+
+  // Ensure the solar system is fully 'seeded' before we attempt to render
   this.solarSystem.update(this.time, 0);
+
+  // Prepare and render the initial frame
   this.renderer.viewWillAppear(this.solarSystem)
     .then(() => {
       this.renderer.render(this.solarSystem);
