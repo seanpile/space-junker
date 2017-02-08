@@ -6,7 +6,7 @@
  * throughout the simulation.
  */
 
-const AU = 149.59787e9;
+export const AU = 149.59787e9;
 
 export default {
   "sun": {
@@ -16,9 +16,10 @@ export default {
     }
   },
   "venus": {
+    primary: "sun",
     constants: {
       u: 0.3249e15 / Math.pow(AU, 3),
-      radius: 6.0518e6 / AU
+      radius: 6.0518e6 / AU,
     },
     kepler_elements: {
       a: [0.72332102, -0.00000026],
@@ -30,9 +31,10 @@ export default {
     }
   },
   "mars": {
+    primary: "sun",
     constants: {
       u: 0.04283e15 / Math.pow(AU, 3),
-      radius: 3.397e6 / AU
+      radius: 3.397e6 / AU,
     },
     kepler_elements: {
       a: [1.52371243, 0.00000097],
@@ -44,9 +46,10 @@ export default {
     }
   },
   "earth": {
+    primary: "sun",
     constants: {
       u: 0.3986e15 / Math.pow(AU, 3),
-      radius: 6.3781e6 / AU
+      radius: 6.3781e6 / AU,
     },
     kepler_elements: {
       a: [1.00000018, -0.00000003],
@@ -58,9 +61,11 @@ export default {
     }
   },
   "mercury": {
+    primary: "sun",
     constants: {
       u: 0.02203e15 / Math.pow(AU, 3),
-      radius: 2.4397e6 / AU
+      radius: 2.4397e6 / AU,
+      primary: "sun",
     },
     kepler_elements: {
       a: [0.38709843, 0.0],
@@ -72,6 +77,7 @@ export default {
     }
   },
   "jupiter": {
+    primary: "sun",
     constants: {
       u: 126.686e15 / Math.pow(AU, 3),
       radius: 7.1492e7 / AU,
@@ -92,9 +98,10 @@ export default {
     }
   },
   "uranus": {
+    primary: "sun",
     constants: {
       u: 5.794e15 / Math.pow(AU, 3),
-      radius: 2.5559e7 / AU
+      radius: 2.5559e7 / AU,
     },
     kepler_elements: {
       a: [19.18797948, -0.00020455],
@@ -112,9 +119,10 @@ export default {
     }
   },
   "neptune": {
+    primary: "sun",
     constants: {
       u: 6.835e15 / Math.pow(AU, 3),
-      radius: 2.4764e7 / AU
+      radius: 2.4764e7 / AU,
     },
     kepler_elements: {
       a: [30.06952752, 0.00006447],
@@ -132,6 +140,7 @@ export default {
     }
   },
   "saturn": {
+    primary: "sun",
     constants: {
       u: 37.391e15 / Math.pow(AU, 3),
       radius: 6.0268e7 / AU,
@@ -152,6 +161,7 @@ export default {
     }
   },
   "pluto": {
+    primary: "sun",
     constants: {
       u: 0.00083e15 / Math.pow(AU, 3),
       radius: 1.195e6 / AU,

@@ -1,5 +1,7 @@
 import moment from 'moment';
-import PLANETS from './Planets';
+import PLANETS, {
+  AU
+} from './Planets';
 import {
   Vector3
 } from 'three';
@@ -9,13 +11,25 @@ const J2000_epoch = 2451545.0;
 
 function SolarSystem() {
 
-  this.planets = Object.keys(PLANETS)
+  const planetMap = new Map(Object.keys(PLANETS)
     .map(function (name) {
       let planet = PLANETS[name];
       planet.name = name;
       planet.derived = {};
+      return [name, planet];
+    }));
+
+  const planets = Array.from(planetMap.values())
+    .map((planet) => {
+
+      if (planet.primary) {
+        planet.primary = planetMap.get(planet.primary);
+      }
+
       return planet;
     });
+
+  this.planets = planets;
   this.bodies = [];
 };
 
@@ -37,7 +51,14 @@ SolarSystem.prototype.update = function (t, dt) {
 
     let kepler_elements = planet.kepler_elements;
     let planet_constants = planet.constants;
+    let primary = planet.primary;
     let derived = planet.derived;
+    let u = primary.constants.u;
+
+    // For bodies...
+    //  -> Calculate initial r, v using kepler_elements
+    //  -> Integrate to find r', v'
+    //  -> Use r', v' to compute kepler elements
 
     let a = kepler_elements.a[0] + kepler_elements.a[1] * T;
     let e = kepler_elements.e[0] + kepler_elements.e[1] * T;
@@ -46,9 +67,11 @@ SolarSystem.prototype.update = function (t, dt) {
     let w = kepler_elements.w[0] + kepler_elements.w[1] * T;
     let omega = kepler_elements.omega[0] + kepler_elements.omega[1] * T;
     let perturbations = kepler_elements.perturbations;
+    let M = this._calculateMeanAnomaly(L, w, perturbations, T);
 
-    let delta = this._calculatePlanetPosition(a, e, I, L, w, omega, perturbations, T);
+    let delta = this._toCartesianCoordinates(a, e, I, L, w, omega, M, u);
     let position = delta.position;
+    let velocity = delta.velocity;
 
     // Semi-minor axis
     let b = a * Math.sqrt(1 - Math.pow(e, 2));
@@ -71,6 +94,7 @@ SolarSystem.prototype.update = function (t, dt) {
       omega: omega,
       argumentPerihelion: argumentPerihelion,
       position: position,
+      velocity: velocity,
       semiMajorAxis: a,
       semiMinorAxis: b,
       center: this._transformToEcliptic(center, argumentPerihelion, omega, I),
@@ -83,22 +107,9 @@ SolarSystem.prototype.update = function (t, dt) {
   this.lastTime = t + dt;
 };
 
-SolarSystem.prototype._calculatePlanetPosition = function (a, e, I, L, w, omega, perturbations, T) {
+SolarSystem.prototype._toCartesianCoordinates = function (a, e, I, L, w, omega, M, u) {
 
   let argumentPerihelion = w - omega;
-  let M = L - w;
-  if (perturbations) {
-    M += perturbations.b * Math.pow(T, 2) +
-      perturbations.c * Math.cos(perturbations.f * T) +
-      perturbations.s * Math.sin(perturbations.f * T);
-  }
-
-  M = M % 360;
-  if (M > 180) {
-    M = M - 360;
-  } else if (M < -180) {
-    M = 360 + M;
-  }
 
   const E = this._calculateEccentricAnomaly(e, M);
 
@@ -117,13 +128,27 @@ SolarSystem.prototype._calculatePlanetPosition = function (a, e, I, L, w, omega,
     helioCentricPosition,
     argumentPerihelion * Math.PI / 180,
     omega * Math.PI / 180,
-    I * Math.PI / 180)
+    I * Math.PI / 180);
+
+  // Calculate the velocity in the planets orbital planet
+  let helioCentricVelocity = new Vector3(-Math.sin(trueAnomaly),
+      e + Math.cos(trueAnomaly),
+      0)
+    .multiplyScalar((Math.sqrt(u / Math.pow(a, 3)) * a) / Math.sqrt(1 - Math.pow(e, 2)));
+
+  // Convert to the ecliptic plane
+  let eclipticVelocity = this._transformToEcliptic(
+    helioCentricVelocity,
+    argumentPerihelion * Math.PI / 180,
+    omega * Math.PI / 180,
+    I * Math.PI / 180);
 
   return {
     meanAnomaly: M * (Math.PI / 180),
     eccentricAnomaly: E * (Math.PI / 180),
     trueAnomaly: trueAnomaly,
-    position: eclipticPosition
+    position: eclipticPosition,
+    velocity: eclipticVelocity
   };
 };
 
@@ -131,7 +156,26 @@ SolarSystem.prototype._calculateJulianDate = function (date) {
   let Teph = J2000_epoch + date.diff(J2000_date, 'days', true);
   let T = (Teph - J2000_epoch) / 36525;
   return T;
-}
+};
+
+SolarSystem.prototype._calculateMeanAnomaly = function (L, w, perturbations, T) {
+
+  let M = L - w;
+  if (perturbations) {
+    M += perturbations.b * Math.pow(T, 2) +
+      perturbations.c * Math.cos(perturbations.f * T) +
+      perturbations.s * Math.sin(perturbations.f * T);
+  }
+
+  M = M % 360;
+  if (M > 180) {
+    M = M - 360;
+  } else if (M < -180) {
+    M = 360 + M;
+  }
+
+  return M;
+};
 
 SolarSystem.prototype._calculateEccentricAnomaly = function (e, M) {
   // Calculate eccentric anomaly, E

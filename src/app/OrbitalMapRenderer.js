@@ -1,7 +1,7 @@
 import OrbitControls from './lib/OrbitControls';
 import * as THREE from 'three';
 
-const DEFAULT_FOCUS = 'sun';
+const DEFAULT_FOCUS = 'earth';
 
 const PLANET_COLOURS = {
   "mercury": "silver",
@@ -77,6 +77,7 @@ function OrbitalMapRenderer(container, backgroundImage) {
     // Update the focus to the target planet
     if (found) {
       scope.focus = found.id;
+      scope.cameraChanged = true;
     }
   };
 
@@ -87,6 +88,7 @@ function OrbitalMapRenderer(container, backgroundImage) {
   this.addHandlers = function () {
     scope.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
     scope.orbitControls.maxDistance = 100;
+    scope.orbitControls.dollySpeed = 5.0;
     scope.orbitControls.addEventListener("change", onChangeOrbit);
     addEventListener("mousedown", onClick);
   };
