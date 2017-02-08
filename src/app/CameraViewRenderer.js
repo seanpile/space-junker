@@ -78,7 +78,7 @@ OrbitalMapRenderer.prototype.recenter = function () {
   this.cameraChanged = true;
 };
 
-OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
+OrbitalMapRenderer.prototype.viewWillAppear = function (solarSystem) {
 
   // Add event handlers, orbit controls
   this.addHandlers();
@@ -144,7 +144,7 @@ OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
   return Promise.resolve();
 };
 
-OrbitalMapRenderer.prototype.uninitialize = function () {
+OrbitalMapRenderer.prototype.viewWillDisappear = function () {
   this.removeHandlers();
 };
 

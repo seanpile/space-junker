@@ -53,17 +53,17 @@ Simulation.prototype.toggleView = function () {
   const oldRenderer = this.renderer;
   const newRenderer = this.renderers[this.rendererIdx];
 
-  newRenderer.initialize(this.solarSystem)
+  newRenderer.viewWillAppear(this.solarSystem)
     .then(() => {
       newRenderer.render(this.solarSystem);
     });
 
   this.renderer = newRenderer;
 
+  oldRenderer.viewWillDisappear();
+
   oldRenderer.container.style = 'display: none;';
   newRenderer.container.style = '';
-
-  oldRenderer.uninitialize();
 }
 
 Simulation.prototype.speedUp = function () {
@@ -108,14 +108,10 @@ Simulation.prototype.recenter = function () {
 
 Simulation.prototype.initialize = function () {
   this.solarSystem.update(this.time, 0);
-  this.renderer.initialize(this.solarSystem)
+  this.renderer.viewWillAppear(this.solarSystem)
     .then(() => {
       this.renderer.render(this.solarSystem);
     });
-};
-
-Simulation.prototype.uninitialize = function () {
-  this.renderer.uninitialize();
 };
 
 Simulation.prototype.run = function () {
@@ -132,7 +128,6 @@ Simulation.prototype.run = function () {
   runAnimation(function (dt) {
 
     if (this.isStopped) {
-      this.uninitialize();
       return false;
     }
 
@@ -150,7 +145,6 @@ Simulation.prototype.run = function () {
     if (numTimes >= numToRun) {
       console.log('All done!');
       this.isStopped = true;
-      this.uninitialize();
       return false;
     }
 

@@ -88,7 +88,7 @@ function OrbitalMapRenderer(container, backgroundImage) {
   this.addHandlers = function () {
     scope.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
     scope.orbitControls.maxDistance = 100;
-    scope.orbitControls.dollySpeed = 5.0;
+    scope.orbitControls.dollySpeed = 2.0;
     scope.orbitControls.addEventListener("change", onChangeOrbit);
     addEventListener("mousedown", onClick);
   };
@@ -107,7 +107,7 @@ OrbitalMapRenderer.prototype.recenter = function () {
   this.cameraChanged = true;
 };
 
-OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
+OrbitalMapRenderer.prototype.viewWillAppear = function (solarSystem) {
 
   // Add event handlers, orbit controls
   this.addHandlers();
@@ -170,7 +170,7 @@ OrbitalMapRenderer.prototype.initialize = function (solarSystem) {
   return Promise.resolve();
 };
 
-OrbitalMapRenderer.prototype.uninitialize = function () {
+OrbitalMapRenderer.prototype.viewWillDisappear = function () {
   this.removeHandlers();
 };
 
