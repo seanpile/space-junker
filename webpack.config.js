@@ -10,7 +10,7 @@ module.exports = {
   devtool: 'cheap-module-eval-source-map',
   module: {
     rules: [{
-      test: /\.jpg$/,
+      test: /\.(jpg|png)$/,
       use: [{
         loader: "file-loader",
       }],
@@ -28,6 +28,7 @@ module.exports = {
   output: {
     filename: '[chunkhash].[name].js',
     path: path.resolve(__dirname, 'build'),
+    publicPath: '/'
   },
   plugins: [
     new HtmlWebpackPlugin({

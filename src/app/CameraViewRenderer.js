@@ -1,12 +1,14 @@
+import BaseRenderer from './BaseRenderer';
 import OrbitControls from './lib/OrbitControls';
 import * as THREE from 'three';
 
-const DEFAULT_FOCUS = 'sun';
+const DEFAULT_FOCUS = 'earth';
 
 const PLANET_COLOURS = {
   "mercury": "silver",
   "mars": "red",
   "earth": "skyblue",
+  "moon": "gray",
   "venus": "green",
   "sun": "yellow",
   "jupiter": "orange",
@@ -30,210 +32,149 @@ const PLANET_SIZES = {
   "sun": 15,
 }
 
-function OrbitalMapRenderer(container, backgroundImage) {
+function CameraViewRenderer(container, backgroundImage) {
 
-  let width = 1024;
-  let height = 680;
+  BaseRenderer.call(this);
 
-  this.container = container;
+  this.width = window.innerWidth;
+  this.height = window.innerHeight;
   this.renderer = new THREE.WebGLRenderer();
-  this.renderer.setSize(width, height);
+  this.renderer.setSize(this.width, this.height);
+  this.container = container;
   container.appendChild(this.renderer.domElement);
-
-  this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
-  this.camera.position.z = 1;
-
-  this.scene = new THREE.Scene();
-  this.planetMap = new Map();
-  this.prevTrajectory = Object.create(null);
-
-  const scope = this;
-  const onClick = (event) => {
-    let x = event.clientX - width / 2;
-    let y = height / 2 - event.clientY;
-    console.log(`x = ${x}, y = ${y}`);
-  };
-  const onChangeOrbit = (event) => {
-    scope.cameraChanged = true;
-  };
-
-  this.addHandlers = function () {
-    scope.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-    scope.orbitControls.maxDistance = 100;
-    scope.orbitControls.addEventListener("change", onChangeOrbit);
-    addEventListener("mousedown", onClick);
-  };
-
-  this.removeHandlers = function () {
-    scope.orbitControls.removeEventListener("change", onChangeOrbit);
-    scope.orbitControls.dispose();
-    removeEventListener("mousedown", onClick);
-  };
 };
 
-OrbitalMapRenderer.prototype.recenter = function () {
-  console.log("Resetting camera");
-  this.camera.position.set(0, 0, 5);
-  this.camera.lookAt(new THREE.Vector3(0, 0, 0));
-  this.cameraChanged = true;
+CameraViewRenderer.prototype.recenter = function () {};
+
+/**
+ * Use this lifeycle method to add event listeners
+ */
+CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
+
+  return Promise.all([
+      this._loadTextures(),
+    ])
+    .then(([textures]) => {
+
+      this.scene = new THREE.Scene();
+
+      const skybox = this._createSkyBox(textures);
+      this.scene.add(skybox);
+
+      this.focus = DEFAULT_FOCUS;
+
+      const ambientLight = new THREE.AmbientLight(0x333333);
+      const pointLight = new THREE.PointLight(0xFFFFFF, 1, 100, 2);
+
+      this.lightSource = pointLight;
+      this.scene.add(ambientLight);
+      this.scene.add(pointLight);
+
+      this.bodyMap = new Map();
+
+      // initialize camera and scene
+      this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1e-10, 2);
+      this.camera.position.z = 0.0005;
+
+      solarSystem.planets.forEach(planet => {
+        let material;
+        if (textures.has(planet.name)) {
+          material = new THREE.MeshStandardMaterial({
+            map: textures.get(planet.name),
+          });
+        } else {
+          material = new THREE.MeshBasicMaterial({
+            color: PLANET_COLOURS[planet.name]
+          });
+        }
+
+        const threeBody = new THREE.Mesh(
+          new THREE.SphereGeometry(planet.constants.radius, 32, 32),
+          material);
+
+        this.scene.add(threeBody);
+        this.bodyMap.set(planet.name, threeBody);
+
+      });
+
+      return Promise.resolve();
+    });
 };
 
-OrbitalMapRenderer.prototype.viewWillAppear = function (solarSystem) {
-
-  // Add event handlers, orbit controls
-  this.addHandlers();
-
-  // Maintain a mapping from planet -> THREE object representing the planet
-  // This will allow us to update the existing THREE object on each iteration
-  // of the render loop.
-  solarSystem.planets.forEach(function (planet) {
-
-    if (planet.name === DEFAULT_FOCUS) {
-      this.focus = planet;
-    }
-
-    let threeObjects = this.planetMap[planet.name] || {};
-    for (let threeObject of Object.values(threeObjects))
-      this.scene.remove(threeObject);
-
-    const threeBody = new THREE.Mesh(new THREE.SphereGeometry(planet.constants.radius, 32, 32),
-      new THREE.MeshBasicMaterial({
-        color: PLANET_COLOURS[planet.name]
-      }));
-
-    this.scene.add(threeBody);
-    this.planetMap[planet.name] = Object.create(null);
-    this.planetMap[planet.name].body = threeBody;
-
-    if (planet.name !== 'sun') {
-
-      const periapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
-        new THREE.MeshBasicMaterial({
-          color: 'purple'
-        }));
-
-      const apoapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
-        new THREE.MeshBasicMaterial({
-          color: 'aqua'
-        }));
-
-      const trajectory = new THREE.Line(new THREE.RingGeometry(1, 1, 32),
-        new THREE.LineBasicMaterial({
-          color: PLANET_COLOURS[planet.name]
-        }));
-
-      this.scene.add(periapsis);
-      this.scene.add(apoapsis);
-      this.scene.add(trajectory);
-
-      this.planetMap[planet.name].periapsis = periapsis;
-      this.planetMap[planet.name].apoapsis = apoapsis;
-      this.planetMap[planet.name].trajectory = trajectory;
-
-      let trajectoryStats = Object.create(null);
-      trajectoryStats.argumentPerihelion = 0;
-      trajectoryStats.I = 0;
-      trajectoryStats.omega = 0;
-      this.prevTrajectory[planet.name] = trajectoryStats;
-    }
-
-  }, this);
-
-  this.scene.background = new THREE.Color('gray');
-  this.cameraChanged = true;
-  return Promise.resolve();
+/**
+ * Indicates that this view will be added to the UI.
+ */
+CameraViewRenderer.prototype.viewWillAppear = function () {
+  this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+  this.orbitControls.maxDistance = 50;
 };
 
-OrbitalMapRenderer.prototype.viewWillDisappear = function () {
-  this.removeHandlers();
+/**
+ * Indicates that this view will be removed from the UI.
+ */
+CameraViewRenderer.prototype.viewWillDisappear = function () {
+  this.orbitControls.dispose();
+  this.orbitControls = null;
 };
 
-OrbitalMapRenderer.prototype.render = function (solarSystem) {
+/**
+ * Render the given solar system
+ */
+CameraViewRenderer.prototype.render = function (solarSystem) {
 
+  // Find the body we are focusing on
+  const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
+
+  // Update light source
+  const sun = solarSystem.planets.find((planet) => planet.name === 'sun');
+  this.lightSource.position.copy(this._adjustCoordinates(focus, sun.derived.position));
+
+  // Update the positions of all of our bodies
   solarSystem.planets.forEach((planet) => {
 
-    let threeBody = this.planetMap[planet.name].body;
+    let threeBody = this.bodyMap.get(planet.name);
     let derived = planet.derived;
 
     // Adjust position to re-center the coordinate system on the focus
-    let position = this._adjustCoordinates(derived.position);
-
+    let position = this._adjustCoordinates(focus, derived.position);
     threeBody.position.set(position.x, position.y, position.z);
-
-    if (planet.name !== 'sun') {
-      let apoapsis = this._adjustCoordinates(derived.apoapsis);
-      let periapsis = this._adjustCoordinates(derived.periapsis);
-
-      let threePeriapsis = this.planetMap[planet.name].periapsis;
-      let threeApoapsis = this.planetMap[planet.name].apoapsis;
-      threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
-      threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
-
-      this._updateTrajectory(planet);
-    }
-
-    this._scalePlanet(planet);
-
   });
 
+  let radial = new THREE.Vector3()
+    .subVectors(focus.derived.position, focus.primary.derived.position);
+  radial.multiplyScalar(1 + 10 * focus.constants.radius / radial.length());
+  radial.add(focus.primary.derived.position);
+
+  radial = this._adjustCoordinates(focus, radial);
+
+  let spherical = new THREE.Spherical()
+    .setFromVector3(radial);
+  spherical.phi += Math.PI / 16;
+  spherical.makeSafe();
+  radial = new THREE.Vector3()
+    .setFromSpherical(spherical);
+
+  //this.camera.position.set(radial.x, radial.y, radial.z);
+  //this.camera.lookAt(this._adjustCoordinates(focus, focus.primary.derived.position));
+  //this.camera.lookAt(focus.derived.position);
   this.renderer.render(this.scene, this.camera);
-  this.cameraChanged = false;
 };
 
 /**
  * Recenter the coordinate system on the focus being the 'center'.
  */
-OrbitalMapRenderer.prototype._adjustCoordinates = function (position) {
-  return position.clone()
-    .sub(this.focus.derived.position);
+CameraViewRenderer.prototype._adjustCoordinates = function (focus, position) {
+
+  if (!focus)
+    return position.clone();
+
+  let coordinates = position.clone()
+    .sub(focus.derived.position);
+
+  return coordinates;
 };
 
-OrbitalMapRenderer.prototype._scalePlanet = function (planet) {
+// Inherit from BaseRenderer
+Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);
 
-  /** Don't do anything unless the camera changed, minor optimization */
-  if (!this.cameraChanged) {
-    return;
-  }
-
-  let sizeAt1AU = 0.005;
-
-  let threeBody = this.planetMap[planet.name].body;
-  let cameraDistance = this.camera.position.distanceTo(threeBody.position);
-  let size = 2 * cameraDistance * sizeAt1AU;
-  let scale = size / planet.constants.radius;
-
-  threeBody.scale.set(scale, scale, scale);
-};
-
-OrbitalMapRenderer.prototype._updateTrajectory = function (planet) {
-  // Redraw the trajectory for this planet
-  let trajectory = this.planetMap[planet.name].trajectory;
-
-  let derived = planet.derived;
-  let semiMajorAxis = derived.semiMajorAxis;
-  let semiMinorAxis = derived.semiMinorAxis;
-  let center = this._adjustCoordinates(derived.center);
-
-  // Reset the trajectory to a fresh state to allow for updated coordinates
-  let prev = this.prevTrajectory[planet.name];
-  trajectory.scale.set(1, 1, 1);
-  trajectory.rotateZ(-prev.argumentPerihelion);
-  trajectory.rotateX(-prev.I);
-  trajectory.rotateZ(-prev.omega);
-  trajectory.position.set(0, 0, 0);
-
-  // Now adjust the trajectory to its actual orientation
-  trajectory.translateX(center.x);
-  trajectory.translateY(center.y);
-  trajectory.translateZ(center.z);
-  trajectory.rotateZ(derived.omega);
-  trajectory.rotateX(derived.I);
-  trajectory.rotateZ(derived.argumentPerihelion);
-  trajectory.scale.set(semiMajorAxis, semiMinorAxis, 1);
-
-  this.prevTrajectory[planet.name].argumentPerihelion = derived.argumentPerihelion;
-  this.prevTrajectory[planet.name].I = derived.I;
-  this.prevTrajectory[planet.name].omega = derived.omega;
-};
-
-export default OrbitalMapRenderer;
+export default CameraViewRenderer;

@@ -5,7 +5,7 @@ const numToRun = 100000;
 function Simulation(solarSystem, renderers, stats, container) {
   this.solarSystem = solarSystem;
   this.renderers = renderers;
-  this.rendererIdx = 0;
+  this.rendererIdx = 1;
   this.renderer = renderers[this.rendererIdx];
   this.stats = stats;
   this.isStopped = true;
@@ -48,22 +48,18 @@ function Simulation(solarSystem, renderers, stats, container) {
 };
 
 Simulation.prototype.toggleView = function () {
-
   this.rendererIdx = (this.rendererIdx + 1) % this.renderers.length;
   const oldRenderer = this.renderer;
-  const newRenderer = this.renderers[this.rendererIdx];
-
-  newRenderer.viewWillAppear(this.solarSystem)
-    .then(() => {
-      newRenderer.render(this.solarSystem);
-    });
-
-  this.renderer = newRenderer;
 
   oldRenderer.viewWillDisappear();
-
   oldRenderer.container.style = 'display: none;';
+
+  const newRenderer = this.renderers[this.rendererIdx];
+
+  newRenderer.viewWillAppear();
   newRenderer.container.style = '';
+
+  this.renderer = newRenderer;
 }
 
 Simulation.prototype.speedUp = function () {
@@ -111,12 +107,21 @@ Simulation.prototype.initialize = function () {
   // Ensure the solar system is fully 'seeded' before we attempt to render
   this.solarSystem.update(this.time, 0);
 
-  // Prepare and render the initial frame
-  this.renderer.viewWillAppear(this.solarSystem)
+  this.renderers.forEach((renderer) => {
+    renderer.container.style = 'display: none;';
+  });
+
+  // Bring up the appropriate view and hide the others
+  return Promise.all(this.renderers.map((renderer, idx) => {
+      return renderer.viewDidLoad(this.solarSystem);
+    }))
     .then(() => {
-      this.renderer.render(this.solarSystem);
+      // Once the views are loaded, we can be prepare to surface this view
+      this.renderer.viewWillAppear();
+      this.renderer.container.style = '';
+      return Promise.resolve();
     });
-};
+}
 
 Simulation.prototype.run = function () {
 
@@ -126,8 +131,6 @@ Simulation.prototype.run = function () {
 
   this.isStopped = false;
   let numTimes = 0;
-
-  this.initialize();
 
   runAnimation(function (dt) {
 
