@@ -49,7 +49,9 @@ export default {
     primary: "earth",
     constants: {
       u: 4.902794e12 / Math.pow(AU, 3),
-      radius: 1738e3 / AU
+      radius: 1738e3 / AU,
+      rotation_period: 27.321661,
+      axial_tilt: 6.687
     },
     kepler_elements: {
       a: [0.00257, 0],
@@ -68,6 +70,8 @@ export default {
     constants: {
       u: 0.3986e15 / Math.pow(AU, 3),
       radius: 6.3781e6 / AU,
+      rotation_period: 0.99726968,
+      axial_tilt: 23.4392811,
     },
     kepler_elements: {
       a: [1.00000018, -0.00000003],

@@ -1,0 +1,19 @@
+#time-counter {
+    position: absolute;
+    padding-left: 10px;
+    top: 10px;
+    width: 100%;
+    text-align: left;
+    z-index: 100;
+    display: block;
+    color: silver;
+}
+
+#stats {
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
+    text-align: center;
+    z-index: 100;
+    display: block;
+}

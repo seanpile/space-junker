@@ -121,6 +121,12 @@ SolarSystem.prototype.update = function (t, dt) {
     let apoapsis = new Vector3(-a * (1 + e), 0, 0);
     let center = new Vector3(periapsis.x - a, 0, 0);
 
+    let rotation = (derived.rotation || 0) +
+      2 * Math.PI * dt /
+      ((planet_constants.rotation_period || 1) * 86400e3);
+
+    // rotation = (dt / rotation_period_ms) * 360
+
     // Convert params to radians for this next transformation
     let argumentPerihelion = (w - omega) * (Math.PI / 180);
     omega = omega * (Math.PI / 180);
@@ -139,6 +145,7 @@ SolarSystem.prototype.update = function (t, dt) {
       velocity: velocity,
       semiMajorAxis: a,
       semiMinorAxis: b,
+      rotation: rotation,
       center: this._transformToEcliptic(primary.derived.position, center, argumentPerihelion, omega, I),
       periapsis: this._transformToEcliptic(primary.derived.position, periapsis, argumentPerihelion, omega, I),
       apoapsis: this._transformToEcliptic(primary.derived.position, apoapsis, argumentPerihelion, omega, I),
@@ -182,7 +189,7 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, a, e, I, L, w
 
   // Convert to the ecliptic plane
   let eclipticVelocity = this._transformToEcliptic(
-    new Vector3(0, 0, 0),  // Don't offset; we just want the orbital velocity
+    new Vector3(0, 0, 0), // Don't offset; we just want the orbital velocity
     helioCentricVelocity,
     argumentPerihelion * Math.PI / 180,
     omega * Math.PI / 180,

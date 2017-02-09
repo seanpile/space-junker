@@ -10,20 +10,25 @@ module.exports = {
   devtool: 'cheap-module-eval-source-map',
   module: {
     rules: [{
-      test: /\.(jpg|png)$/,
-      use: [{
-        loader: "file-loader",
-      }],
-    }, {
-      test: /\.js$/,
-      exclude: [/node_modules/],
-      use: [{
-        loader: 'babel-loader',
-        options: {
-          presets: ['es2015']
-        }
-      }]
-    }]
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.(jpg|png)$/,
+        use: [{
+          loader: "file-loader",
+        }],
+      }, {
+        test: /\.js$/,
+        exclude: [/node_modules/],
+        use: [{
+          loader: 'babel-loader',
+          options: {
+            presets: ['es2015']
+          }
+        }]
+      }
+    ]
   },
   output: {
     filename: '[chunkhash].[name].js',

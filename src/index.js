@@ -1,3 +1,4 @@
+import './css/styles.css';
 import SolarSystem from './app/SolarSystem';
 import Simulation from './app/Simulation';
 import CameraViewRenderer from './app/CameraViewRenderer';
@@ -43,5 +44,3 @@ simulation.initialize()
 // Attach some useful pieces of data for debugging
 window.solarSystem = solarSystem;
 window.THREE = THREE;
-window.camera = renderers[0].camera;
-window.planetMap = renderers[0].planetMap;

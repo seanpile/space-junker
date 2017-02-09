@@ -13,10 +13,13 @@ function Simulation(solarSystem, renderers, stats, container) {
   this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6, 10e7, 10e8];
   this.timeWarpIdx = 6;
 
+  stats.dom.id = 'stats';
+  stats.dom.style = '';
   this.metaContainer = document.getElementById('meta');
   this.metaContainer.appendChild(stats.dom);
 
   this.timeCounter = document.createElement('h4');
+  this.timeCounter.id = 'time-counter';
   this.metaContainer.appendChild(this.timeCounter);
 
   /**

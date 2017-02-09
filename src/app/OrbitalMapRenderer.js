@@ -18,20 +18,6 @@ const PLANET_COLOURS = {
   "pluto": "silver"
 };
 
-const PLANET_SIZES = {
-  "mercury": 2.5,
-  "venus": 6,
-  "earth": 3,
-  "moon": 2,
-  "pluto": 6,
-  "mars": 3.5,
-  "jupiter": 10,
-  "uranus": 7,
-  "neptune": 7,
-  "saturn": 8,
-  "sun": 15,
-}
-
 function OrbitalMapRenderer(container, backgroundImage) {
 
   BaseRenderer.call(this);
@@ -44,12 +30,12 @@ function OrbitalMapRenderer(container, backgroundImage) {
   container.appendChild(this.renderer.domElement);
 
   this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+  this.camera.up = new THREE.Vector3(0, 0, 1);
   this.camera.position.z = 5;
 
   this.scene = new THREE.Scene();
   this.bodyMap = new Map();
   this.focus = DEFAULT_FOCUS;
-  this.prevTrajectory = Object.create(null);
 
   const scope = this;
   const onClick = (event) => {
@@ -155,12 +141,6 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
           this.bodyMap[planet.name].periapsis = periapsis;
           this.bodyMap[planet.name].apoapsis = apoapsis;
           this.bodyMap[planet.name].trajectory = trajectory;
-
-          let trajectoryStats = Object.create(null);
-          trajectoryStats.argumentPerihelion = 0;
-          trajectoryStats.I = 0;
-          trajectoryStats.omega = 0;
-          this.prevTrajectory[planet.name] = trajectoryStats;
         }
 
       }, this);
@@ -245,11 +225,8 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
   let center = this._adjustCoordinates(focus, derived.center);
 
   // Reset the trajectory to a fresh state to allow for updated coordinates
-  let prev = this.prevTrajectory[planet.name];
   trajectory.scale.set(1, 1, 1);
-  trajectory.rotateZ(-prev.argumentPerihelion);
-  trajectory.rotateX(-prev.I);
-  trajectory.rotateZ(-prev.omega);
+  trajectory.rotation.set(0, 0, 0);
   trajectory.position.set(0, 0, 0);
 
   // Now adjust the trajectory to its actual orientation
@@ -260,10 +237,6 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
   trajectory.rotateX(derived.I);
   trajectory.rotateZ(derived.argumentPerihelion);
   trajectory.scale.set(semiMajorAxis, semiMinorAxis, 1);
-
-  this.prevTrajectory[planet.name].argumentPerihelion = derived.argumentPerihelion;
-  this.prevTrajectory[planet.name].I = derived.I;
-  this.prevTrajectory[planet.name].omega = derived.omega;
 };
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);
