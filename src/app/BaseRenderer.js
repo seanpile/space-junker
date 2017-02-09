@@ -3,25 +3,10 @@ import * as THREE from 'three';
 // Textures
 import moonmap from '../img/moonmap4k.jpg';
 import earthmap from '../img/earthmap8k.jpg';
-import sunmap from '../img/sunmap.jpg';
-
-import starfield_top from '../img/starfield-top.png';
-import starfield_bottom from '../img/starfield-bottom.png';
-import starfield_left from '../img/starfield-left.png';
-import starfield_right from '../img/starfield-right.png';
-import starfield_front from '../img/starfield-front.png';
-import starfield_back from '../img/starfield-back.png';
 
 const TEXTURES = {
   'earth': earthmap,
   'moon': moonmap,
-  'sun': sunmap,
-  'sf_right': starfield_right,
-  'sf_left': starfield_left,
-  'sf_top': starfield_top,
-  'sf_bottom': starfield_bottom,
-  'sf_front': starfield_front,
-  'sf_back': starfield_back,
 };
 
 export default function BaseRenderer() {}
@@ -44,22 +29,30 @@ BaseRenderer.prototype._loadTextures = function () {
 
 BaseRenderer.prototype._createSkyBox = function (textures) {
 
-  const skyGeometry = new THREE.CubeGeometry(100, 100, 100);
-  const materials = [
-    textures.get("sf_right"),
-    textures.get("sf_left"),
-    textures.get("sf_back"),
-    textures.get("sf_front"),
-    textures.get("sf_top"),
-    textures.get("sf_bottom"),
-  ];
+  //This will add a starfield to the background of a scene
+  let vertices = [];
 
-  const meshMaterials = materials.map((m) => new THREE.MeshBasicMaterial({
-    map: m,
-    side: THREE.BackSide
-  }));
+  for (let i = 0; i < 10000; i++) {
 
-  const skyMaterial = new THREE.MultiMaterial(meshMaterials);
-  const skyBox = new THREE.Mesh(skyGeometry, skyMaterial);
-  return skyBox;
+    let x = THREE.Math.randFloatSpread(2000);
+    let y = THREE.Math.randFloatSpread(2000);
+    let z = THREE.Math.randFloatSpread(2000);
+
+    x += Math.sign(x) * 100;
+    y += Math.sign(y) * 100;
+    z += Math.sign(z) * 100;
+
+    vertices.push(x, y, z);
+  }
+
+  let starsGeometry = new THREE.BufferGeometry();
+  starsGeometry.addAttribute('position',
+    new THREE.BufferAttribute(Float32Array.from(vertices), 3));
+
+  let starsMaterial = new THREE.PointsMaterial({
+    color: 0x888888
+  })
+
+  let starField = new THREE.Points(starsGeometry, starsMaterial);
+  return starField;
 };

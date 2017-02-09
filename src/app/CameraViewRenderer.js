@@ -42,6 +42,8 @@ function CameraViewRenderer(container, backgroundImage) {
   this.renderer.setSize(this.width, this.height);
   this.container = container;
   container.appendChild(this.renderer.domElement);
+
+  this.focus = DEFAULT_FOCUS;
 };
 
 CameraViewRenderer.prototype.recenter = function () {};
@@ -56,12 +58,13 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
     ])
     .then(([textures]) => {
 
+      // Find the body we are focusing on
+      const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
+
       this.scene = new THREE.Scene();
 
       const skybox = this._createSkyBox(textures);
       this.scene.add(skybox);
-
-      this.focus = DEFAULT_FOCUS;
 
       const ambientLight = new THREE.AmbientLight(0x333333);
       const pointLight = new THREE.PointLight(0xFFFFFF, 1, 100, 2);
@@ -74,7 +77,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
       // initialize camera and scene
       this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1e-10, 2);
-      this.camera.position.z = 0.0005;
+      this.camera.position.z = 5 * focus.constants.radius;
 
       solarSystem.planets.forEach(planet => {
         let material;
@@ -140,19 +143,19 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     threeBody.position.set(position.x, position.y, position.z);
   });
 
-  let radial = new THREE.Vector3()
-    .subVectors(focus.derived.position, focus.primary.derived.position);
-  radial.multiplyScalar(1 + 10 * focus.constants.radius / radial.length());
-  radial.add(focus.primary.derived.position);
-
-  radial = this._adjustCoordinates(focus, radial);
-
-  let spherical = new THREE.Spherical()
-    .setFromVector3(radial);
-  spherical.phi += Math.PI / 16;
-  spherical.makeSafe();
-  radial = new THREE.Vector3()
-    .setFromSpherical(spherical);
+  // let radial = new THREE.Vector3()
+  //   .subVectors(focus.derived.position, focus.primary.derived.position);
+  // radial.multiplyScalar(1 + 10 * focus.constants.radius / radial.length());
+  // radial.add(focus.primary.derived.position);
+  //
+  // radial = this._adjustCoordinates(focus, radial);
+  //
+  // let spherical = new THREE.Spherical()
+  //   .setFromVector3(radial);
+  // spherical.phi += Math.PI / 16;
+  // spherical.makeSafe();
+  // radial = new THREE.Vector3()
+  //   .setFromSpherical(spherical);
 
   //this.camera.position.set(radial.x, radial.y, radial.z);
   //this.camera.lookAt(this._adjustCoordinates(focus, focus.primary.derived.position));
