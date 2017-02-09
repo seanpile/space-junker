@@ -69,7 +69,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       };
       this.recenter();
 
-      this._togglePlanets = (event) => {
+      const togglePlanets = (event) => {
         if (event.type === 'keypress' && [91, 93].includes(event.keyCode)) {
           let focusIdx = solarSystem.planets.findIndex((p) => p.name === this.focus);
 
@@ -83,9 +83,28 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
           console.log(focusIdx);
           this.focus = solarSystem.planets[focusIdx].name;
+          this.orbitControls.minDistance = solarSystem.planets[focusIdx].constants.radius;
         }
       };
 
+      this.viewWillAppear = () => {
+        const focus = solarSystem.planets.find((p) => p.name === this.focus);
+
+        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls.minDistance = focus.constants.radius * 1.1;
+        this.orbitControls.maxDistance = focus.constants.radius * 100;
+        addEventListener("keypress", togglePlanets);
+      };
+
+      this.viewWillDisappear = () => {
+        removeEventListener("keypress", togglePlanets);
+        this.orbitControls.dispose();
+        this.orbitControls = null;
+      };
+
+      /**
+       * Create THREE objects for each of our bodies and add to the scene
+       */
       solarSystem.planets.forEach(planet => {
         let material;
         if (textures.has(planet.name)) {
@@ -108,24 +127,6 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
       return Promise.resolve();
     });
-};
-
-/**
- * Indicates that this view will be added to the UI.
- */
-CameraViewRenderer.prototype.viewWillAppear = function () {
-  this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-  this.orbitControls.maxDistance = 50;
-  addEventListener("keypress", this._togglePlanets);
-};
-
-/**
- * Indicates that this view will be removed from the UI.
- */
-CameraViewRenderer.prototype.viewWillDisappear = function () {
-  addEventListener("keypress", this._togglePlanets);
-  this.orbitControls.dispose();
-  this.orbitControls = null;
 };
 
 /**
