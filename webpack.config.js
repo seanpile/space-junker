@@ -33,7 +33,6 @@ module.exports = {
   output: {
     filename: '[name]-dist.js',
     path: path.resolve(__dirname, 'docs'),
-    publicPath: 'https://seanpile.github.io/space-junker/'
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -46,7 +45,7 @@ module.exports = {
     })
   ],
   devServer: {
-    contentBase: path.resolve(__dirname, 'docs'),
+    contentBase: path.resolve(__dirname, 'build'),
     publicPath: '/'
   },
 }
