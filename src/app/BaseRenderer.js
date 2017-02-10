@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 // Textures
 import map_sun from '../../docs/sunmap.jpg';
-import map_moon from '../../docs/moonmap4k.jpg';
-import map_earth from '../../docs/earthmap8k.jpg';
+import map_moon from '../../docs/moonmap.jpg';
+import map_earth from '../../docs/earthmap.jpg';
 import map_jupiter from '../../docs/jupitermap.jpg';
 import map_saturn from '../../docs/saturnmap.jpg';
 import map_mercury from '../../docs/mercurymap.jpg';

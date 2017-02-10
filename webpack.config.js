@@ -42,7 +42,7 @@ module.exports = {
     }),
     new webpack.optimize.CommonsChunkPlugin({
       name: 'vendor'
-    })
+    }),
   ],
   devServer: {
     contentBase: path.resolve(__dirname, 'build'),
