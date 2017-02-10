@@ -7,6 +7,7 @@ function Simulation(solarSystem, renderers, stats) {
   this.renderers = renderers;
   this.rendererIdx = 1;
   this.renderer = renderers[this.rendererIdx];
+  this.loaded = new Set();
   this.stats = stats;
   this.isStopped = true;
   this.time = Date.now();
@@ -41,21 +42,6 @@ function Simulation(solarSystem, renderers, stats) {
 
   window.addEventListener("keypress", keypresses);
 };
-
-Simulation.prototype.toggleView = function () {
-  this.rendererIdx = (this.rendererIdx + 1) % this.renderers.length;
-  const oldRenderer = this.renderer;
-
-  oldRenderer.viewWillDisappear();
-  oldRenderer.container.style = 'display: none;';
-
-  const newRenderer = this.renderers[this.rendererIdx];
-
-  newRenderer.viewWillAppear();
-  newRenderer.container.style = '';
-
-  this.renderer = newRenderer;
-}
 
 Simulation.prototype.speedUp = function () {
   if (!this.isRunning()) {
@@ -107,15 +93,43 @@ Simulation.prototype.initialize = function () {
   });
 
   // Bring up the appropriate view and hide the others
-  return Promise.all(this.renderers.map((renderer, idx) => {
-      return renderer.viewDidLoad(this.solarSystem);
-    }))
+  console.log(`Loading ${this.renderer.constructor.name}`);
+  return this.renderer.viewDidLoad(this.solarSystem)
     .then(() => {
       // Once the views are loaded, we can be prepare to surface this view
       this.renderer.viewWillAppear();
       this.renderer.container.style = '';
+      this.loaded.add(this.renderer);
       return Promise.resolve();
     });
+};
+
+Simulation.prototype.toggleView = function () {
+  this.rendererIdx = (this.rendererIdx + 1) % this.renderers.length;
+  const oldRenderer = this.renderer;
+
+  oldRenderer.viewWillDisappear();
+  oldRenderer.container.style = 'display: none;';
+
+  const newRenderer = this.renderers[this.rendererIdx];
+
+  let promise;
+  if (!this.loaded.has(newRenderer)) {
+    console.log(`Loading ${newRenderer.constructor.name}`);
+    promise = newRenderer.viewDidLoad(this.solarSystem)
+      .then(() => {
+        this.loaded.add(newRenderer);
+        return Promise.resolve();
+      })
+  } else {
+    promise = Promise.resolve();
+  }
+
+  promise.then(() => {
+    newRenderer.viewWillAppear();
+    newRenderer.container.style = '';
+    this.renderer = newRenderer;
+  });
 }
 
 Simulation.prototype.run = function () {

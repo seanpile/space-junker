@@ -5,12 +5,12 @@ import * as THREE from 'three';
 const DEFAULT_FOCUS = 'earth';
 
 const PLANET_COLOURS = {
-  "mercury": "silver",
-  "mars": "red",
-  "earth": "skyblue",
-  "moon": "pink",
-  "venus": "green",
   "sun": "yellow",
+  "mercury": "silver",
+  "venus": "green",
+  "earth": "skyblue",
+  "moon": "gray",
+  "mars": "red",
   "jupiter": "orange",
   "saturn": "tan",
   "uranus": "skyblue",
@@ -18,9 +18,9 @@ const PLANET_COLOURS = {
   "pluto": "silver"
 };
 
-function OrbitalMapRenderer(container, backgroundImage) {
+function OrbitalMapRenderer(container, textureLoader) {
 
-  BaseRenderer.call(this);
+  BaseRenderer.call(this, textureLoader);
 
   let width = window.innerWidth;
   let height = window.innerHeight;

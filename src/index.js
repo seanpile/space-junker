@@ -19,9 +19,11 @@ document.body.appendChild(mapViewContainer);
 document.body.appendChild(cameraViewContainer);
 document.body.appendChild(stats.dom);
 
+const textureLoader = new THREE.TextureLoader();
+
 const renderers = [
-  new OrbitalMapRenderer(mapViewContainer),
-  new CameraViewRenderer(cameraViewContainer),
+  new OrbitalMapRenderer(mapViewContainer, textureLoader),
+  new CameraViewRenderer(cameraViewContainer, textureLoader),
 ];
 
 const simulation = new Simulation(solarSystem, renderers, stats);

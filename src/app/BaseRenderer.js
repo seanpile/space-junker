@@ -15,7 +15,7 @@ import map_uranus from '../../docs/uranusmap.jpg';
 import lensflare from '../../docs/lensflare.png';
 
 const TEXTURES = {
-  'sun': map_sun,
+  //'sun': map_sun,
   'earth': map_earth,
   'moon': map_moon,
   'jupiter': map_jupiter,
@@ -29,14 +29,15 @@ const TEXTURES = {
   'lensflare': lensflare,
 };
 
-export default function BaseRenderer() {}
+export default function BaseRenderer(textureLoader) {
+  this.textureLoader = textureLoader;
+};
 
 BaseRenderer.prototype._loadTextures = function () {
-  const loader = new THREE.TextureLoader();
   return Promise.all(Object.entries(TEXTURES)
       .map(([key, value]) => {
         return new Promise((resolve, reject) => {
-          loader.load(value,
+          this.textureLoader.load(value,
             (texture) => {
               resolve([key, texture]);
             });

@@ -4,23 +4,9 @@ import * as THREE from 'three';
 
 const DEFAULT_FOCUS = 'earth';
 
-const PLANET_COLOURS = {
-  "mercury": "silver",
-  "mars": "red",
-  "earth": "skyblue",
-  "moon": "gray",
-  "venus": "green",
-  "sun": "yellow",
-  "jupiter": "orange",
-  "saturn": "tan",
-  "uranus": "skyblue",
-  "neptune": "lightblue",
-  "pluto": "silver"
-};
+function CameraViewRenderer(container, textureLoader) {
 
-function CameraViewRenderer(container, backgroundImage) {
-
-  BaseRenderer.call(this);
+  BaseRenderer.call(this, textureLoader);
 
   this.width = window.innerWidth;
   this.height = window.innerHeight;
@@ -136,20 +122,11 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
           return;
         }
 
-        let material;
-        if (textures.has(planet.name)) {
-          material = new THREE.MeshStandardMaterial({
-            map: textures.get(planet.name),
-          });
-        } else {
-          material = new THREE.MeshBasicMaterial({
-            color: PLANET_COLOURS[planet.name]
-          });
-        }
-
         const threeBody = new THREE.Mesh(
           new THREE.SphereGeometry(planet.constants.radius, 32, 32),
-          material);
+          new THREE.MeshStandardMaterial({
+            map: textures.get(planet.name),
+          }));
 
         this.scene.add(threeBody);
         this.bodyMap.set(planet.name, threeBody);
