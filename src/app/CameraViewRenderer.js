@@ -33,6 +33,7 @@ function CameraViewRenderer(container, backgroundImage) {
   container.appendChild(this.renderer.domElement);
 
   this.focus = DEFAULT_FOCUS;
+  this.bodyMap = new Map();
 };
 
 /**
@@ -62,8 +63,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       this.lightFlare = lensflare;
       this.scene.add(ambientLight);
       this.scene.add(pointLight);
-
-      this.bodyMap = new Map();
+      this.scene.add(lensflare);
 
       // initialize camera and scene
       this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1e-10, 2);
@@ -77,7 +77,8 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       };
       this.recenter();
 
-      const togglePlanets = (event) => {
+      // Allow user to toggle between planets
+      const onTogglePlanets = (event) => {
         if (event.type === 'keypress' && [91, 93].includes(event.keyCode)) {
           let focusIdx = solarSystem.planets.findIndex((p) => p.name === this.focus);
 
@@ -96,18 +97,32 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         }
       };
 
+      const tanFOV = Math.tan(((Math.PI / 180) * this.camera.fov / 2));
+      const onWindowResize = (event) => {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.fov = (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / this.height));
+
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+      };
+
+      /**
+       * Setup lifecycle methods for registering/deregistering event listeners
+       */
+
       this.viewWillAppear = () => {
         const focus = solarSystem.planets.find((p) => p.name === this.focus);
 
         this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
         this.orbitControls.minDistance = focus.constants.radius * 1.1;
         this.orbitControls.maxDistance = focus.constants.radius * 100;
-        addEventListener("keypress", togglePlanets);
-
+        addEventListener("keypress", onTogglePlanets);
+        addEventListener("resize", onWindowResize, false);
       };
 
       this.viewWillDisappear = () => {
-        removeEventListener("keypress", togglePlanets);
+        removeEventListener("resize", onWindowResize, false);
+        removeEventListener("keypress", onTogglePlanets);
         this.orbitControls.dispose();
         this.orbitControls = null;
       };
@@ -139,8 +154,6 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.scene.add(threeBody);
         this.bodyMap.set(planet.name, threeBody);
       });
-
-      this.scene.add(lensflare);
 
       return Promise.resolve();
     });

@@ -16,7 +16,7 @@ module.exports = {
       {
         test: /\.(jpg|png)$/,
         use: [{
-          loader: "file-loader",
+          loader: "file-loader?name=img/[name].[ext]",
         }],
       }, {
         test: /\.js$/,
@@ -31,20 +31,22 @@ module.exports = {
     ]
   },
   output: {
-    filename: '[chunkhash].[name].js',
-    path: path.resolve(__dirname, 'build'),
+    filename: '[name]-dist.js',
+    path: path.resolve(__dirname, 'docs'),
     publicPath: '/'
   },
   plugins: [
     new HtmlWebpackPlugin({
-      title: 'Space Junker'
+      title: 'Space Junker',
+      template: 'src/index.template.ejs',
+      inject: 'body',
     }),
     new webpack.optimize.CommonsChunkPlugin({
       name: 'vendor'
     })
   ],
   devServer: {
-    contentBase: path.resolve(__dirname, 'build'),
+    contentBase: path.resolve(__dirname, 'docs'),
     publicPath: '/'
   },
 }
