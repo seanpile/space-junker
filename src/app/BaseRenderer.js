@@ -1,12 +1,32 @@
 import * as THREE from 'three';
 
 // Textures
-import moonmap from '../img/moonmap4k.jpg';
-import earthmap from '../img/earthmap8k.jpg';
+import map_sun from '../img/sunmap.jpg';
+import map_moon from '../img/moonmap4k.jpg';
+import map_earth from '../img/earthmap8k.jpg';
+import map_jupiter from '../img/jupitermap.jpg';
+import map_saturn from '../img/saturnmap.jpg';
+import map_mercury from '../img/mercurymap.jpg';
+import map_venus from '../img/venusmap.jpg';
+import map_mars from '../img/marsmap.jpg';
+import map_pluto from '../img/plutomap.jpg';
+import map_neptune from '../img/neptunemap.jpg';
+import map_uranus from '../img/uranusmap.jpg';
+import lensflare from '../img/lensflare.png';
 
 const TEXTURES = {
-  'earth': earthmap,
-  'moon': moonmap,
+  'sun': map_sun,
+  'earth': map_earth,
+  'moon': map_moon,
+  'jupiter': map_jupiter,
+  'saturn': map_saturn,
+  'mercury': map_mercury,
+  'mars': map_mars,
+  'venus': map_venus,
+  'pluto': map_pluto,
+  'neptune': map_neptune,
+  'uranus': map_uranus,
+  'lensflare': lensflare,
 };
 
 export default function BaseRenderer() {}
@@ -32,17 +52,19 @@ BaseRenderer.prototype._createSkyBox = function (textures) {
   //This will add a starfield to the background of a scene
   let vertices = [];
 
-  for (let i = 0; i < 10000; i++) {
+  for (let i = 0; i < 20000; i++) {
 
-    let x = THREE.Math.randFloatSpread(2000);
-    let y = THREE.Math.randFloatSpread(2000);
-    let z = THREE.Math.randFloatSpread(2000);
+    let r;
 
-    x += Math.sign(x) * 100;
-    y += Math.sign(y) * 100;
-    z += Math.sign(z) * 100;
+    // Generate stars that are at least 5 AU away
+    do {
+      r = new THREE.Vector3(
+        THREE.Math.randFloatSpread(2000),
+        THREE.Math.randFloatSpread(2000),
+        THREE.Math.randFloatSpread(2000))
+    } while (r.lengthSq() < 50)
 
-    vertices.push(x, y, z);
+    vertices.push(r.x, r.y, r.z);
   }
 
   let starsGeometry = new THREE.BufferGeometry();

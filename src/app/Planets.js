@@ -15,11 +15,30 @@ export default {
       radius: 696e6 / AU,
     }
   },
+  "mercury": {
+    primary: "sun",
+    constants: {
+      u: 0.02203e15 / Math.pow(AU, 3),
+      radius: 2.4397e6 / AU,
+      rotation_period: 58.646, // days
+      axial_tilt: 0.034, // relative to orbit
+    },
+    kepler_elements: {
+      a: [0.38709843, 0.0],
+      e: [0.20563661, 0.00002123],
+      I: [7.00559432, -0.00590158],
+      L: [252.25166724, 149472.67486623],
+      w: [77.45771895, 0.15940013],
+      omega: [48.33961819, -0.12214182],
+    }
+  },
   "venus": {
     primary: "sun",
     constants: {
       u: 0.3249e15 / Math.pow(AU, 3),
       radius: 6.0518e6 / AU,
+      rotation_period: -243.025, // days (negative == retrograde)
+      axial_tilt: 177.36, // relative to orbit
     },
     kepler_elements: {
       a: [0.72332102, -0.00000026],
@@ -30,21 +49,7 @@ export default {
       omega: [76.67261496, -0.27274174],
     }
   },
-  "mars": {
-    primary: "sun",
-    constants: {
-      u: 0.04283e15 / Math.pow(AU, 3),
-      radius: 3.397e6 / AU,
-    },
-    kepler_elements: {
-      a: [1.52371243, 0.00000097],
-      e: [0.09336511, 0.00009149],
-      I: [1.85181869, -0.00724757],
-      L: [-4.56813164, 19140.29934243],
-      w: [-23.91744784, 0.45223625],
-      omega: [49.71320984, -0.26852431],
-    }
-  },
+
   "moon": {
     primary: "earth",
     constants: {
@@ -82,20 +87,21 @@ export default {
       omega: [-5.11260389, -0.24123856],
     }
   },
-  "mercury": {
+  "mars": {
     primary: "sun",
     constants: {
-      u: 0.02203e15 / Math.pow(AU, 3),
-      radius: 2.4397e6 / AU,
-      primary: "sun",
+      u: 0.04283e15 / Math.pow(AU, 3),
+      radius: 3.397e6 / AU,
+      rotation_period: 1.025957, // days
+      axial_tilt: 25.19, // relative to orbit
     },
     kepler_elements: {
-      a: [0.38709843, 0.0],
-      e: [0.20563661, 0.00002123],
-      I: [7.00559432, -0.00590158],
-      L: [252.25166724, 149472.67486623],
-      w: [77.45771895, 0.15940013],
-      omega: [48.33961819, -0.12214182],
+      a: [1.52371243, 0.00000097],
+      e: [0.09336511, 0.00009149],
+      I: [1.85181869, -0.00724757],
+      L: [-4.56813164, 19140.29934243],
+      w: [-23.91744784, 0.45223625],
+      omega: [49.71320984, -0.26852431],
     }
   },
   "jupiter": {
@@ -103,6 +109,8 @@ export default {
     constants: {
       u: 126.686e15 / Math.pow(AU, 3),
       radius: 7.1492e7 / AU,
+      rotation_period: 0.413542, // days
+      axial_tilt: 3.13, // relative to orbit
     },
     kepler_elements: {
       a: [5.20248019, -0.00002864],
@@ -119,11 +127,36 @@ export default {
       }
     }
   },
+  "saturn": {
+    primary: "sun",
+    constants: {
+      u: 37.391e15 / Math.pow(AU, 3),
+      radius: 6.0268e7 / AU,
+      rotation_period: 0.439583, // days
+      axial_tilt: 26.73, // relative to orbit
+    },
+    kepler_elements: {
+      a: [9.54149883, -0.00003065],
+      e: [0.05550825, -0.00032044],
+      I: [2.49424102, 0.00451969],
+      L: [50.07571329, 1222.11494724],
+      w: [92.86136063, 0.54179478],
+      omega: [113.63998702, -0.25015002],
+      perturbations: {
+        b: 0.00025899,
+        c: -0.13434469,
+        s: 0.87320147,
+        f: 38.35125000
+      }
+    }
+  },
   "uranus": {
     primary: "sun",
     constants: {
       u: 5.794e15 / Math.pow(AU, 3),
       radius: 2.5559e7 / AU,
+      rotation_period: 0.71833, // days (negative == retrograde)
+      axial_tilt: 97.77, // relative to orbit
     },
     kepler_elements: {
       a: [19.18797948, -0.00020455],
@@ -145,6 +178,8 @@ export default {
     constants: {
       u: 6.835e15 / Math.pow(AU, 3),
       radius: 2.4764e7 / AU,
+      rotation_period: 0.6713, // days (negative == retrograde)
+      axial_tilt: 28.32 // relative to orbit
     },
     kepler_elements: {
       a: [30.06952752, 0.00006447],
@@ -161,32 +196,13 @@ export default {
       }
     }
   },
-  "saturn": {
-    primary: "sun",
-    constants: {
-      u: 37.391e15 / Math.pow(AU, 3),
-      radius: 6.0268e7 / AU,
-    },
-    kepler_elements: {
-      a: [9.54149883, -0.00003065],
-      e: [0.05550825, -0.00032044],
-      I: [2.49424102, 0.00451969],
-      L: [50.07571329, 1222.11494724],
-      w: [92.86136063, 0.54179478],
-      omega: [113.63998702, -0.25015002],
-      perturbations: {
-        b: 0.00025899,
-        c: -0.13434469,
-        s: 0.87320147,
-        f: 38.35125000
-      }
-    }
-  },
   "pluto": {
     primary: "sun",
     constants: {
       u: 0.00083e15 / Math.pow(AU, 3),
       radius: 1.195e6 / AU,
+      rotation_period: 6.387230, // days
+      axial_tilt: 122.53, // relative to orbit
     },
     kepler_elements: {
       a: [39.48686035, 0.00449751],

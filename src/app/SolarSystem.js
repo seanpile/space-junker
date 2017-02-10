@@ -125,8 +125,6 @@ SolarSystem.prototype.update = function (t, dt) {
       2 * Math.PI * dt /
       ((planet_constants.rotation_period || 1) * 86400e3);
 
-    // rotation = (dt / rotation_period_ms) * 360
-
     // Convert params to radians for this next transformation
     let argumentPerihelion = (w - omega) * (Math.PI / 180);
     omega = omega * (Math.PI / 180);

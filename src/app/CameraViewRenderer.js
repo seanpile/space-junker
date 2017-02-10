@@ -24,7 +24,10 @@ function CameraViewRenderer(container, backgroundImage) {
 
   this.width = window.innerWidth;
   this.height = window.innerHeight;
-  this.renderer = new THREE.WebGLRenderer();
+  this.renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true
+  });
   this.renderer.setSize(this.width, this.height);
   this.container = container;
   container.appendChild(this.renderer.domElement);
@@ -46,14 +49,17 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
 
       this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color('black');
 
       const skybox = this._createSkyBox(textures);
       this.scene.add(skybox);
 
-      const ambientLight = new THREE.AmbientLight(0x333333);
+      const ambientLight = new THREE.AmbientLight(0x404040);
       const pointLight = new THREE.PointLight(0xFFFFFF, 1, 100, 2);
+      const lensflare = new THREE.LensFlare(textures.get('lensflare'), 100, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffff00));
 
       this.lightSource = pointLight;
+      this.lightFlare = lensflare;
       this.scene.add(ambientLight);
       this.scene.add(pointLight);
 
@@ -65,7 +71,9 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
       // Setup recenter function and immediately call it
       this.recenter = () => {
+        let focus = solarSystem.planets.find((planet) => planet.name === this.focus);
         this.camera.position.set(0, -5 * focus.constants.radius, 0);
+        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
       };
       this.recenter();
 
@@ -81,9 +89,10 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
             focusIdx = (focusIdx + 1) % solarSystem.planets.length;
           }
 
-          console.log(focusIdx);
           this.focus = solarSystem.planets[focusIdx].name;
+          console.log(`new focus: ${this.focus}`);
           this.orbitControls.minDistance = solarSystem.planets[focusIdx].constants.radius;
+          this.recenter();
         }
       };
 
@@ -94,6 +103,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.orbitControls.minDistance = focus.constants.radius * 1.1;
         this.orbitControls.maxDistance = focus.constants.radius * 100;
         addEventListener("keypress", togglePlanets);
+
       };
 
       this.viewWillDisappear = () => {
@@ -106,6 +116,11 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
        * Create THREE objects for each of our bodies and add to the scene
        */
       solarSystem.planets.forEach(planet => {
+
+        if (planet.name === 'sun') {
+          return;
+        }
+
         let material;
         if (textures.has(planet.name)) {
           material = new THREE.MeshStandardMaterial({
@@ -125,6 +140,8 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.bodyMap.set(planet.name, threeBody);
       });
 
+      this.scene.add(lensflare);
+
       return Promise.resolve();
     });
 };
@@ -137,12 +154,17 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
   // Find the body we are focusing on
   const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
 
-  // Update light source
+  // Update light sources
   const sun = solarSystem.planets.find((planet) => planet.name === 'sun');
   this.lightSource.position.copy(this._adjustCoordinates(focus, sun.derived.position));
+  this.lightFlare.position.copy(this._adjustCoordinates(focus, sun.derived.position));
 
   // Update the positions of all of our bodies
   solarSystem.planets.forEach((planet) => {
+
+    if (planet.name === 'sun') {
+      return;
+    }
 
     let threeBody = this.bodyMap.get(planet.name);
     let derived = planet.derived;
