@@ -22,71 +22,15 @@ function OrbitalMapRenderer(container, textureLoader) {
 
   BaseRenderer.call(this, textureLoader);
 
-  let width = window.innerWidth;
-  let height = window.innerHeight;
   this.container = container;
   this.renderer = new THREE.WebGLRenderer();
-  this.renderer.setSize(width, height);
+  this.renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(this.renderer.domElement);
-
-  this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
-  this.camera.up = new THREE.Vector3(0, 0, 1);
-  this.camera.position.z = 5;
 
   this.scene = new THREE.Scene();
   this.bodyMap = new Map();
   this.focus = DEFAULT_FOCUS;
 
-  const scope = this;
-  const onClick = (event) => {
-    let pixelMultiplier = window.devicePixelRatio;
-    let target = new THREE.Vector2(
-      (event.clientX - width / 2) * pixelMultiplier,
-      (height / 2 - event.clientY) * pixelMultiplier);
-
-    // Do a hit-test check for all planets
-    let found = Object.keys(scope.bodyMap)
-      .map((id) => {
-
-        let projection = scope.bodyMap[id].body.position.clone()
-          .project(scope.camera);
-        let body = new THREE.Vector2(projection.x * width, projection.y * height);
-
-        return {
-          id: id,
-          distance: body.distanceTo(target)
-        };
-      })
-      .sort((left, right) => left.distance - right.distance)
-      .find(({
-        id,
-        distance
-      }) => distance < 50);
-
-    // Update the focus to the target planet
-    if (found) {
-      scope.focus = found.id;
-      scope.cameraChanged = true;
-    }
-  };
-
-  const onChangeOrbit = (event) => {
-    scope.cameraChanged = true;
-  };
-
-  this.viewWillAppear = function () {
-    scope.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-    scope.orbitControls.maxDistance = 100;
-    scope.orbitControls.dollySpeed = 2.0;
-    scope.orbitControls.addEventListener("change", onChangeOrbit);
-    addEventListener("mousedown", onClick);
-  };
-
-  this.viewWillDisappear = function () {
-    scope.orbitControls.removeEventListener("change", onChangeOrbit);
-    scope.orbitControls.dispose();
-    removeEventListener("mousedown", onClick);
-  };
 };
 
 OrbitalMapRenderer.prototype.recenter = function () {
@@ -102,6 +46,73 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
       this._loadTextures()
     ])
     .then(([textures]) => {
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+
+      this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+      this.camera.up = new THREE.Vector3(0, 0, 1);
+      this.camera.position.z = 5;
+
+      const scope = this;
+      const onClick = (event) => {
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        let pixelMultiplier = window.devicePixelRatio;
+        let target = new THREE.Vector2(
+          (event.clientX - width / 2) * pixelMultiplier,
+          (height / 2 - event.clientY) * pixelMultiplier);
+
+        // Do a hit-test check for all planets
+        let found = Object.keys(scope.bodyMap)
+          .map((id) => {
+
+            let projection = scope.bodyMap[id].body.position.clone()
+              .project(scope.camera);
+            let body = new THREE.Vector2(projection.x * width, projection.y * height);
+
+            return {
+              id: id,
+              distance: body.distanceTo(target)
+            };
+          })
+          .sort((left, right) => left.distance - right.distance)
+          .find(({
+            id,
+            distance
+          }) => distance < 50);
+
+        // Update the focus to the target planet
+        if (found) {
+          scope.focus = found.id;
+          scope.cameraChanged = true;
+        }
+      };
+
+      const onChangeOrbit = (event) => {
+        scope.cameraChanged = true;
+      };
+
+      const onWindowResize = this._onWindowResize(height, this.camera.fov);
+
+      this.viewWillAppear = function () {
+        scope.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+        scope.orbitControls.maxDistance = 100;
+        scope.orbitControls.dollySpeed = 2.0;
+        scope.orbitControls.addEventListener("change", onChangeOrbit);
+        addEventListener("mousedown", onClick);
+        addEventListener("resize", onWindowResize, false);
+
+        onWindowResize();
+      };
+
+      this.viewWillDisappear = function () {
+        removeEventListener("resize", onWindowResize, false);
+        removeEventListener("mousedown", onClick);
+        scope.orbitControls.removeEventListener("change", onChangeOrbit);
+        scope.orbitControls.dispose();
+      };
 
       // Maintain a mapping from planet -> THREE object representing the planet
       // This will allow us to update the existing THREE object on each iteration

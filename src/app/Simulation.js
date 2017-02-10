@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-const numToRun = 100000;
+const numToRun = 10000;
 
 function Simulation(solarSystem, renderers, stats) {
   this.solarSystem = solarSystem;

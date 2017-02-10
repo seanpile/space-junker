@@ -8,13 +8,11 @@ function CameraViewRenderer(container, textureLoader) {
 
   BaseRenderer.call(this, textureLoader);
 
-  this.width = window.innerWidth;
-  this.height = window.innerHeight;
   this.renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true
   });
-  this.renderer.setSize(this.width, this.height);
+  this.renderer.setPixelRatio(window.devicePixelRatio);
   this.container = container;
   container.appendChild(this.renderer.domElement);
 
@@ -51,8 +49,11 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       this.scene.add(pointLight);
       this.scene.add(lensflare);
 
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+
       // initialize camera and scene
-      this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1e-10, 2);
+      this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
       this.camera.up = new THREE.Vector3(0, 0, 1); // make 'z' be the UP direction
 
       // Setup recenter function and immediately call it
@@ -83,14 +84,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         }
       };
 
-      const tanFOV = Math.tan(((Math.PI / 180) * this.camera.fov / 2));
-      const onWindowResize = (event) => {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.fov = (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / this.height));
-
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-      };
+      const onWindowResize = this._onWindowResize(height, this.camera.fov);
 
       /**
        * Setup lifecycle methods for registering/deregistering event listeners
@@ -104,6 +98,8 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.orbitControls.maxDistance = focus.constants.radius * 100;
         addEventListener("keypress", onTogglePlanets);
         addEventListener("resize", onWindowResize, false);
+
+        onWindowResize();
       };
 
       this.viewWillDisappear = () => {

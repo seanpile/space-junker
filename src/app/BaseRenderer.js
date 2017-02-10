@@ -33,6 +33,21 @@ export default function BaseRenderer(textureLoader) {
   this.textureLoader = textureLoader;
 };
 
+/**
+ *
+ */
+BaseRenderer.prototype._onWindowResize = function (originalHeight, originalFov) {
+  const tanFOV = Math.tan(((Math.PI / 180) * originalFov / 2));
+  return (event) => {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.fov = (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / originalHeight));
+
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+};
+
 BaseRenderer.prototype._loadTextures = function () {
   return Promise.all(Object.entries(TEXTURES)
       .map(([key, value]) => {
