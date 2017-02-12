@@ -39,15 +39,8 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       const skybox = this._createSkyBox(textures);
       this.scene.add(skybox);
 
-      const ambientLight = new THREE.AmbientLight(0x404040);
-      const pointLight = new THREE.PointLight(0xFFFFFF, 1, 100, 2);
-      const lensflare = new THREE.LensFlare(textures.get('lensflare'), 100, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffff00));
-
-      this.lightSource = pointLight;
-      this.lightFlare = lensflare;
-      this.scene.add(ambientLight);
-      this.scene.add(pointLight);
-      this.scene.add(lensflare);
+      const lightSources = this._setupLightSources(textures);
+      this.lightSources = lightSources;
 
       let width = window.innerWidth;
       let height = window.innerHeight;
@@ -142,8 +135,9 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
 
   // Update light sources
   const sun = solarSystem.planets.find((planet) => planet.name === 'sun');
-  this.lightSource.position.copy(this._adjustCoordinates(focus, sun.derived.position));
-  this.lightFlare.position.copy(this._adjustCoordinates(focus, sun.derived.position));
+  this.lightSources.forEach((light) => {
+    light.position.copy(this._adjustCoordinates(focus, sun.derived.position));
+  })
 
   // Update the positions of all of our bodies
   solarSystem.planets.forEach((planet) => {

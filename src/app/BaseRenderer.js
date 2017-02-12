@@ -63,6 +63,18 @@ BaseRenderer.prototype._loadTextures = function () {
     });
 };
 
+BaseRenderer.prototype._setupLightSources = function (textures) {
+  const ambientLight = new THREE.AmbientLight(0x404040);
+  const pointLight = new THREE.PointLight(0xFFFFFF, 1, 100, 2);
+  const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 100, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffff00));
+
+  this.scene.add(ambientLight);
+  this.scene.add(pointLight);
+  this.scene.add(lensFlare);
+
+  return [pointLight, lensFlare];
+};
+
 BaseRenderer.prototype._createSkyBox = function (textures) {
 
   //This will add a starfield to the background of a scene
@@ -78,7 +90,7 @@ BaseRenderer.prototype._createSkyBox = function (textures) {
         THREE.Math.randFloatSpread(2000),
         THREE.Math.randFloatSpread(2000),
         THREE.Math.randFloatSpread(2000))
-    } while (r.lengthSq() < 50)
+    } while (r.lengthSq() < 100)
 
     vertices.push(r.x, r.y, r.z);
   }
@@ -93,6 +105,6 @@ BaseRenderer.prototype._createSkyBox = function (textures) {
 
   let starField = new THREE.Points(starsGeometry, starsMaterial);
   starField.matrixAutoUpdate = false;
-  
+
   return starField;
 };

@@ -24,8 +24,8 @@ document.body.appendChild(stats.dom);
 const textureLoader = new THREE.TextureLoader();
 
 const renderers = [
-  new TestingRenderer(testingViewContainer),
   new OrbitalMapRenderer(mapViewContainer, textureLoader),
+  new TestingRenderer(testingViewContainer),
   new CameraViewRenderer(cameraViewContainer, textureLoader),
 ];
 

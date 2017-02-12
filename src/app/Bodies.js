@@ -102,8 +102,8 @@ export default {
       radius: 100 / AU,
     },
     kepler_elements: {
-      a: [400e3 / AU, 0],
-      e: [0.1, 0],
+      a: [(400e3 + 6.3781e6) / AU, 0],
+      e: [0, 0],
       I: [0, 0],
       L: [0, 50000],
       w: [0, 0],

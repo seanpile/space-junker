@@ -1,8 +1,14 @@
 import BaseRenderer from './BaseRenderer';
 import OrbitControls from './lib/OrbitControls';
+import {
+  PLANET_TYPE,
+  SHIP_TYPE,
+  ASTEROID_TYPE
+} from './Bodies';
 import * as THREE from 'three';
 
 const DEFAULT_FOCUS = 'earth';
+const TRAJECTORY_SCALE = 5;
 
 const PLANET_COLOURS = {
   "sun": "yellow",
@@ -55,6 +61,9 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
       this.camera.up = new THREE.Vector3(0, 0, 1);
       this.camera.position.z = 5;
 
+      const skybox = this._createSkyBox(textures);
+      this.scene.add(skybox);
+
       const scope = this;
       const onClick = (event) => {
         let width = window.innerWidth;
@@ -94,7 +103,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
       this.viewWillAppear = function () {
         this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.orbitControls.maxDistance = 100;
+        this.orbitControls.maxDistance = 100 * TRAJECTORY_SCALE;
         this.orbitControls.dollySpeed = 2.0;
         addEventListener("mousedown", onClick);
         addEventListener("resize", onWindowResize, false);
@@ -111,71 +120,42 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
       // Maintain a mapping from planet -> THREE object representing the planet
       // This will allow us to update the existing THREE object on each iteration
       // of the render loop.
-      solarSystem.planets.forEach(function (planet) {
+      solarSystem.planets.forEach((planet) => {
 
         const threeBody = new THREE.Mesh(new THREE.SphereGeometry(planet.constants.radius, 32, 32),
           new THREE.MeshBasicMaterial({
             color: PLANET_COLOURS[planet.name] || 'white'
           }));
 
+        const periapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
+          new THREE.MeshBasicMaterial({
+            color: 'purple'
+          }));
+
+        const apoapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
+          new THREE.MeshBasicMaterial({
+            color: 'aqua'
+          }));
+
+        const trajectory = new THREE.Line(
+          this._createTrajectoryGeometry(),
+          new THREE.LineBasicMaterial({
+            color: PLANET_COLOURS[planet.name] || 'white'
+          }));
+
         this.scene.add(threeBody);
-        this.bodyMap[planet.name] = Object.create(null);
-        this.bodyMap[planet.name].body = threeBody;
+        //this.scene.add(periapsis);
+        //this.scene.add(apoapsis);
+        this.scene.add(trajectory);
 
-        if (planet.name !== 'sun') {
-
-          const periapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
-            new THREE.MeshBasicMaterial({
-              color: 'purple'
-            }));
-
-          const apoapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
-            new THREE.MeshBasicMaterial({
-              color: 'aqua'
-            }));
-
-          // Create the trajectory using a strandard ellipse curve that will
-          // eventually scale/rotate/translate into the correct orbit path during
-          // the render loop.
-          const pointsGeometry = new THREE.Path(new THREE.EllipseCurve(
-                0, 0, // ax, aY
-                1, 1, // xRadius, yRadius
-                0, 2 * Math.PI, // aStartAngle, aEndAngle
-                false, // aClockwise
-                0 // aRotation
-              )
-              .getPoints(256))
-            .createPointsGeometry(256);
-          const bufferGeometry = new THREE.BufferGeometry();
-          const vertices = [];
-          for (let i = 0; i < pointsGeometry.vertices.length; i++) {
-            vertices.push(
-              pointsGeometry.vertices[i].x,
-              pointsGeometry.vertices[i].y,
-              pointsGeometry.vertices[i].z
-            );
-          }
-
-          bufferGeometry.addAttribute('position',
-            new THREE.BufferAttribute(new Float32Array(vertices), 3));
-
-          const trajectory = new THREE.Line(
-            bufferGeometry,
-            new THREE.LineBasicMaterial({
-              color: PLANET_COLOURS[planet.name] || 'white'
-            }));
-
-          //this.scene.add(periapsis);
-          //this.scene.add(apoapsis);
-          this.scene.add(trajectory);
-
-          this.bodyMap[planet.name].periapsis = periapsis;
-          this.bodyMap[planet.name].apoapsis = apoapsis;
-          this.bodyMap[planet.name].trajectory = trajectory;
-          this.bodyMap[planet.name].trajectoryVertices = Array.from(vertices);
+        this.bodyMap[planet.name] = {
+          body: threeBody,
+          periapsis: periapsis,
+          apoapsis: apoapsis,
+          trajectory: trajectory,
+          trajectoryVertices: Array.from(trajectory.geometry.attributes.position.array),
         }
-
-      }, this);
+      });
 
       return Promise.resolve();
     });
@@ -183,32 +163,30 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
 OrbitalMapRenderer.prototype.render = function (solarSystem) {
 
+  // Find the current user focus
   const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
+
+  // Locate primary body, sun
+  const sun = solarSystem.planets.find((planet) => planet.name === 'sun');
 
   solarSystem.planets.forEach((planet) => {
 
     let threeBody = this.bodyMap[planet.name].body;
+    let threePeriapsis = this.bodyMap[planet.name].periapsis;
+    let threeApoapsis = this.bodyMap[planet.name].apoapsis;
     let derived = planet.derived;
 
     // Adjust position to re-center the coordinate system on the focus
     let position = this._adjustCoordinates(focus, derived.position);
+    let apoapsis = this._adjustCoordinates(focus, derived.apoapsis);
+    let periapsis = this._adjustCoordinates(focus, derived.periapsis);
 
     threeBody.position.set(position.x, position.y, position.z);
+    threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
+    threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
-    if (planet.name !== 'sun') {
-      let apoapsis = this._adjustCoordinates(focus, derived.apoapsis);
-      let periapsis = this._adjustCoordinates(focus, derived.periapsis);
-
-      let threePeriapsis = this.bodyMap[planet.name].periapsis;
-      let threeApoapsis = this.bodyMap[planet.name].apoapsis;
-      threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
-      threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
-
-      this._updateTrajectory(focus, planet);
-    }
-
+    this._updateTrajectory(focus, planet);
     this._scalePlanet(planet);
-
   });
 
   this.renderer.render(this.scene, this.camera);
@@ -223,25 +201,30 @@ OrbitalMapRenderer.prototype._adjustCoordinates = function (focus, position) {
     return position.clone();
 
   let coordinates = position.clone()
-    .sub(focus.derived.position);
+    .sub(focus.derived.position)
+    .multiplyScalar(TRAJECTORY_SCALE);
 
   return coordinates;
 };
 
 OrbitalMapRenderer.prototype._scalePlanet = function (planet) {
 
-  /** Don't do anything unless the camera changed, minor optimization */
-  let sizeAt1AU = 0.005;
-
   let threeBody = this.bodyMap[planet.name].body;
+  let trajectory = this.bodyMap[planet.name].trajectory;
   let cameraDistance = this.camera.position.distanceTo(threeBody.position);
-  let size = 2 * cameraDistance * sizeAt1AU;
-  let scale = size / planet.constants.radius;
 
+  let scale = Math.max(0.005 * cameraDistance, planet.constants.radius) / planet.constants.radius;
   threeBody.scale.set(scale, scale, scale);
+
+  // Allow more 'space' between large bodies and their satellites
+  trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
 };
 
 OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
+
+  if (planet.name === 'sun')
+    return;
+
   // Redraw the trajectory for this planet
   let trajectory = this.bodyMap[planet.name].trajectory;
   let trajectoryVertices = this.bodyMap[planet.name].trajectoryVertices;
@@ -266,12 +249,13 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
 
   const geometry = trajectory.geometry;
   const positions = geometry.attributes.position.array;
-  const range = Math.floor(positions.length / 3 / 2);
+  const range = positions.length / 3;
+  const verticesToChange = 1;
   const verticesToTest = [];
 
   // Look at all the odd indexed vertices only for simplification
   for (let i = 0; i < range; i++) {
-    const offset = (i * 2 + 1) * 3;
+    const offset = i * 3;
     verticesToTest.push(new THREE.Vector3(trajectoryVertices[offset],
       trajectoryVertices[offset + 1], trajectoryVertices[offset + 2]));
   };
@@ -285,20 +269,26 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
   // Overwrite the closest vertex with the planets actual position.  This will
   // ensure that a vertex for our trajectory is always located at the planets
   // location.
-  sorted.forEach((element, idx) => {
-    let vertex = element[1];
-    let offset = (element[2] * 2 + 1) * 3;
-    if (idx == 0) {
+  sorted.slice(0, verticesToChange)
+    .forEach((element) => {
+      let vertex = element[1];
+      let offset = element[2] * 3;
       positions[offset] = scaledPosition.x;
       positions[offset + 1] = scaledPosition.y
       positions[offset + 2] = scaledPosition.z;
-    } else {
+    });
+
+  // Ensure that the rest of the vertices are set to their original value
+  sorted.slice(verticesToChange)
+    .forEach((element) => {
+      let vertex = element[1];
+      let offset = element[2] * 3;
       positions[offset] = trajectoryVertices[offset];
       positions[offset + 1] = trajectoryVertices[offset + 1];
       positions[offset + 2] = trajectoryVertices[offset + 2];
-    }
-  });
+    });
 
+  // Signal that this geometry needs a redraw
   geometry.attributes.position.needsUpdate = true;
 
   // Finally, apply scale/rotation/translation to the trajectory to place it
@@ -315,6 +305,38 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
   trajectory.rotateX(derived.I);
   trajectory.rotateZ(derived.argumentPerihelion);
   trajectory.scale.set(semiMajorAxis, semiMinorAxis, 1);
+};
+
+OrbitalMapRenderer.prototype._createTrajectoryGeometry = function () {
+
+  const NUM_POINTS = 256;
+
+  // Create the trajectory using a strandard ellipse curve that will
+  // eventually scale/rotate/translate into the correct orbit path during
+  // the render loop.
+  const pointsGeometry = new THREE.Path(new THREE.EllipseCurve(
+        0, 0, // ax, aY
+        1, 1, // xRadius, yRadius
+        0, 2 * Math.PI, // aStartAngle, aEndAngle
+        false, // aClockwise
+        0 // aRotation
+      )
+      .getPoints(NUM_POINTS))
+    .createPointsGeometry(NUM_POINTS);
+  const bufferGeometry = new THREE.BufferGeometry();
+  const vertices = [];
+  for (let i = 0; i < pointsGeometry.vertices.length; i++) {
+    vertices.push(
+      pointsGeometry.vertices[i].x,
+      pointsGeometry.vertices[i].y,
+      pointsGeometry.vertices[i].z
+    );
+  }
+
+  bufferGeometry.addAttribute('position',
+    new THREE.BufferAttribute(new Float32Array(vertices), 3));
+
+  return bufferGeometry;
 };
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);

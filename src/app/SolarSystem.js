@@ -90,7 +90,10 @@ SolarSystem.prototype.update = function (t, dt) {
     if (planet.name === 'sun') {
       planet.derived = {
         position: new Vector3(0, 0, 0),
-        velocity: new Vector3(0, 0, 0)
+        velocity: new Vector3(0, 0, 0),
+        apoapsis: new Vector3(0, 0, 0),
+        periapsis: new Vector3(0, 0, 0),
+        center: new Vector3(0, 0, 0)
       };
 
       return;
