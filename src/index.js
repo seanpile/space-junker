@@ -25,7 +25,6 @@ const textureLoader = new THREE.TextureLoader();
 
 const renderers = [
   new OrbitalMapRenderer(mapViewContainer, textureLoader),
-  new TestingRenderer(testingViewContainer),
   new CameraViewRenderer(cameraViewContainer, textureLoader),
 ];
 
