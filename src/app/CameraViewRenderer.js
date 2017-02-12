@@ -167,7 +167,7 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     threeBody.rotateX(derived.I);
     threeBody.rotateZ(derived.argumentPerihelion);
     threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-    threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -planet.constants.axial_tilt * Math.PI / 180);
+    threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(planet.constants.axial_tilt || 0) * Math.PI / 180);
     threeBody.rotateY(derived.rotation);
   });
 

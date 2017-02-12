@@ -5,7 +5,7 @@ const numToRun = 10000;
 function Simulation(solarSystem, renderers, stats) {
   this.solarSystem = solarSystem;
   this.renderers = renderers;
-  this.rendererIdx = 1;
+  this.rendererIdx = 0;
   this.renderer = renderers[this.rendererIdx];
   this.loaded = new Set();
   this.stats = stats;

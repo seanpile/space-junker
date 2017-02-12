@@ -1,9 +1,14 @@
 import moment from 'moment';
-import PLANETS, {
-  AU
-} from './Planets';
+import BODIES, {
+  AU,
+  PLANET_TYPE,
+  SHIP_TYPE,
+  ASTEROID_TYPE
+} from './Bodies';
+
 import {
-  Vector3
+  Vector3,
+  Quaternion
 } from 'three';
 
 const J2000_date = moment('2000-01-01T12:00:00Z');
@@ -12,9 +17,9 @@ const J2000_epoch = 2451545.0;
 function SolarSystem() {
 
   // Initialize map
-  const bodyMap = new Map(Object.keys(PLANETS)
+  const bodyMap = new Map(Object.keys(BODIES)
     .map(function (name) {
-      let planet = PLANETS[name];
+      let planet = BODIES[name];
       planet.name = name;
       planet.derived = {};
       return [name, planet];
@@ -140,11 +145,13 @@ SolarSystem.prototype.update = function (t, dt) {
       omega: omega,
       argumentPerihelion: argumentPerihelion,
       position: position,
+      position_in_plane: delta.position_in_plane,
       velocity: velocity,
       semiMajorAxis: a,
       semiMinorAxis: b,
       rotation: rotation,
       center: this._transformToEcliptic(primary.derived.position, center, argumentPerihelion, omega, I),
+      center_in_plane: center,
       periapsis: this._transformToEcliptic(primary.derived.position, periapsis, argumentPerihelion, omega, I),
       apoapsis: this._transformToEcliptic(primary.derived.position, apoapsis, argumentPerihelion, omega, I),
     }
@@ -198,6 +205,7 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, a, e, I, L, w
     eccentricAnomaly: E * (Math.PI / 180),
     trueAnomaly: trueAnomaly,
     position: eclipticPosition,
+    position_in_plane: helioCentricPosition,
     velocity: eclipticVelocity,
   };
 };

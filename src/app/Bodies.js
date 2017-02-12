@@ -7,15 +7,20 @@
  */
 
 export const AU = 149.59787e9;
+export const PLANET_TYPE = "planet";
+export const SHIP_TYPE = "ship";
+export const ASTEROID_TYPE = "asteroid";
 
 export default {
   "sun": {
+    type: PLANET_TYPE,
     constants: {
       u: 1.32712438e20 / Math.pow(AU, 3),
       radius: 696e6 / AU,
     }
   },
   "mercury": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.02203e15 / Math.pow(AU, 3),
@@ -33,6 +38,7 @@ export default {
     }
   },
   "venus": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.3249e15 / Math.pow(AU, 3),
@@ -51,6 +57,7 @@ export default {
   },
 
   "moon": {
+    type: PLANET_TYPE,
     primary: "earth",
     constants: {
       u: 4.902794e12 / Math.pow(AU, 3),
@@ -71,6 +78,7 @@ export default {
     }
   },
   "earth": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.3986e15 / Math.pow(AU, 3),
@@ -87,7 +95,23 @@ export default {
       omega: [-5.11260389, -0.24123856],
     }
   },
+  "firefly": {
+    type: SHIP_TYPE,
+    primary: "earth",
+    constants: {
+      radius: 100 / AU,
+    },
+    kepler_elements: {
+      a: [400e3 / AU, 0],
+      e: [0.1, 0],
+      I: [0, 0],
+      L: [0, 50000],
+      w: [0, 0],
+      omega: [0, 0],
+    },
+  },
   "mars": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.04283e15 / Math.pow(AU, 3),
@@ -105,6 +129,7 @@ export default {
     }
   },
   "jupiter": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 126.686e15 / Math.pow(AU, 3),
@@ -128,6 +153,7 @@ export default {
     }
   },
   "saturn": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 37.391e15 / Math.pow(AU, 3),
@@ -151,6 +177,7 @@ export default {
     }
   },
   "uranus": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 5.794e15 / Math.pow(AU, 3),
@@ -174,6 +201,7 @@ export default {
     }
   },
   "neptune": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 6.835e15 / Math.pow(AU, 3),
@@ -197,6 +225,7 @@ export default {
     }
   },
   "pluto": {
+    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.00083e15 / Math.pow(AU, 3),

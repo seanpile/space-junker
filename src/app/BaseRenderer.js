@@ -92,5 +92,7 @@ BaseRenderer.prototype._createSkyBox = function (textures) {
   })
 
   let starField = new THREE.Points(starsGeometry, starsMaterial);
+  starField.matrixAutoUpdate = false;
+  
   return starField;
 };

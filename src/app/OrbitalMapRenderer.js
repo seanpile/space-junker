@@ -37,7 +37,8 @@ OrbitalMapRenderer.prototype.recenter = function () {
   console.log("Resetting camera");
   this.camera.position.set(0, 0, 5);
   this.camera.lookAt(new THREE.Vector3(0, 0, 0));
-  this.cameraChanged = true;
+
+  this.orbitControls.reset();
 };
 
 OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
@@ -86,21 +87,15 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         // Update the focus to the target planet
         if (found) {
           scope.focus = found.id;
-          scope.cameraChanged = true;
         }
-      };
-
-      const onChangeOrbit = (event) => {
-        scope.cameraChanged = true;
       };
 
       const onWindowResize = this._onWindowResize(height, this.camera.fov);
 
       this.viewWillAppear = function () {
-        scope.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-        scope.orbitControls.maxDistance = 100;
-        scope.orbitControls.dollySpeed = 2.0;
-        scope.orbitControls.addEventListener("change", onChangeOrbit);
+        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls.maxDistance = 100;
+        this.orbitControls.dollySpeed = 2.0;
         addEventListener("mousedown", onClick);
         addEventListener("resize", onWindowResize, false);
 
@@ -110,8 +105,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
       this.viewWillDisappear = function () {
         removeEventListener("resize", onWindowResize, false);
         removeEventListener("mousedown", onClick);
-        scope.orbitControls.removeEventListener("change", onChangeOrbit);
-        scope.orbitControls.dispose();
+        this.orbitControls.dispose();
       };
 
       // Maintain a mapping from planet -> THREE object representing the planet
@@ -121,7 +115,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
         const threeBody = new THREE.Mesh(new THREE.SphereGeometry(planet.constants.radius, 32, 32),
           new THREE.MeshBasicMaterial({
-            color: PLANET_COLOURS[planet.name]
+            color: PLANET_COLOURS[planet.name] || 'white'
           }));
 
         this.scene.add(threeBody);
@@ -140,9 +134,35 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
               color: 'aqua'
             }));
 
-          const trajectory = new THREE.Line(new THREE.RingGeometry(1, 1, 1024),
+          // Create the trajectory using a strandard ellipse curve that will
+          // eventually scale/rotate/translate into the correct orbit path during
+          // the render loop.
+          const pointsGeometry = new THREE.Path(new THREE.EllipseCurve(
+                0, 0, // ax, aY
+                1, 1, // xRadius, yRadius
+                0, 2 * Math.PI, // aStartAngle, aEndAngle
+                false, // aClockwise
+                0 // aRotation
+              )
+              .getPoints(256))
+            .createPointsGeometry(256);
+          const bufferGeometry = new THREE.BufferGeometry();
+          const vertices = [];
+          for (let i = 0; i < pointsGeometry.vertices.length; i++) {
+            vertices.push(
+              pointsGeometry.vertices[i].x,
+              pointsGeometry.vertices[i].y,
+              pointsGeometry.vertices[i].z
+            );
+          }
+
+          bufferGeometry.addAttribute('position',
+            new THREE.BufferAttribute(new Float32Array(vertices), 3));
+
+          const trajectory = new THREE.Line(
+            bufferGeometry,
             new THREE.LineBasicMaterial({
-              color: PLANET_COLOURS[planet.name]
+              color: PLANET_COLOURS[planet.name] || 'white'
             }));
 
           //this.scene.add(periapsis);
@@ -152,11 +172,11 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
           this.bodyMap[planet.name].periapsis = periapsis;
           this.bodyMap[planet.name].apoapsis = apoapsis;
           this.bodyMap[planet.name].trajectory = trajectory;
+          this.bodyMap[planet.name].trajectoryVertices = Array.from(vertices);
         }
 
       }, this);
 
-      this.cameraChanged = true;
       return Promise.resolve();
     });
 };
@@ -192,7 +212,6 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
   });
 
   this.renderer.render(this.scene, this.camera);
-  this.cameraChanged = false;
 };
 
 /**
@@ -212,10 +231,6 @@ OrbitalMapRenderer.prototype._adjustCoordinates = function (focus, position) {
 OrbitalMapRenderer.prototype._scalePlanet = function (planet) {
 
   /** Don't do anything unless the camera changed, minor optimization */
-  if (!this.cameraChanged) {
-    return;
-  }
-
   let sizeAt1AU = 0.005;
 
   let threeBody = this.bodyMap[planet.name].body;
@@ -229,13 +244,65 @@ OrbitalMapRenderer.prototype._scalePlanet = function (planet) {
 OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
   // Redraw the trajectory for this planet
   let trajectory = this.bodyMap[planet.name].trajectory;
+  let trajectoryVertices = this.bodyMap[planet.name].trajectoryVertices;
 
   let derived = planet.derived;
+  let position_in_plane = planet.derived.position_in_plane;
+  let center_in_plane = planet.derived.center_in_plane;
   let semiMajorAxis = derived.semiMajorAxis;
   let semiMinorAxis = derived.semiMinorAxis;
   let center = this._adjustCoordinates(focus, derived.center);
 
-  // Reset the trajectory to a fresh state to allow for updated coordinates
+  let scaledPosition = new THREE.Vector3()
+    .copy(position_in_plane)
+    .sub(center_in_plane);
+  scaledPosition.multiply(new THREE.Vector3(1 / semiMajorAxis, 1 / semiMinorAxis, 1));
+
+  // Workaround for natural limitations of drawing arcs using straight line segments;
+  // you inherently cannot track a planet moving in an ellipse between the planet
+  // will always be between two vertices.  This code attempts to manually 'insert'
+  // a vertex that corresponds to the planets location.
+  // This fixes the issue where the trajectory would wobble in and out of the planet
+
+  const geometry = trajectory.geometry;
+  const positions = geometry.attributes.position.array;
+  const range = Math.floor(positions.length / 3 / 2);
+  const verticesToTest = [];
+
+  // Look at all the odd indexed vertices only for simplification
+  for (let i = 0; i < range; i++) {
+    const offset = (i * 2 + 1) * 3;
+    verticesToTest.push(new THREE.Vector3(trajectoryVertices[offset],
+      trajectoryVertices[offset + 1], trajectoryVertices[offset + 2]));
+  };
+
+  // Find the vertex that is closest to the planets position
+  const sorted = verticesToTest.map((vertex, idx) => [vertex.distanceTo(scaledPosition), vertex, idx])
+    .sort((left, right) => {
+      return left[0] - right[0];
+    });
+
+  // Overwrite the closest vertex with the planets actual position.  This will
+  // ensure that a vertex for our trajectory is always located at the planets
+  // location.
+  sorted.forEach((element, idx) => {
+    let vertex = element[1];
+    let offset = (element[2] * 2 + 1) * 3;
+    if (idx == 0) {
+      positions[offset] = scaledPosition.x;
+      positions[offset + 1] = scaledPosition.y
+      positions[offset + 2] = scaledPosition.z;
+    } else {
+      positions[offset] = trajectoryVertices[offset];
+      positions[offset + 1] = trajectoryVertices[offset + 1];
+      positions[offset + 2] = trajectoryVertices[offset + 2];
+    }
+  });
+
+  geometry.attributes.position.needsUpdate = true;
+
+  // Finally, apply scale/rotation/translation to the trajectory to place it
+  // into the correct orbit
   trajectory.scale.set(1, 1, 1);
   trajectory.rotation.set(0, 0, 0);
   trajectory.position.set(0, 0, 0);
