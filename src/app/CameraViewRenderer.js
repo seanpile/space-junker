@@ -2,11 +2,9 @@ import BaseRenderer from './BaseRenderer';
 import OrbitControls from './lib/OrbitControls';
 import * as THREE from 'three';
 
-const DEFAULT_FOCUS = 'earth';
+function CameraViewRenderer(container, textureLoader, commonState) {
 
-function CameraViewRenderer(container, textureLoader) {
-
-  BaseRenderer.call(this, textureLoader);
+  BaseRenderer.call(this, textureLoader, commonState);
 
   this.renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -16,7 +14,6 @@ function CameraViewRenderer(container, textureLoader) {
   this.container = container;
   container.appendChild(this.renderer.domElement);
 
-  this.focus = DEFAULT_FOCUS;
   this.bodyMap = new Map();
 };
 
@@ -31,7 +28,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
     .then(([textures]) => {
 
       // Find the body we are focusing on
-      const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
+      const focus = solarSystem.find(this.state.focus);
 
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color('black');
@@ -49,55 +46,41 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
       this.camera.up = new THREE.Vector3(0, 0, 1); // make 'z' be the UP direction
 
-      // Setup recenter function and immediately call it
-      this.recenter = () => {
-        let focus = solarSystem.planets.find((planet) => planet.name === this.focus);
+      const recenter = () => {
+        let focus = solarSystem.find(this.state.focus);
         this.camera.position.set(0, -5 * focus.constants.radius, 0);
         this.camera.lookAt(new THREE.Vector3(0, 0, 0));
       };
-      this.recenter();
 
-      // Allow user to toggle between planets
-      const onTogglePlanets = (event) => {
-        if (event.type === 'keypress' && [91, 93].includes(event.keyCode)) {
-          let focusIdx = solarSystem.planets.findIndex((p) => p.name === this.focus);
+      this.addEventListener('focus', (event) => {
+        this.orbitControls.minDistance = solarSystem.find(event.focus);
+        recenter();
+      });
 
-          if (event.keyCode === 91) {
-            focusIdx--;
-            if (focusIdx < 0)
-              focusIdx = solarSystem.planets.length - 1;
-          } else {
-            focusIdx = (focusIdx + 1) % solarSystem.planets.length;
-          }
-
-          this.focus = solarSystem.planets[focusIdx].name;
-          console.log(`new focus: ${this.focus}`);
-          this.orbitControls.minDistance = solarSystem.planets[focusIdx].constants.radius;
-          this.recenter();
-        }
-      };
+      this.addEventListener('recenter', (event) => {
+        recenter();
+      })
 
       const onWindowResize = this._onWindowResize(height, this.camera.fov);
+      this.addEventListener('resize', (event) => {
+        onWindowResize();
+      });
 
       /**
        * Setup lifecycle methods for registering/deregistering event listeners
        */
 
       this.viewWillAppear = () => {
-        const focus = solarSystem.planets.find((p) => p.name === this.focus);
-
+        const focus = solarSystem.find(this.state.focus);
         this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
         this.orbitControls.minDistance = focus.constants.radius * 1.1;
         this.orbitControls.maxDistance = focus.constants.radius * 100;
-        addEventListener("keypress", onTogglePlanets);
-        addEventListener("resize", onWindowResize, false);
 
         onWindowResize();
+        recenter();
       };
 
       this.viewWillDisappear = () => {
-        removeEventListener("resize", onWindowResize, false);
-        removeEventListener("keypress", onTogglePlanets);
         this.orbitControls.dispose();
         this.orbitControls = null;
       };
@@ -131,10 +114,10 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 CameraViewRenderer.prototype.render = function (solarSystem) {
 
   // Find the body we are focusing on
-  const focus = solarSystem.planets.find((planet) => planet.name === this.focus);
+  const focus = solarSystem.find(this.state.focus);
 
   // Update light sources
-  const sun = solarSystem.planets.find((planet) => planet.name === 'sun');
+  const sun = solarSystem.find('sun');
   this.lightSources.forEach((light) => {
     light.position.copy(this._adjustCoordinates(focus, sun.derived.position));
   })

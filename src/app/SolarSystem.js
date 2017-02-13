@@ -79,6 +79,10 @@ function SolarSystem() {
   this.bodies = [];
 };
 
+SolarSystem.prototype.find = function (planetId) {
+  return this.planets.find((planet) => planet.name == planetId);
+};
+
 SolarSystem.prototype.update = function (t, dt) {
 
   let currentDate = moment(t + dt);

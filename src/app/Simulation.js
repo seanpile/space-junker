@@ -2,12 +2,13 @@ import moment from 'moment';
 
 const numToRun = 10000;
 
-function Simulation(solarSystem, renderers, stats) {
+function Simulation(solarSystem, renderers, state, stats) {
   this.solarSystem = solarSystem;
   this.renderers = renderers;
   this.rendererIdx = 0;
   this.renderer = renderers[this.rendererIdx];
   this.loaded = new Set();
+  this.state = state;
   this.stats = stats;
   this.isStopped = true;
   this.time = Date.now();
@@ -20,27 +21,46 @@ function Simulation(solarSystem, renderers, stats) {
   /**
    * Handle window event listeners
    */
-  const sim = this;
-  const pause = (event) => {
-    sim.pause();
-  };
-
   const keypresses = (event) => {
     const keyCodes = {
-      32: sim.toggleRun,
-      44: sim.slowDown,
-      46: sim.speedUp,
-      99: sim.recenter,
-      122: sim.toggleView,
+      32: this.toggleRun,
+      44: this.slowDown,
+      46: this.speedUp,
+      99: this.recenter,
+      91: this.toggleFocus,
+      93: this.toggleFocus,
+      122: this.toggleView,
     };
 
     if (event.type === "keypress" && keyCodes.hasOwnProperty(event.keyCode)) {
-      keyCodes[event.keyCode].call(this);
+      keyCodes[event.keyCode].call(this, event);
       event.preventDefault();
     }
   };
 
   window.addEventListener("keypress", keypresses);
+  window.addEventListener("resize", (event) => {
+    this.renderers.forEach((renderer) => {
+      renderer.dispatchEvent({
+        type: "resize"
+      });
+    });
+  });
+
+  window.addEventListener("mousedown", (event) => {
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let pixelMultiplier = window.devicePixelRatio;
+
+    let target = new THREE.Vector2(
+      (event.clientX - width / 2) * pixelMultiplier,
+      (height / 2 - event.clientY) * pixelMultiplier);
+
+    this.renderer.dispatchEvent({
+      type: 'click',
+      location: target
+    });
+  });
 };
 
 Simulation.prototype.speedUp = function () {
@@ -80,7 +100,29 @@ Simulation.prototype.recenter = function () {
     return;
   }
 
-  this.renderer.recenter();
+  this.renderer.dispatchEvent({
+    type: 'recenter'
+  });
+};
+
+Simulation.prototype.toggleFocus = function (event) {
+
+  let solarSystem = this.solarSystem;
+  let focusIdx = solarSystem.planets.findIndex((p) => p.name === this.state.focus);
+
+  if (event.keyCode === 91) {
+    focusIdx--;
+    if (focusIdx < 0)
+      focusIdx = solarSystem.planets.length - 1;
+  } else {
+    focusIdx = (focusIdx + 1) % solarSystem.planets.length;
+  }
+
+  this.state.focus = solarSystem.planets[focusIdx].name;
+  this.renderer.dispatchEvent({
+    type: 'focus',
+    focus: this.state.focus
+  });
 };
 
 Simulation.prototype.initialize = function () {

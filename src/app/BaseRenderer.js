@@ -29,9 +29,13 @@ const TEXTURES = {
   'lensflare': lensflare,
 };
 
-export default function BaseRenderer(textureLoader) {
+export default function BaseRenderer(textureLoader, state) {
   this.textureLoader = textureLoader;
+  this.state = state;
 };
+
+// Allow renderers to act on changes to the user interface
+Object.assign(BaseRenderer.prototype, THREE.EventDispatcher.prototype);
 
 /**
  *

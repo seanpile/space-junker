@@ -1,4 +1,5 @@
 import './css/styles.css';
+import CommonState from './app/CommonState';
 import SolarSystem from './app/SolarSystem';
 import Simulation from './app/Simulation';
 import CameraViewRenderer from './app/CameraViewRenderer';
@@ -23,12 +24,13 @@ document.body.appendChild(stats.dom);
 
 const textureLoader = new THREE.TextureLoader();
 
+const state = new CommonState();
 const renderers = [
-  new OrbitalMapRenderer(mapViewContainer, textureLoader),
-  new CameraViewRenderer(cameraViewContainer, textureLoader),
+  new OrbitalMapRenderer(mapViewContainer, textureLoader, state),
+  new CameraViewRenderer(cameraViewContainer, textureLoader, state),
 ];
 
-const simulation = new Simulation(solarSystem, renderers, stats);
+const simulation = new Simulation(solarSystem, renderers, state, stats);
 simulation.initialize()
   .then(() => {
     simulation.run()
