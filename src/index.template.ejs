@@ -12,9 +12,99 @@
   <div id="map-view" style="display: none;"></div>
   <div id="testing-view" style="display: none;"></div>
   <div id="hud">
-    <h4 id="time"></h4>
+    <div class="hud-overlay">
+      <div id="warp">
+        <div id="warp-values">
+        </div>
+        <div id="warp-description">Warp</div>
+      </div>
+      <div id="time"></div>
+    </div>
+    <div class="hud-overlay" id="orbital-overlay">
+      <h3 class="title">Orbital Statistics</h3>
+      <div class="orbital-entry">
+        <div class="label">
+          Name
+        </div>
+        <div class="value" id="orbital-name">
+        </div>
+      </div>
+      <div class="orbital-entry">
+        <div class="label">
+          Orbiting
+        </div>
+        <div class="value" id="orbital-primary">
+        </div>
+      </div>
+      <div class="orbital-entry">
+        <div class="label">
+          Speed
+        </div>
+        <div class="value" id="orbital-speed">
+        </div>
+      </div>
+      <div class="orbital-entry">
+        <div class="label">
+          Eccentricity
+        </div>
+        <div class="value" id="orbital-eccentricity">
+        </div>
+      </div>
+      <div class="orbital-entry">
+        <div class="label">
+          Semi-Major Axis
+        </div>
+        <div class="value" id="orbital-semiMajorAxis">
+        </div>
+      </div>
+      <div class="orbital-entry">
+        <div class="label">
+          Semi-Minor Axis
+        </div>
+        <div class="value" id="orbital-semiMinorAxis">
+        </div>
+      </div>
+
+    </div>
+    <div class="hud-overlay">
+      <h3 class="title">Controls</h3>
+      <div class="key-entry">
+        <div class="keys">
+          <div class="key">[</div>
+          <div class="key">]</div>
+        </div>
+        <div class="description">Toggle between Planets</div>
+      </div>
+      <div class="key-entry">
+        <div class="keys">
+          <div class="key">,</div>
+          <div class="key">.</div>
+        </div>
+        <div class="description">Slow down / Speed up</div>
+      </div>
+      <div class="key-entry">
+        <div class="keys">
+          <div class="key">c</div>
+        </div>
+        <div class="description">Reset the camera</div>
+      </div>
+      <div class="key-entry">
+        <div class="keys">
+          <div class="key">z</div>
+        </div>
+        <div class="description">Switch Views</div>
+      </div>
+      <div class="key-entry">
+        <div class="keys">
+          <div class="key">space</div>
+        </div>
+        <div class="description">Pause</div>
+      </div>
+
+    </div>
+    <div id="stats-overlay" class="hud-overlay">
+    </div>
   </div>
-  <div id="stats-overlay"></div>
 </body>
 
 </html>

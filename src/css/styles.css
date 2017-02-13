@@ -1,37 +1,152 @@
 * {
-  margin: 0;
-  padding: 0;
+    margin: 0;
+    padding: 0;
 }
 
 html, body {
-  width: 100%;
-  height: 100%;
+    width: 100%;
+    height: 100%;
 }
 
 #camera-view canvas {
-  display: block;
+    display: block;
 }
 
 #map-view canvas {
-  display: block;
+    display: block;
 }
 
 #hud {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    background-color: lightgray;
+    top: 5px;
+    left: 5px;
+    height: 100%;
     opacity: 0.6;
     z-index: 100;
     display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hud-overlay {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    border-style: ridge;
+    background-color: lightgray;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.hud-overlay .title {
+    flex: 1 1 auto;
+    text-align: center;
+}
+
+#warp {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 3px;
+}
+
+#warp-values {
+    display: flex;
+    flex-direction: row;
+    flex: 0 1 auto;
+}
+
+#warp-description {
+    flex: 0 1 auto;
+}
+
+#time {
+    flex: 0 1 auto;
+}
+
+.warp-enabled {
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 12.124px solid green;
+    margin-right: 3px;
+}
+
+.warp-disabled {
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 12.124px solid white;
+    margin-right: 3px;
+}
+
+.orbital-entry {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+.orbital-entry .label {
+  flex: 0 1 auto;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.orbital-entry .value {
+  flex: 0 1 auto;
+}
+
+.key-entry {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.key-entry .keys {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: row;
+}
+
+.keys .key {
+    flex: 0 1 auto;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    border: black;
+    border-width: 3px;
+    border-style: outset;
+    border-color: lightgrey;
+    background-color: white;
+    padding-right: 3px;
+    padding-left: 3px;
+    font-size: x-large;
+}
+
+.keys .key+.key {
+    margin-left: 5px;
+}
+
+.key-entry .description {
+    flex: 1 1 auto;
+    padding-left: 5px;
 }
 
 #stats {
-    position: absolute;
-    bottom: 0px;
-    width: 100%;
     text-align: center;
-    z-index: 100;
+    opacity: 0.9;
     display: block;
+}
+
+#stats-overlay {
+    flex: 0 1 auto;
+    border-radius: 0px;
+    border-style: none;
+    background-color: unset;
+    opacity: 1.0;
 }

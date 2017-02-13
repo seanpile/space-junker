@@ -53,7 +53,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       };
 
       this.addEventListener('focus', (event) => {
-        this.orbitControls.minDistance = solarSystem.find(event.focus);
+        this.orbitControls.minDistance = 5 * solarSystem.find(event.focus).constants.radius;
         recenter();
       });
 

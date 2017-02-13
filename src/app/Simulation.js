@@ -1,4 +1,5 @@
 import moment from 'moment';
+import { AU } from './Bodies';
 
 const numToRun = 10000;
 
@@ -12,11 +13,16 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.stats = stats;
   this.isStopped = true;
   this.time = Date.now();
-  this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6, 10e7, 10e8];
-  this.timeWarpIdx = 6;
+  this.startingTime = this.time;
+  this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
+  this.timeWarpIdx = 4;
 
-  this.hud = document.getElementById('hud');
   this.timeCounter = document.getElementById('time');
+  this.warpValues = document.getElementById('warp-values');
+  this.timeWarpValues.forEach((value, idx) => {
+    const arrow = document.createElement('div');
+    this.warpValues.appendChild(arrow);
+  });
 
   /**
    * Handle window event listeners
@@ -204,12 +210,66 @@ Simulation.prototype.run = function () {
       return false;
     }
 
-    this.timeCounter.innerHTML = `${moment(this.time).format('MMMM D, YYYY - HH:mm:ss')}`;
-
+    this.updateOrbitalDisplay();
+    this.updateTimeDisplay();
     this.time += dt;
     this.stats.end();
 
   }.bind(this));
+};
+
+Simulation.prototype.updateOrbitalDisplay = function () {
+
+  const focus = this.solarSystem.find(this.state.focus);
+  const name = focus.name;
+  const velocity = focus.derived.velocity.length() * AU;
+
+  // TODO: Escape values
+  document.getElementById('orbital-name').innerHTML = name;
+  document.getElementById('orbital-primary').innerHTML = focus.primary ? focus.primary.name : '';
+  document.getElementById('orbital-speed').innerHTML = `${velocity.toFixed(2)} m/s`;
+};
+
+Simulation.prototype.updateTimeDisplay = function () {
+  const elapsed = moment.duration(this.time - this.startingTime);
+  const years = elapsed.years();
+  const months = elapsed.months();
+  const days = elapsed.days() + months * 30;
+  const hours = elapsed.hours();
+  const minutes = elapsed.minutes();
+  const seconds = elapsed.seconds();
+
+  const values = [];
+
+  if (years > 0)
+    values.push(`${years}Y`);
+
+  if (days > 0)
+    values.push(`${days}d`);
+
+  values.push(
+    hours.toString()
+    .paddingLeft('00'),
+    minutes.toString()
+    .paddingLeft('00'),
+    seconds.toString()
+    .paddingLeft('00')
+  )
+
+  Array.from(this.warpValues.children)
+    .forEach((value, idx) => {
+      if (idx <= this.timeWarpIdx) {
+        value.className = 'warp-enabled';
+      } else {
+        value.className = 'warp-disabled';
+      }
+    });
+  this.timeCounter.innerHTML = `+T ${values.join(':')}`;
+}
+
+String.prototype.paddingLeft = function (paddingValue) {
+  return String(paddingValue + this)
+    .slice(-paddingValue.length);
 };
 
 function runAnimation(frameFunc) {

@@ -20,7 +20,7 @@ stats.dom.style = '';
 
 document.body.appendChild(mapViewContainer);
 document.body.appendChild(cameraViewContainer);
-document.body.appendChild(stats.dom);
+document.getElementById('stats-overlay').appendChild(stats.dom);
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -35,7 +35,3 @@ simulation.initialize()
   .then(() => {
     simulation.run()
   });
-
-// Attach some useful pieces of data for debugging
-window.solarSystem = solarSystem;
-window.THREE = THREE;
