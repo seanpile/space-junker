@@ -100,9 +100,6 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         if (found) {
           this.state.focus = found.id;
         }
-
-        // Recenter to the new focus
-        recenter();
       });
 
       this.addEventListener('focus', (event) => {

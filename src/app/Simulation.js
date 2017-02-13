@@ -38,14 +38,12 @@ function Simulation(solarSystem, renderers, state, stats) {
     }
   };
 
-  window.addEventListener("keypress", keypresses);
+  window.addEventListener("keypress", keypresses, false);
   window.addEventListener("resize", (event) => {
-    this.renderers.forEach((renderer) => {
-      renderer.dispatchEvent({
-        type: "resize"
-      });
+    this.renderer.dispatchEvent({
+      type: "resize"
     });
-  });
+  }, true);
 
   window.addEventListener("mousedown", (event) => {
     let width = window.innerWidth;
@@ -60,7 +58,7 @@ function Simulation(solarSystem, renderers, state, stats) {
       type: 'click',
       location: target
     });
-  });
+  }, true);
 };
 
 Simulation.prototype.speedUp = function () {
