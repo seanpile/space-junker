@@ -219,11 +219,7 @@ SolarSystem.prototype._calculatePhysicsBasedElements = function (body, t, dt) {
 
   })(kepler_elements);
 
-  this.integrator.integrate({
-    primary,
-    initialPosition,
-    initialVelocity
-  }, t, dt);
+  this.integrator.integrate(initialPosition, initialVelocity, primary, t, dt);
 
   let newPosition = initialPosition.clone();
   let newVelocity = initialVelocity.clone();
