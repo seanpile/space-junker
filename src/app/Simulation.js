@@ -1,5 +1,9 @@
 import moment from 'moment';
-import { AU } from './Bodies';
+import * as THREE from 'three'
+import {
+  AU
+} from './Bodies';
+import StringExtensions from './util/StringExtensions';
 
 const numToRun = 10000;
 
@@ -15,7 +19,7 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.time = Date.now();
   this.startingTime = this.time;
   this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
-  this.timeWarpIdx = 4;
+  this.timeWarpIdx = 3;
 
   this.timeCounter = document.getElementById('time');
   this.warpValues = document.getElementById('warp-values');
@@ -112,17 +116,17 @@ Simulation.prototype.recenter = function () {
 Simulation.prototype.toggleFocus = function (event) {
 
   let solarSystem = this.solarSystem;
-  let focusIdx = solarSystem.planets.findIndex((p) => p.name === this.state.focus);
+  let focusIdx = solarSystem.bodies.findIndex((p) => p.name === this.state.focus);
 
   if (event.keyCode === 91) {
     focusIdx--;
     if (focusIdx < 0)
-      focusIdx = solarSystem.planets.length - 1;
+      focusIdx = solarSystem.bodies.length - 1;
   } else {
-    focusIdx = (focusIdx + 1) % solarSystem.planets.length;
+    focusIdx = (focusIdx + 1) % solarSystem.bodies.length;
   }
 
-  this.state.focus = solarSystem.planets[focusIdx].name;
+  this.state.focus = solarSystem.bodies[focusIdx].name;
   this.renderer.dispatchEvent({
     type: 'focus',
     focus: this.state.focus
@@ -223,11 +227,31 @@ Simulation.prototype.updateOrbitalDisplay = function () {
   const focus = this.solarSystem.find(this.state.focus);
   const name = focus.name;
   const velocity = focus.derived.velocity.length() * AU;
+  const eccentricity = focus.derived.e || 0;
+  const semiMajorAxis = focus.derived.semiMajorAxis * AU;
+  const semiMinorAxis = focus.derived.semiMinorAxis * AU;
+  const rotation_period = focus.constants.rotation_period || 0;
+  const axial_tilt = focus.constants.axial_tilt || 0;
+  const orbital_period = (focus.derived.orbital_period || 0) / 86400;
 
-  // TODO: Escape values
-  document.getElementById('orbital-name').innerHTML = name;
-  document.getElementById('orbital-primary').innerHTML = focus.primary ? focus.primary.name : '';
-  document.getElementById('orbital-speed').innerHTML = `${velocity.toFixed(2)} m/s`;
+  document.getElementById('orbital-name')
+    .innerHTML = name.escapeHtml();
+  document.getElementById('orbital-primary')
+    .innerHTML = (focus.primary ? focus.primary.name : '').escapeHtml();
+  document.getElementById('orbital-speed')
+    .innerHTML = `${velocity.toFixed(2)} m/s`.escapeHtml();
+  document.getElementById('orbital-eccentricity')
+    .innerHTML = `${eccentricity.toFixed(4)}`.escapeHtml();
+  document.getElementById('orbital-semiMajorAxis')
+    .innerHTML = `${semiMajorAxis.toExponential(4)} m`.escapeHtml();
+  document.getElementById('orbital-semiMinorAxis')
+    .innerHTML = `${semiMinorAxis.toExponential(4)} m`.escapeHtml();
+  document.getElementById('orbital-period')
+    .innerHTML = `${orbital_period.toFixed(4)} days`.escapeHtml();
+  document.getElementById('orbital-rotation-period')
+    .innerHTML = `${rotation_period.toFixed(4)} days`.escapeHtml();
+  document.getElementById('orbital-axial-tilt')
+    .innerHTML = `${axial_tilt.toFixed(2)}°`.escapeHtml();
 };
 
 Simulation.prototype.updateTimeDisplay = function () {
@@ -264,13 +288,8 @@ Simulation.prototype.updateTimeDisplay = function () {
         value.className = 'warp-disabled';
       }
     });
-  this.timeCounter.innerHTML = `+T ${values.join(':')}`;
+  this.timeCounter.innerHTML = `+T ${values.join(':')}`.escapeHtml();
 }
-
-String.prototype.paddingLeft = function (paddingValue) {
-  return String(paddingValue + this)
-    .slice(-paddingValue.length);
-};
 
 function runAnimation(frameFunc) {
   var lastTime = null;

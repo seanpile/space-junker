@@ -88,20 +88,20 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       /**
        * Create THREE objects for each of our bodies and add to the scene
        */
-      solarSystem.planets.forEach(planet => {
+      solarSystem.bodies.forEach(body => {
 
-        if (planet.name === 'sun') {
+        if (body.name === 'sun') {
           return;
         }
 
         const threeBody = new THREE.Mesh(
-          new THREE.SphereGeometry(planet.constants.radius, 32, 32),
+          new THREE.SphereGeometry(body.constants.radius, 32, 32),
           new THREE.MeshStandardMaterial({
-            map: textures.get(planet.name),
+            map: textures.get(body.name),
           }));
 
         this.scene.add(threeBody);
-        this.bodyMap.set(planet.name, threeBody);
+        this.bodyMap.set(body.name, threeBody);
       });
 
       return Promise.resolve();
@@ -123,14 +123,14 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
   })
 
   // Update the positions of all of our bodies
-  solarSystem.planets.forEach((planet) => {
+  solarSystem.bodies.forEach((body) => {
 
-    if (planet.name === 'sun') {
+    if (body.name === 'sun') {
       return;
     }
 
-    let threeBody = this.bodyMap.get(planet.name);
-    let derived = planet.derived;
+    let threeBody = this.bodyMap.get(body.name);
+    let derived = body.derived;
 
     // Adjust position to re-center the coordinate system on the focus
     let position = this._adjustCoordinates(focus, derived.position);
@@ -144,7 +144,7 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     threeBody.rotateX(derived.I);
     threeBody.rotateZ(derived.argumentPerihelion);
     threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-    threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(planet.constants.axial_tilt || 0) * Math.PI / 180);
+    threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
     threeBody.rotateY(derived.rotation);
   });
 

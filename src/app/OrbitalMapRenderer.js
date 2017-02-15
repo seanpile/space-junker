@@ -131,11 +131,11 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
       // Maintain a mapping from planet -> THREE object representing the planet
       // This will allow us to update the existing THREE object on each iteration
       // of the render loop.
-      solarSystem.planets.forEach((planet) => {
+      solarSystem.bodies.forEach((body) => {
 
-        const threeBody = new THREE.Mesh(new THREE.SphereGeometry(planet.constants.radius, 32, 32),
+        const threeBody = new THREE.Mesh(new THREE.SphereGeometry(body.constants.radius, 32, 32),
           new THREE.MeshBasicMaterial({
-            color: PLANET_COLOURS[planet.name] || 'white'
+            color: PLANET_COLOURS[body.name] || 'white'
           }));
 
         const periapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
@@ -151,7 +151,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         const trajectory = new THREE.Line(
           this._createTrajectoryGeometry(),
           new THREE.LineBasicMaterial({
-            color: PLANET_COLOURS[planet.name] || 'white'
+            color: PLANET_COLOURS[body.name] || 'white'
           }));
 
         this.scene.add(threeBody);
@@ -159,7 +159,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         //this.scene.add(apoapsis);
         this.scene.add(trajectory);
 
-        this.bodyMap.set(planet.name, {
+        this.bodyMap.set(body.name, {
           body: threeBody,
           periapsis: periapsis,
           apoapsis: apoapsis,
@@ -180,13 +180,13 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
   // Locate primary body, sun
   const sun = solarSystem.find('sun');
 
-  solarSystem.planets.forEach((planet) => {
+  solarSystem.bodies.forEach((body) => {
 
-    let bodyMap = this.bodyMap.get(planet.name);
+    let bodyMap = this.bodyMap.get(body.name);
     let threeBody = bodyMap.body;
     let threePeriapsis = bodyMap.periapsis;
     let threeApoapsis = bodyMap.apoapsis;
-    let derived = planet.derived;
+    let derived = body.derived;
 
     // Adjust position to re-center the coordinate system on the focus
     let position = this._adjustCoordinates(focus, derived.position);
@@ -197,8 +197,8 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
     threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
     threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
-    this._updateTrajectory(focus, planet);
-    this._scalePlanet(planet);
+    this._updateTrajectory(focus, body);
+    this._scaleBody(body);
   });
 
   this.renderer.render(this.scene, this.camera);
@@ -219,33 +219,33 @@ OrbitalMapRenderer.prototype._adjustCoordinates = function (focus, position) {
   return coordinates;
 };
 
-OrbitalMapRenderer.prototype._scalePlanet = function (planet) {
+OrbitalMapRenderer.prototype._scaleBody = function (body) {
 
-  let bodyMap = this.bodyMap.get(planet.name);
+  let bodyMap = this.bodyMap.get(body.name);
   let threeBody = bodyMap.body;
   let trajectory = bodyMap.trajectory;
   let cameraDistance = this.camera.position.distanceTo(threeBody.position);
 
-  let scale = Math.max(0.005 * cameraDistance, planet.constants.radius) / planet.constants.radius;
+  let scale = Math.max(0.005 * cameraDistance, body.constants.radius) / body.constants.radius;
   threeBody.scale.set(scale, scale, scale);
 
   // Allow more 'space' between large bodies and their satellites
   trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
 };
 
-OrbitalMapRenderer.prototype._updateTrajectory = function (focus, planet) {
+OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
 
-  if (planet.name === 'sun')
+  if (body.name === 'sun')
     return;
 
-  // Redraw the trajectory for this planet
-  let bodyMap = this.bodyMap.get(planet.name);
+  // Redraw the trajectory for this body
+  let bodyMap = this.bodyMap.get(body.name);
   let trajectory = bodyMap.trajectory;
   let trajectoryVertices = bodyMap.trajectoryVertices;
 
-  let derived = planet.derived;
-  let position_in_plane = planet.derived.position_in_plane;
-  let center_in_plane = planet.derived.center_in_plane;
+  let derived = body.derived;
+  let position_in_plane = body.derived.position_in_plane;
+  let center_in_plane = body.derived.center_in_plane;
   let semiMajorAxis = derived.semiMajorAxis;
   let semiMinorAxis = derived.semiMinorAxis;
   let center = this._adjustCoordinates(focus, derived.center);

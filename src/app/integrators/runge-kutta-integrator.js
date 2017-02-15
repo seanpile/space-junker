@@ -12,20 +12,13 @@ function Derivitives() {
 RungeKuttaIntegrator.prototype._acceleration =
   function (primary, state, t) {
 
-    const acc = new Vector3(0, 0, 0);
+    const primary_position = primary.derived.position;
+    const r = state.position.sub(primary_position);
+    const distanceSq = r.lengthSq();
 
-    do {
-      const r = state.position.clone()
-        .sub(primary.position);
-      const distance = state.position.distanceToSquared(primary.position);
-
-      acc.add(r.negate()
-        .multiplyScalar(primary.u / distance));
-      primary = primary.primary;
-
-    } while (primary !== null && primary !== undefined);
-
-    return acc;
+    return r.normalize()
+      .negate()
+      .multiplyScalar(primary.constants.u / distanceSq);
   };
 
 RungeKuttaIntegrator.prototype._evaluate =
@@ -48,32 +41,30 @@ RungeKuttaIntegrator.prototype._evaluate =
   };
 
 RungeKuttaIntegrator.prototype.integrate =
-  function (bodies, t, dt) {
-    bodies.forEach((body) => {
+  function (body, t, dt) {
 
-      if (!body.primary) {
-        return;
-      }
+    if (!body.primary) {
+      return;
+    }
 
-      let a, b, c, d;
+    let a, b, c, d;
 
-      a = this._evaluate(body, t, 0.0, new Derivitives());
-      b = this._evaluate(body, t, dt * 0.5, a);
-      c = this._evaluate(body, t, dt * 0.5, b);
-      d = this._evaluate(body, t, dt, c);
+    a = this._evaluate(body, t, 0.0, new Derivitives());
+    b = this._evaluate(body, t, dt * 0.5, a);
+    c = this._evaluate(body, t, dt * 0.5, b);
+    d = this._evaluate(body, t, dt, c);
 
-      let dxdt = b.dx.add(c.dx)
-        .multiplyScalar(2.0)
-        .add(a.dx)
-        .add(d.dx)
-        .multiplyScalar(1.0 / 6.0);
-      let dvdt = b.dv.add(c.dv)
-        .multiplyScalar(2.0)
-        .add(a.dv)
-        .add(d.dv)
-        .multiplyScalar(1.0 / 6.0);
+    let dxdt = b.dx.add(c.dx)
+      .multiplyScalar(2.0)
+      .add(a.dx)
+      .add(d.dx)
+      .multiplyScalar(1.0 / 6.0);
+    let dvdt = b.dv.add(c.dv)
+      .multiplyScalar(2.0)
+      .add(a.dv)
+      .add(d.dv)
+      .multiplyScalar(1.0 / 6.0);
 
-      body.position.add(dxdt.multiplyScalar(dt));
-      body.velocity.add(dvdt.multiplyScalar(dt));
-    });
+    body.position.add(dxdt.multiplyScalar(dt));
+    body.velocity.add(dvdt.multiplyScalar(dt));
   };
