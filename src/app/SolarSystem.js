@@ -1,11 +1,13 @@
 import moment from 'moment';
 import MathExtensions from './util/MathExtensions';
 import RungeKuttaIntegrator from './integrators/runge-kutta-integrator';
-import BODIES, {
+import RK4Integrator from 'ode45-cash-karp';
+import {
   AU,
   PLANET_TYPE,
   SHIP_TYPE,
-  ASTEROID_TYPE
+  ASTEROID_TYPE,
+  ALL_BODIES,
 } from './Bodies';
 
 import {
@@ -19,61 +21,7 @@ const J2000_date = moment('2000-01-01T12:00:00Z');
 const J2000_epoch = 2451545.0;
 
 function SolarSystem() {
-
-  // Initialize map
-  const bodyMap = new Map(Object.keys(BODIES)
-    .map(function (name) {
-      let body = BODIES[name];
-      body.name = name;
-      body.derived = {};
-
-      if (name === 'sun') {
-        body.derived = {
-          position: new Vector3(0, 0, 0),
-          velocity: new Vector3(0, 0, 0),
-          apoapsis: new Vector3(0, 0, 0),
-          periapsis: new Vector3(0, 0, 0),
-          center: new Vector3(0, 0, 0)
-        };
-      }
-
-      return [name, body];
-    }));
-
-  // Set back-references on body graph
-  Array.from(bodyMap.values())
-    .forEach((body) => {
-
-      // Set primary
-      if (body.primary) {
-        body.primary = bodyMap.get(body.primary);
-
-        // Add self to primary's secondaries property
-        if (!body.primary.secondaries)
-          body.primary.secondaries = [];
-
-        body.primary.secondaries.push(body);
-      }
-    });
-
-  // Flatten the dependency graph to ensure that primary bodies are always
-  // evaluated before their secondaries (satellites)
-
-  function flatten(body) {
-    if (!body) {
-      return [];
-    }
-
-    return (body.secondaries || [])
-      .reduce((bodies, b) => {
-        return bodies.concat(flatten(b));
-      }, [body]);
-  }
-
-  let sun = Array.from(bodyMap.values())
-    .find((body) => !body.primary);
-
-  this.bodies = flatten(sun);
+  this.bodies = Array.from(ALL_BODIES);
   this.integrator = new RungeKuttaIntegrator();
 };
 
@@ -148,6 +96,7 @@ SolarSystem.prototype.update = function (t, dt) {
       omega: omega,
       argumentPerihelion: argumentPerihelion,
       position: position,
+      prev_position: derived.position,
       position_in_plane: coords.position_in_plane,
       velocity: velocity,
       semiMajorAxis: a,
@@ -219,10 +168,55 @@ SolarSystem.prototype._calculatePhysicsBasedElements = function (body, t, dt) {
 
   })(kepler_elements);
 
+  console.log(primary);
+
+  if (primary.derived.prev_position) {
+    initialPosition.add(new Vector3()
+      .subVectors(primary.derived.position, primary.derived.prev_position));
+  }
+
+  let initialState = [
+    initialPosition.x,
+    initialPosition.y,
+    initialPosition.z,
+    initialVelocity.x,
+    initialVelocity.y,
+    initialVelocity.z
+  ];
+
+  const initialTime = t / 1000;
+  const integrator = RK4Integrator(initialState,
+    (dydt, y, t) => {
+
+      let deltaT = t - initialTime;
+      let primary = body.primary;
+
+      dydt[0] = y[3] * deltaT;
+      dydt[1] = y[4] * deltaT;
+      dydt[2] = y[5] * deltaT;
+
+      let r = new Vector3(y[0] + dydt[0], y[1] + dydt[1], y[2] + dydt[2])
+        .sub(primary.derived.position);
+      let distance = r.lengthSq();
+      let acceleration = r.normalize()
+        .negate()
+        .multiplyScalar(primary.constants.u / distance);
+
+      dydt[3] = acceleration.x * deltaT;
+      dydt[4] = acceleration.y * deltaT;
+      dydt[5] = acceleration.z * deltaT;
+    }, t / 1000, dt / 1000, {
+      dtMinMag: dt / 1000 / 1000
+    });
+
+  integrator.step();
   this.integrator.integrate(initialPosition, initialVelocity, primary, t, dt);
 
   let newPosition = initialPosition.clone();
   let newVelocity = initialVelocity.clone();
+
+  // let newPosition = new Vector3(integrator.y[0], integrator.y[1], integrator.y[2]);
+  // let newVelocity = new Vector3(integrator.y[3], integrator.y[4], integrator.y[5]);
 
   let r = new Vector3()
     .subVectors(newPosition, primary.derived.position);
@@ -269,8 +263,17 @@ SolarSystem.prototype._calculatePhysicsBasedElements = function (body, t, dt) {
     E = 2 * Math.atan(Math.tan(argumentLatitude / 2));
     w = 0;
   } else {
-    const argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
-    const trueAnomaly = Math.safeAcos((a * (1 - Math.pow(e, 2)) - r.length()) / (e * r.length()));
+    let v_eccentricity = new Vector3()
+      .crossVectors(v, h)
+      .multiplyScalar(1 / u)
+      .sub(r.clone()
+        .multiplyScalar(1 / r.length()))
+
+    let trueAnomaly = Math.acos(v_eccentricity.dot(r) / (v_eccentricity.length() * r.length()));
+    if (r.dot(v) < 0)
+      trueAnomaly = 2 * Math.PI - trueAnomaly;
+
+    let argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
     E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
     w = argumentLatitude - trueAnomaly;
   }

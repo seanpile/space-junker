@@ -1,3 +1,5 @@
+import { Vector3 } from 'three';
+
 /**
  * Kepler elements taken from http://ssd.jpl.nasa.gov/txt/aprx_pos_planets.pdf
  * Planetary constants taken from http://www.braeunig.us/space/constant.htm
@@ -11,7 +13,7 @@ export const PLANET_TYPE = "planet";
 export const SHIP_TYPE = "ship";
 export const ASTEROID_TYPE = "asteroid";
 
-export default {
+const body_data = {
   "sun": {
     type: PLANET_TYPE,
     constants: {
@@ -97,12 +99,12 @@ export default {
   },
   "firefly": {
     type: SHIP_TYPE,
-    primary: "earth",
+    primary: "sun",
     constants: {
       radius: 100 / AU,
     },
     kepler_elements: {
-      a: [0.5, 0],
+      a: [0.2, 0],
       //a: [(400e3 + 6.3781e6) / AU, 0],
       e: [0.3, 0],
       I: [10, 0],
@@ -250,3 +252,55 @@ export default {
     }
   }
 };
+
+// Initialize map
+const bodyMap = new Map(Object.keys(body_data)
+  .map(function (name) {
+    let body = body_data[name];
+    body.name = name;
+    body.derived = {};
+
+    if (name === 'sun') {
+      body.derived = {
+        position: new Vector3(0, 0, 0),
+        velocity: new Vector3(0, 0, 0),
+        apoapsis: new Vector3(0, 0, 0),
+        periapsis: new Vector3(0, 0, 0),
+        center: new Vector3(0, 0, 0)
+      };
+    }
+
+    return [name, body];
+  }));
+
+// Set back-references on body graph
+Array.from(bodyMap.values())
+  .forEach((body) => {
+
+    // Set primary
+    if (body.primary) {
+      body.primary = bodyMap.get(body.primary);
+
+      // Add self to primary's secondaries property
+      if (!body.primary.secondaries)
+        body.primary.secondaries = [];
+
+      body.primary.secondaries.push(body);
+    }
+  });
+
+// Flatten the dependency graph to ensure that primary bodies are always
+// evaluated before their secondaries (satellites)
+
+function flatten(body) {
+  if (!body) {
+    return [];
+  }
+
+  return (body.secondaries || [])
+    .reduce((bodies, b) => {
+      return bodies.concat(flatten(b));
+    }, [body]);
+}
+
+export const ALL_BODIES = flatten(bodyMap.get('sun'));
