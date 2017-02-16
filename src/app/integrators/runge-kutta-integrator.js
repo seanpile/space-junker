@@ -25,14 +25,14 @@ RungeKuttaIntegrator.prototype._evaluate =
   function (position, velocity, attractor, t, dt, derivitive) {
 
     let newPosition = new Vector3(
-      position.x + derivitive.dx.x * dt,
-      position.y + derivitive.dx.y * dt,
-      position.z + derivitive.dx.z * dt
+      position.x + derivitive.dx.x * (dt / 1000),
+      position.y + derivitive.dx.y * (dt / 1000),
+      position.z + derivitive.dx.z * (dt / 1000),
     );
     let newVelocity = new Vector3(
-      velocity.x + derivitive.dv.x * dt,
-      velocity.y + derivitive.dv.y * dt,
-      velocity.z + derivitive.dv.z * dt
+      velocity.x + derivitive.dv.x * (dt / 1000),
+      velocity.y + derivitive.dv.y * (dt / 1000),
+      velocity.z + derivitive.dv.z * (dt / 1000),
     );
 
     const output = new Derivitives();
@@ -66,6 +66,6 @@ RungeKuttaIntegrator.prototype.integrate =
       .add(d.dv)
       .multiplyScalar(1.0 / 6.0);
 
-    position.add(dxdt.multiplyScalar(dt));
-    velocity.add(dvdt.multiplyScalar(dt));
+    position.add(dxdt.multiplyScalar(dt / 1000));
+    velocity.add(dvdt.multiplyScalar(dt / 1000));
   };

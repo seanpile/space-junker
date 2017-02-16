@@ -97,7 +97,7 @@ export default {
   },
   "firefly": {
     type: SHIP_TYPE,
-    primary: "earth",
+    primary: "sun",
     constants: {
       radius: 100 / AU,
     },

@@ -269,8 +269,18 @@ SolarSystem.prototype._calculatePhysicsBasedElements = function (body, t, dt) {
     E = 2 * Math.atan(Math.tan(argumentLatitude / 2));
     w = 0;
   } else {
-    const argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
-    const trueAnomaly = Math.safeAcos((a * (1 - Math.pow(e, 2)) - r.length()) / (e * r.length()));
+    let v_eccentricity = new Vector3()
+      .crossVectors(v, h)
+      .multiplyScalar(1 / u)
+      .sub(r.clone()
+        .multiplyScalar(1 / r.length()))
+
+    let trueAnomaly = Math.acos(v_eccentricity.dot(r) / (v_eccentricity.length() * r.length()));
+    if (r.dot(v) < 0)
+      trueAnomaly = 2 * Math.PI - trueAnomaly;
+
+    let argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
+
     E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
     w = argumentLatitude - trueAnomaly;
   }
