@@ -1,7 +1,9 @@
 import {
   Vector3
 } from 'three';
-import Integrator from 'ode-rk4';
+import ODERK4Integrator from 'ode-rk4';
+import ODECashKarpIntegrator from 'ode45-cash-karp';
+const Integrator = ODERK4Integrator;
 
 function RK4Integrator(bodies, attractors, t, dt, position_fn) {
 

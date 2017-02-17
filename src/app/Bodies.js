@@ -103,14 +103,14 @@ const body_data = {
   },
   "firefly": {
     type: SHIP_TYPE,
-    primary: "sun",
+    primary: "earth",
     constants: {
       radius: 100 / AU,
     },
     kepler_elements: {
-      a: [0.5, 0],
-      //a: [(400e3 + 6.3781e6) / AU, 0],
-      e: [0.3, 0],
+      //a: [0.2, 0],
+      a: [(400e3 + 6.3781e6) / AU, 0],
+      e: [0.2, 0],
       I: [10, 0],
       L: [0, 0],
       w: [0, 0],

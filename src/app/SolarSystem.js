@@ -47,6 +47,9 @@ SolarSystem.prototype.update = function (t, dt) {
       body.derived.position = coords.position;
       body.derived.velocity = coords.velocity;
 
+      if (body.primary) {
+        body.derived.velocity.add(body.primary.derived.velocity);
+      }
     });
 
     this.initialized = true;
@@ -189,7 +192,7 @@ SolarSystem.prototype._calculateKeplerElementsFromCartesian = function (body) {
 
   let r = new Vector3()
     .subVectors(position, primary.derived.position);
-  let v = velocity.clone();
+  let v = new Vector3().subVectors(velocity, primary.derived.velocity);
   let u = primary.constants.u;
 
   const h = new Vector3()

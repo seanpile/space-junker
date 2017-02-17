@@ -7,7 +7,7 @@ import {
 } from './Bodies';
 import * as THREE from 'three';
 
-const TRAJECTORY_SCALE = 1;
+const TRAJECTORY_SCALE = 5;
 const SHOW_VELOCITY_VECTORS = false;
 
 const PLANET_COLOURS = {
@@ -341,7 +341,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
 
 OrbitalMapRenderer.prototype._createTrajectoryGeometry = function () {
 
-  const NUM_POINTS = 256;
+  const NUM_POINTS = 2056;
 
   // Create the trajectory using a strandard ellipse curve that will
   // eventually scale/rotate/translate into the correct orbit path during
