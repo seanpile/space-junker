@@ -8,6 +8,7 @@ import {
 import * as THREE from 'three';
 
 const TRAJECTORY_SCALE = 5;
+const SHOW_VELOCITY_VECTORS = false;
 
 const PLANET_COLOURS = {
   "sun": "yellow",
@@ -154,11 +155,10 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
             color: PLANET_COLOURS[body.name] || 'white'
           }));
 
-
         this.scene.add(threeBody);
+        this.scene.add(trajectory);
         //this.scene.add(periapsis);
         //this.scene.add(apoapsis);
-        this.scene.add(trajectory);
 
         this.bodyMap.set(body.name, {
           body: threeBody,
@@ -181,7 +181,7 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
   // Locate primary body, sun
   const sun = solarSystem.find('sun');
 
-  solarSystem.bodies.forEach((body) => {
+  (function render_body(body) {
 
     let bodyMap = this.bodyMap.get(body.name);
     let threeBody = bodyMap.body;
@@ -196,16 +196,27 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
 
     threeBody.position.set(position.x, position.y, position.z);
 
-    bodyMap.arrowHelper && this.scene.remove(bodyMap.arrowHelper);
-    const arrowHelper = new THREE.ArrowHelper(derived.velocity.clone().normalize() , position, 1, 0xffff00);
-    this.scene.add(arrowHelper);
-    bodyMap.arrowHelper = arrowHelper;
+    if (SHOW_VELOCITY_VECTORS) {
+      bodyMap.arrowHelper && this.scene.remove(bodyMap.arrowHelper);
+      let arrowHelper = new THREE.ArrowHelper(derived.velocity.clone()
+        .normalize(), position, 1, 0xffff00);
+      this.scene.add(arrowHelper);
+      bodyMap.arrowHelper = arrowHelper;
+    }
+
     // threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
     // threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
     //this._updateTrajectory(focus, body);
     this._scaleBody(body);
-  });
+
+    if (body.secondaries) {
+      body.secondaries.forEach((secondary) => {
+        render_body.call(this, secondary);
+      });
+    }
+
+  }.bind(this))(sun);
 
   this.renderer.render(this.scene, this.camera);
 };
@@ -236,7 +247,7 @@ OrbitalMapRenderer.prototype._scaleBody = function (body) {
   threeBody.scale.set(scale, scale, scale);
 
   // Allow more 'space' between large bodies and their satellites
-  trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
+  //trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
 };
 
 OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
