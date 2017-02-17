@@ -15,6 +15,8 @@ export const PLANET_TYPE = "planet";
 export const SHIP_TYPE = "ship";
 export const ASTEROID_TYPE = "asteroid";
 
+const INCLUDE_PLANETS = ["sun", "earth", "firefly"];
+
 const body_data = {
   "sun": {
     type: PLANET_TYPE,
@@ -101,13 +103,13 @@ const body_data = {
   },
   "firefly": {
     type: SHIP_TYPE,
-    primary: "earth",
+    primary: "sun",
     constants: {
       radius: 100 / AU,
     },
     kepler_elements: {
-      //a: [0.2, 0],
-      a: [(400e3 + 6.3781e6) / AU, 0],
+      a: [0.5, 0],
+      //a: [(400e3 + 6.3781e6) / AU, 0],
       e: [0.3, 0],
       I: [10, 0],
       L: [0, 0],
@@ -257,7 +259,7 @@ const body_data = {
 
 // Initialize map
 //const bodyMap = new Map(Object.keys(body_data)
-const bodyMap = new Map(["sun", "earth", "firefly"]
+const bodyMap = new Map(INCLUDE_PLANETS
   .map(function (name) {
     let body = body_data[name];
     body.name = name;

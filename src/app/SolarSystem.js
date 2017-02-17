@@ -1,8 +1,6 @@
 import moment from 'moment';
 import MathExtensions from './util/MathExtensions';
-import RungeKuttaIntegrator from './integrators/runge-kutta-integrator';
-import RK4CashKarpIntegrator from 'ode45-cash-karp';
-import RK4Integrator from 'ode-rk4';
+import RK4Integrator from './integrators/RK4Integrator';
 import {
   AU,
   PLANET_TYPE,
@@ -23,7 +21,6 @@ const J2000_epoch = 2451545.0;
 
 function SolarSystem() {
   this.bodies = Array.from(ALL_BODIES);
-  this.integrator = new RungeKuttaIntegrator();
   this.initialized = false;
 };
 
@@ -55,121 +52,42 @@ SolarSystem.prototype.update = function (t, dt) {
     this.initialized = true;
   }
 
-  const state = [];
-  this.bodies.forEach((body) => {
-    /**
-     * Setup the state vector for the integration step.
-     */
-    state.push(
-      body.derived.position.x,
-      body.derived.position.y,
-      body.derived.position.z,
-      body.derived.velocity.x,
-      body.derived.velocity.y,
-      body.derived.velocity.z);
-  });
+  const bodies = this.bodies.filter((b) => b.type !== PLANET_TYPE);
+  const attractors = this.bodies.filter((b) => b.type === PLANET_TYPE);
 
-  const initialTime = t / 1000; // convert to seconds
-  const integrator = RK4CashKarpIntegrator(state, (dydt, y, t) => {
+  const integrator = new RK4Integrator(bodies, attractors, t / 1000, dt / 1000, function position_fn(attractor, t) {
+    if (attractor.name === 'sun') {
+      return attractor.derived.position;
+    }
 
-    // Set change in position = velocity
-    this.bodies.forEach((body, idx, array) => {
-      const offset = idx * 6;
-      dydt[offset + 0] = y[offset + 3];
-      dydt[offset + 1] = y[offset + 4];
-      dydt[offset + 2] = y[offset + 5];
+    let currentDate = moment(t * 1000);
+    let T = this._calculateJulianDate(currentDate);
+    let elementsAtT = this._calculateFixedKeplerElements(attractor, T);
+    let coords = this._toCartesianCoordinates(attractor.primary, elementsAtT);
+    return coords.position;
 
-      if (body.primary) {
-        /**
-         * For every body, add its primary's change in position to account
-         * for rotating around a body that is also rotating around another
-         * body.
-         */
-        const primaryIdx = this.bodies.findIndex((b) => b.name === body.primary.name);
-        const primaryOffset = primaryIdx * 6;
-        if (primaryOffset >= offset) {
-          throw new Error("Unexpected primaryOffset -- primary should always come before secondary");
-        }
+  }.bind(this));
 
-        // Include the change in position of the primary
-        dydt[offset + 0] += dydt[primaryOffset + 0];
-        dydt[offset + 1] += dydt[primaryOffset + 1];
-        dydt[offset + 2] += dydt[primaryOffset + 2];
-      }
-    });
-
-    this.bodies.forEach((body, idx, array) => {
-
-      /**
-       * Calculate the sum of forces acting on this object (a = F / m = - GM / r^2)
-       */
-      const offset = idx * 6;
-      const position = new Vector3(
-        y[offset + 0],
-        y[offset + 1],
-        y[offset + 2],
-      );
-      const acceleration = new Vector3();
-
-      array.forEach((attractor, aIdx) => {
-        if (attractor.name === body.name) {
-          return;
-        }
-
-        if (attractor.type === SHIP_TYPE) {
-          return;
-        }
-
-        const aOffset = aIdx * 6;
-        const attractorPosition = new Vector3(
-          y[aOffset + 0],
-          y[aOffset + 1],
-          y[aOffset + 2],
-        );
-        const r = new Vector3()
-          .subVectors(position, attractorPosition);
-        const distance = r.lengthSq();
-        acceleration.add(r.normalize()
-          .negate()
-          .multiplyScalar(attractor.constants.u / distance));
-      });
-
-      dydt[offset + 3] = acceleration.x;
-      dydt[offset + 4] = acceleration.y;
-      dydt[offset + 5] = acceleration.z;
-
-    });
-  }, t / 1000, dt / 1000); // convert to seconds
-
-  // Run until we hit our current time
+  // Execute the integration step
   integrator.step();
-
-  // Copy results from integration step back into the bodies
-  this.bodies.forEach((body, idx) => {
-    const offset = idx * 6;
-    const position = new Vector3(
-      integrator.y[offset + 0],
-      integrator.y[offset + 1],
-      integrator.y[offset + 2],
-    );
-    const velocity = new Vector3(
-      integrator.y[offset + 3],
-      integrator.y[offset + 4],
-      integrator.y[offset + 5],
-    );
-
-    body.derived.position = position;
-    body.derived.velocity = velocity;
-  });
 
   this.bodies.forEach((body) => {
 
     if (body.name === 'sun')
       return;
 
-    const kepler_elements = this._calculateKeplerElementsFromCartesian(body);
-    let position = body.derived.position;
-    let velocity = body.derived.velocity;
+    let kepler_elements, position, velocity;
+    if (body.type === PLANET_TYPE) {
+      kepler_elements = this._calculateFixedKeplerElements(body, T);
+      let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
+      position = coords.position;
+      velocity = coords.velocity;
+    } else {
+      kepler_elements = this._calculateKeplerElementsFromCartesian(body);
+      position = body.derived.position;
+      velocity = body.derived.velocity;
+    }
+
     let body_constants = body.constants;
     let primary = body.primary;
     let derived = body.derived;
@@ -187,15 +105,16 @@ SolarSystem.prototype.update = function (t, dt) {
     // Semi-minor axis
     let b = a * Math.sqrt(1 - Math.pow(e, 2));
 
-    let position_in_plane = new Vector3(
-      a * (Math.cos(E) - e),
-      a * Math.sqrt(1 - Math.pow(e, 2)) * Math.sin(E),
-      0);
-
     // Trajectory Elements
     let periapsis = new Vector3(a * (1 - e), 0, 0);
     let apoapsis = new Vector3(-a * (1 + e), 0, 0);
     let center = new Vector3(periapsis.x - a, 0, 0);
+
+    // Calculate position in the planets orbital plane
+    let position_in_plane = new Vector3(
+      a * (Math.cos((Math.PI / 180) * E) - e),
+      a * Math.sqrt(1 - Math.pow(e, 2)) * Math.sin((Math.PI / 180) * E),
+      0);
 
     // Orbital Period and Rotational Period
     let orbital_period = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) /
@@ -249,6 +168,7 @@ SolarSystem.prototype._calculateFixedKeplerElements = function (body, T) {
   let omega = kepler_elements.omega[0] + kepler_elements.omega[1] * T;
   let perturbations = kepler_elements.perturbations;
   let M = this._calculateMeanAnomaly(L, w, perturbations, T);
+  let E = this._calculateEccentricAnomaly(e, M);
 
   return {
     a,
@@ -256,7 +176,8 @@ SolarSystem.prototype._calculateFixedKeplerElements = function (body, T) {
     I,
     w,
     omega,
-    M
+    M,
+    E
   };
 };
 

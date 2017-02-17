@@ -7,7 +7,7 @@ import {
 } from './Bodies';
 import * as THREE from 'three';
 
-const TRAJECTORY_SCALE = 5;
+const TRAJECTORY_SCALE = 1;
 const SHOW_VELOCITY_VECTORS = false;
 
 const PLANET_COLOURS = {
@@ -134,6 +134,8 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
       // of the render loop.
       solarSystem.bodies.forEach((body) => {
 
+        this.bodyMap.set(body.name, {});
+
         const threeBody = new THREE.Mesh(new THREE.SphereGeometry(body.constants.radius, 32, 32),
           new THREE.MeshBasicMaterial({
             color: PLANET_COLOURS[body.name] || 'white'
@@ -149,24 +151,31 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
             color: 'aqua'
           }));
 
-        const trajectory = new THREE.Line(
-          this._createTrajectoryGeometry(),
-          new THREE.LineBasicMaterial({
-            color: PLANET_COLOURS[body.name] || 'white'
-          }));
-
         this.scene.add(threeBody);
-        this.scene.add(trajectory);
         //this.scene.add(periapsis);
         //this.scene.add(apoapsis);
 
-        this.bodyMap.set(body.name, {
+        if (body.name !== 'sun') {
+
+          const trajectory = new THREE.Line(
+            this._createTrajectoryGeometry(),
+            new THREE.LineBasicMaterial({
+              color: PLANET_COLOURS[body.name] || 'white'
+            }));
+
+          this.scene.add(trajectory);
+          this.bodyMap.get(body.name)
+            .trajectory = trajectory;
+          this.bodyMap.get(body.name)
+            .trajectoryVertices = Array.from(trajectory.geometry.attributes.position.array);
+        }
+
+        Object.assign(this.bodyMap.get(body.name), {
           body: threeBody,
           periapsis: periapsis,
           apoapsis: apoapsis,
-          trajectory: trajectory,
-          trajectoryVertices: Array.from(trajectory.geometry.attributes.position.array),
         });
+
       });
 
       return Promise.resolve();
@@ -181,7 +190,7 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
   // Locate primary body, sun
   const sun = solarSystem.find('sun');
 
-  (function render_body(body) {
+  solarSystem.bodies.forEach((body) => {
 
     let bodyMap = this.bodyMap.get(body.name);
     let threeBody = bodyMap.body;
@@ -207,16 +216,9 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
     // threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
     // threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
-    //this._updateTrajectory(focus, body);
+    this._updateTrajectory(focus, body);
     this._scaleBody(body);
-
-    if (body.secondaries) {
-      body.secondaries.forEach((secondary) => {
-        render_body.call(this, secondary);
-      });
-    }
-
-  }.bind(this))(sun);
+  });
 
   this.renderer.render(this.scene, this.camera);
 };
@@ -247,7 +249,7 @@ OrbitalMapRenderer.prototype._scaleBody = function (body) {
   threeBody.scale.set(scale, scale, scale);
 
   // Allow more 'space' between large bodies and their satellites
-  //trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
+  trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
 };
 
 OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
@@ -284,7 +286,6 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   const verticesToChange = 1;
   const verticesToTest = [];
 
-  // Look at all the odd indexed vertices only for simplification
   for (let i = 0; i < range; i++) {
     const offset = i * 3;
     verticesToTest.push(new THREE.Vector3(trajectoryVertices[offset],
