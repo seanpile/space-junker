@@ -1,7 +1,7 @@
 import moment from 'moment';
 import MathExtensions from './util/MathExtensions';
 import RungeKuttaIntegrator from './integrators/runge-kutta-integrator';
-import RK4Integrator from 'ode-rk4';
+import RK4Integrator from 'ode45-cash-karp';
 import {
   AU,
   PLANET_TYPE,
@@ -53,11 +53,6 @@ SolarSystem.prototype.update = function (t, dt) {
 
   const state = [];
   this.bodies.forEach((body) => {
-
-    console.log(body.name);
-    console.log(body.derived.velocity);
-    console.log(body.derived.position);
-
     state.push(
       body.derived.position.x,
       body.derived.position.y,
@@ -69,8 +64,6 @@ SolarSystem.prototype.update = function (t, dt) {
 
   const initialTime = t / 1000;
   const integrator = RK4Integrator(state, (dydt, y, t) => {
-
-    let deltaT = t - initialTime;
 
     // Set change in position = velocity
     this.bodies.forEach((body, idx, array) => {
@@ -133,7 +126,7 @@ SolarSystem.prototype.update = function (t, dt) {
     });
   }, t / 1000, dt / 1000);
 
-  integrator.step();
+  integrator.steps(Infinity, (t + dt) / 1000);
 
   // Copy results from integration step back into the bodies
   this.bodies.forEach((body, idx) => {
@@ -379,7 +372,7 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
 
   // Convert to the ecliptic plane
   let eclipticVelocity = this._transformToEcliptic(
-    primary.derived.velocity,
+    new Vector3(0, 0, 0),
     helioCentricVelocity,
     argumentPerihelion * Math.PI / 180,
     omega * Math.PI / 180,

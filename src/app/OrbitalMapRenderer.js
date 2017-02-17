@@ -154,6 +154,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
             color: PLANET_COLOURS[body.name] || 'white'
           }));
 
+
         this.scene.add(threeBody);
         //this.scene.add(periapsis);
         //this.scene.add(apoapsis);
@@ -194,6 +195,11 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
     // let periapsis = this._adjustCoordinates(focus, derived.periapsis);
 
     threeBody.position.set(position.x, position.y, position.z);
+
+    bodyMap.arrowHelper && this.scene.remove(bodyMap.arrowHelper);
+    const arrowHelper = new THREE.ArrowHelper(derived.velocity.clone().normalize() , position, 1, 0xffff00);
+    this.scene.add(arrowHelper);
+    bodyMap.arrowHelper = arrowHelper;
     // threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
     // threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
