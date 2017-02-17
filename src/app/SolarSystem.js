@@ -1,7 +1,7 @@
 import moment from 'moment';
 import MathExtensions from './util/MathExtensions';
 import RungeKuttaIntegrator from './integrators/runge-kutta-integrator';
-import RK4Integrator from 'ode45-cash-karp';
+import RK4Integrator from 'ode-rk4';
 import {
   AU,
   PLANET_TYPE,
@@ -23,6 +23,7 @@ const J2000_epoch = 2451545.0;
 function SolarSystem() {
   this.bodies = Array.from(ALL_BODIES);
   this.integrator = new RungeKuttaIntegrator();
+  this.initialized = false;
 };
 
 SolarSystem.prototype.find = function (bodyId) {
@@ -34,82 +35,200 @@ SolarSystem.prototype.update = function (t, dt) {
   let currentDate = moment(t + dt);
   let T = this._calculateJulianDate(currentDate);
 
-  this.bodies.forEach(function (body) {
+  if (!this.initialized) {
 
-    // Don't calculate data for the sun; treat as stationary
-    if (body.name === 'sun') {
-      return;
-    }
+    this.bodies.forEach((body) => {
+      if (body.name === 'sun')
+        return;
 
-    let kepler_elements;
-    if (body.type === PLANET_TYPE) {
-      kepler_elements = this._calculateFixedKeplerElements(body, T);
-    } else {
-      kepler_elements = this._calculatePhysicsBasedElements(body, t, dt);
-    }
+      let kepler_elements = this._calculateFixedKeplerElements(body, T);
+      let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
+      body.derived.position = coords.position;
+      body.derived.velocity = coords.velocity;
 
-    let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
-    let position = coords.position;
-    let velocity = coords.velocity;
+    });
 
-    let body_constants = body.constants;
-    let primary = body.primary;
-    let derived = body.derived;
-    let u = primary.constants.u;
-    let {
-      a,
-      e,
-      I,
-      w,
-      omega,
-      M
-    } = kepler_elements;
+    this.initialized = true;
+  }
 
-    // Semi-minor axis
-    let b = a * Math.sqrt(1 - Math.pow(e, 2));
+  const state = [];
+  this.bodies.forEach((body) => {
 
-    // Trajectory Elements
-    let periapsis = new Vector3(a * (1 - e), 0, 0);
-    let apoapsis = new Vector3(-a * (1 + e), 0, 0);
-    let center = new Vector3(periapsis.x - a, 0, 0);
+    console.log(body.name);
+    console.log(body.derived.velocity);
+    console.log(body.derived.position);
 
-    // Orbital Period and Rotational Period
-    let orbital_period = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) /
-      (u + (body_constants.u || 0)));
+    state.push(
+      body.derived.position.x,
+      body.derived.position.y,
+      body.derived.position.z,
+      body.derived.velocity.x,
+      body.derived.velocity.y,
+      body.derived.velocity.z);
+  });
 
-    let rotation = (derived.rotation || 0) +
-      2 * Math.PI * dt /
-      ((body_constants.rotation_period || 1) * 86400e3);
+  const initialTime = t / 1000;
+  const integrator = RK4Integrator(state, (dydt, y, t) => {
 
-    // Convert params to radians for this next transformation
-    let argumentPerihelion = (w - omega) * (Math.PI / 180);
-    omega = omega * (Math.PI / 180);
-    I = I * (Math.PI / 180);
-    w = w * (Math.PI / 180);
+    let deltaT = t - initialTime;
 
-    body.derived = {
-      T: T,
-      a: a,
-      e: e,
-      I: I,
-      w: w,
-      omega: omega,
-      argumentPerihelion: argumentPerihelion,
-      position: position,
-      prev_position: derived.position,
-      position_in_plane: coords.position_in_plane,
-      velocity: velocity,
-      semiMajorAxis: a,
-      semiMinorAxis: b,
-      orbital_period: orbital_period,
-      rotation: rotation,
-      center: this._transformToEcliptic(primary.derived.position, center, argumentPerihelion, omega, I),
-      center_in_plane: center,
-      periapsis: this._transformToEcliptic(primary.derived.position, periapsis, argumentPerihelion, omega, I),
-      apoapsis: this._transformToEcliptic(primary.derived.position, apoapsis, argumentPerihelion, omega, I),
-    }
+    // Set change in position = velocity
+    this.bodies.forEach((body, idx, array) => {
+      const offset = idx * 6;
+      dydt[offset + 0] = y[offset + 3];
+      dydt[offset + 1] = y[offset + 4];
+      dydt[offset + 2] = y[offset + 5];
 
-  }, this);
+      if (body.primary) {
+        const primaryIdx = this.bodies.findIndex((b) => b.name === body.primary.name);
+        const primaryOffset = primaryIdx * 6;
+        if (primaryOffset >= offset) {
+          throw new Error("Unexpected primaryOffset -- primary should always come before secondary");
+        }
+
+        // Include the change in position of the primary
+        dydt[offset + 0] += dydt[primaryOffset + 0];
+        dydt[offset + 1] += dydt[primaryOffset + 1];
+        dydt[offset + 2] += dydt[primaryOffset + 2];
+      }
+    });
+
+    this.bodies.forEach((body, idx, array) => {
+
+      const offset = idx * 6;
+      const position = new Vector3(
+        y[offset + 0],
+        y[offset + 1],
+        y[offset + 2],
+      );
+      const acceleration = new Vector3();
+
+      array.forEach((attractor, aIdx) => {
+        if (attractor.name === body.name) {
+          return;
+        }
+
+        if (attractor.type === SHIP_TYPE) {
+          return;
+        }
+
+        const aOffset = aIdx * 6;
+        const attractorPosition = new Vector3(
+          y[aOffset + 0],
+          y[aOffset + 1],
+          y[aOffset + 2],
+        );
+        const r = new Vector3()
+          .subVectors(position, attractorPosition);
+        const distance = r.lengthSq();
+        acceleration.add(r.normalize()
+          .negate()
+          .multiplyScalar(attractor.constants.u / distance));
+      });
+
+      dydt[offset + 3] = acceleration.x;
+      dydt[offset + 4] = acceleration.y;
+      dydt[offset + 5] = acceleration.z;
+
+    });
+  }, t / 1000, dt / 1000);
+
+  integrator.step();
+
+  // Copy results from integration step back into the bodies
+  this.bodies.forEach((body, idx) => {
+    const offset = idx * 6;
+    const position = new Vector3(
+      integrator.y[offset + 0],
+      integrator.y[offset + 1],
+      integrator.y[offset + 2],
+    );
+    const velocity = new Vector3(
+      integrator.y[offset + 3],
+      integrator.y[offset + 4],
+      integrator.y[offset + 5],
+    );
+
+    body.derived.position = position;
+    body.derived.velocity = velocity;
+  });
+
+  /**
+    this.bodies.forEach(function (body, idx) {
+
+      // Don't calculate data for the sun; treat as stationary
+      if (body.name === 'sun')
+        return;
+
+      let kepler_elements = this._calculatePhysicsBasedElements(body);
+      let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
+
+      if (body.name === 'earth') {
+        console.log(body.derived.position);
+        console.log(coords.position);
+      }
+
+      let position = body.derived.position;
+      let velocity = body.derived.velocity;
+      let body_constants = body.constants;
+      let primary = body.primary;
+      let derived = body.derived;
+      let u = primary.constants.u;
+      let {
+        a,
+        e,
+        I,
+        w,
+        omega,
+        M
+      } = kepler_elements;
+
+      // Semi-minor axis
+      let b = a * Math.sqrt(1 - Math.pow(e, 2));
+
+      // Trajectory Elements
+      let periapsis = new Vector3(a * (1 - e), 0, 0);
+      let apoapsis = new Vector3(-a * (1 + e), 0, 0);
+      let center = new Vector3(periapsis.x - a, 0, 0);
+
+      // Orbital Period and Rotational Period
+      let orbital_period = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) /
+        (u + (body_constants.u || 0)));
+
+      let rotation = (derived.rotation || 0) +
+        2 * Math.PI * dt /
+        ((body_constants.rotation_period || 1) * 86400e3);
+
+      // Convert params to radians for this next transformation
+      let argumentPerihelion = (w - omega) * (Math.PI / 180);
+      omega = omega * (Math.PI / 180);
+      I = I * (Math.PI / 180);
+      w = w * (Math.PI / 180);
+
+      body.derived = {
+        T: T,
+        a: a,
+        e: e,
+        I: I,
+        w: w,
+        omega: omega,
+        argumentPerihelion: argumentPerihelion,
+        position: position,
+        position_in_plane: coords.position_in_plane,
+        velocity: velocity,
+        semiMajorAxis: a,
+        semiMinorAxis: b,
+        orbital_period: orbital_period,
+        rotation: rotation,
+        center: this._transformToEcliptic(primary.derived.position, center, argumentPerihelion, omega, I),
+        center_in_plane: center,
+        periapsis: this._transformToEcliptic(primary.derived.position, periapsis, argumentPerihelion, omega, I),
+        apoapsis: this._transformToEcliptic(primary.derived.position, apoapsis, argumentPerihelion, omega, I),
+      }
+
+    }, this);
+
+    */
 
   this.lastTime = t + dt;
 };
@@ -137,90 +256,15 @@ SolarSystem.prototype._calculateFixedKeplerElements = function (body, T) {
   };
 };
 
-SolarSystem.prototype._calculatePhysicsBasedElements = function (body, t, dt) {
+SolarSystem.prototype._calculatePhysicsBasedElements = function (body) {
 
   let primary = body.primary;
-  let kepler_elements = body.kepler_elements;
-
-  // First, convert kepler elements to current position, velocity
-  let [initialPosition, initialVelocity] = ((kepler_elements) => {
-
-    let a = kepler_elements.a[0];
-    let e = kepler_elements.e[0];
-    let I = kepler_elements.I[0];
-    let L = kepler_elements.L[0];
-    let w = kepler_elements.w[0];
-    let omega = kepler_elements.omega[0];
-    let M = this._calculateMeanAnomaly(L, w);
-    let coords = this._toCartesianCoordinates(primary, {
-      a,
-      e,
-      I,
-      w,
-      omega,
-      M
-    });
-
-    let position = coords.position;
-    let velocity = coords.velocity;
-
-    return [position, velocity];
-
-  })(kepler_elements);
-
-  console.log(primary);
-
-  if (primary.derived.prev_position) {
-    initialPosition.add(new Vector3()
-      .subVectors(primary.derived.position, primary.derived.prev_position));
-  }
-
-  let initialState = [
-    initialPosition.x,
-    initialPosition.y,
-    initialPosition.z,
-    initialVelocity.x,
-    initialVelocity.y,
-    initialVelocity.z
-  ];
-
-  const initialTime = t / 1000;
-  const integrator = RK4Integrator(initialState,
-    (dydt, y, t) => {
-
-      let deltaT = t - initialTime;
-      let primary = body.primary;
-
-      dydt[0] = y[3] * deltaT;
-      dydt[1] = y[4] * deltaT;
-      dydt[2] = y[5] * deltaT;
-
-      let r = new Vector3(y[0] + dydt[0], y[1] + dydt[1], y[2] + dydt[2])
-        .sub(primary.derived.position);
-      let distance = r.lengthSq();
-      let acceleration = r.normalize()
-        .negate()
-        .multiplyScalar(primary.constants.u / distance);
-
-      dydt[3] = acceleration.x * deltaT;
-      dydt[4] = acceleration.y * deltaT;
-      dydt[5] = acceleration.z * deltaT;
-    }, t / 1000, dt / 1000, {
-      dtMinMag: dt / 1000 / 1000
-    });
-
-  integrator.step();
-  this.integrator.integrate(initialPosition, initialVelocity, primary, t, dt);
-
-  let newPosition = initialPosition.clone();
-  let newVelocity = initialVelocity.clone();
-
-  // let newPosition = new Vector3(integrator.y[0], integrator.y[1], integrator.y[2]);
-  // let newVelocity = new Vector3(integrator.y[3], integrator.y[4], integrator.y[5]);
+  let position = body.derived.position;
+  let velocity = body.derived.velocity;
 
   let r = new Vector3()
-    .subVectors(newPosition, primary.derived.position);
-  let v = newVelocity.clone();
+    .subVectors(position, primary.derived.position);
+  let v = velocity.clone();
   let u = primary.constants.u;
 
   const h = new Vector3()
@@ -281,14 +325,6 @@ SolarSystem.prototype._calculatePhysicsBasedElements = function (body, t, dt) {
   const M = E - e * Math.sin(E);
   const L = M + w;
 
-  // Update kepler elements for the next pass
-  kepler_elements.a[0] = a;
-  kepler_elements.e[0] = e;
-  kepler_elements.I[0] = I * 180 / Math.PI;
-  kepler_elements.w[0] = w * 180 / Math.PI;
-  kepler_elements.L[0] = L * 180 / Math.PI;
-  kepler_elements.omega[0] = omega * 180 / Math.PI;
-
   const calculated_kepler_elements = {
     a: a,
     e: e,
@@ -343,7 +379,7 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
 
   // Convert to the ecliptic plane
   let eclipticVelocity = this._transformToEcliptic(
-    new Vector3(0, 0, 0), // Don't offset; we just want the orbital velocity rotated in the appropriate plane
+    primary.derived.velocity,
     helioCentricVelocity,
     argumentPerihelion * Math.PI / 180,
     omega * Math.PI / 180,

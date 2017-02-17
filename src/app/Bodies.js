@@ -1,4 +1,6 @@
-import { Vector3 } from 'three';
+import {
+  Vector3
+} from 'three';
 
 /**
  * Kepler elements taken from http://ssd.jpl.nasa.gov/txt/aprx_pos_planets.pdf
@@ -99,7 +101,7 @@ const body_data = {
   },
   "firefly": {
     type: SHIP_TYPE,
-    primary: "sun",
+    primary: "earth",
     constants: {
       radius: 100 / AU,
     },
@@ -254,7 +256,8 @@ const body_data = {
 };
 
 // Initialize map
-const bodyMap = new Map(Object.keys(body_data)
+//const bodyMap = new Map(Object.keys(body_data)
+const bodyMap = new Map(["sun", "earth", "firefly"]
   .map(function (name) {
     let body = body_data[name];
     body.name = name;

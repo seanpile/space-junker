@@ -190,14 +190,14 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
 
     // Adjust position to re-center the coordinate system on the focus
     let position = this._adjustCoordinates(focus, derived.position);
-    let apoapsis = this._adjustCoordinates(focus, derived.apoapsis);
-    let periapsis = this._adjustCoordinates(focus, derived.periapsis);
+    // let apoapsis = this._adjustCoordinates(focus, derived.apoapsis);
+    // let periapsis = this._adjustCoordinates(focus, derived.periapsis);
 
     threeBody.position.set(position.x, position.y, position.z);
-    threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
-    threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
+    // threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
+    // threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
-    this._updateTrajectory(focus, body);
+    //this._updateTrajectory(focus, body);
     this._scaleBody(body);
   });
 
