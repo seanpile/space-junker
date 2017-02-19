@@ -11,19 +11,15 @@ import {
  */
 
 export const AU = 149.59787e9;
-export const FIXED_TYPE = "fixed";
-export const PHYSICS_TYPE = "physics";
 
 const body_data = {
   "sun": {
-    type: FIXED_TYPE,
     constants: {
       u: 1.32712438e20 / Math.pow(AU, 3),
       radius: 696e6 / AU,
     }
   },
   "mercury": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.02203e15 / Math.pow(AU, 3),
@@ -41,7 +37,6 @@ const body_data = {
     }
   },
   "venus": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.3249e15 / Math.pow(AU, 3),
@@ -60,7 +55,6 @@ const body_data = {
   },
 
   "moon": {
-    type: FIXED_TYPE,
     primary: "earth",
     constants: {
       u: 4.902794e12 / Math.pow(AU, 3),
@@ -81,7 +75,6 @@ const body_data = {
     }
   },
   "earth": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.3986e15 / Math.pow(AU, 3),
@@ -99,14 +92,13 @@ const body_data = {
     }
   },
   "firefly": {
-    type: PHYSICS_TYPE,
-    primary: "earth",
+    primary: "sun",
     constants: {
       radius: 100 / AU,
     },
     kepler_elements: {
-      //a: [0.2, 0],
-      a: [(400e3 + 6.3781e6) / AU, 0],
+      a: [0.2, 0],
+      //a: [(400e3 + 6.3781e6) / AU, 0],
       e: [0.2, 0],
       I: [10, 0],
       L: [0, 0],
@@ -115,7 +107,6 @@ const body_data = {
     },
   },
   "mars": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.04283e15 / Math.pow(AU, 3),
@@ -133,7 +124,6 @@ const body_data = {
     }
   },
   "jupiter": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 126.686e15 / Math.pow(AU, 3),
@@ -157,7 +147,6 @@ const body_data = {
     }
   },
   "saturn": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 37.391e15 / Math.pow(AU, 3),
@@ -181,7 +170,6 @@ const body_data = {
     }
   },
   "uranus": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 5.794e15 / Math.pow(AU, 3),
@@ -205,7 +193,6 @@ const body_data = {
     }
   },
   "neptune": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 6.835e15 / Math.pow(AU, 3),
@@ -229,7 +216,6 @@ const body_data = {
     }
   },
   "pluto": {
-    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.00083e15 / Math.pow(AU, 3),

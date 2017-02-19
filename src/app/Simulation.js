@@ -18,8 +18,8 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.isStopped = true;
   this.time = Date.now();
   this.startingTime = this.time;
-  this.timeWarpValues = [1, 5, 10, 50];
-  this.timeWarpIdx = 0;
+  this.timeWarpValues = [1, 5, 10, 50, 10, 10e2, 10e3, 10e4, 10e5, 10e6];
+  this.timeWarpIdx = 5;
 
   this.timeCounter = document.getElementById('time');
   this.warpValues = document.getElementById('warp-values');
@@ -191,7 +191,7 @@ Simulation.prototype.run = function () {
   this.isStopped = false;
   let numTimes = 0;
   let accumulator = 0.0;
-  let dt = 10;
+  let dt = 10; // ms
 
   runAnimation(function (frameTime) {
 
@@ -202,8 +202,6 @@ Simulation.prototype.run = function () {
     this.stats.begin();
 
     accumulator += frameTime;
-
-    console.log(frameTime);
 
     while (accumulator >= dt) {
       let t = this.time;

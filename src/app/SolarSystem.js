@@ -3,9 +3,6 @@ import MathExtensions from './util/MathExtensions';
 import RK4Integrator from './integrators/RK4Integrator';
 import {
   AU,
-  FIXED_TYPE,
-  PHYSICS_TYPE,
-  ASTEROID_TYPE,
   ALL_BODIES,
 } from './Bodies';
 
@@ -42,60 +39,22 @@ SolarSystem.prototype.update = function (t, dt) {
       if (body.name === 'sun')
         return;
 
-      let kepler_elements = this._calculateFixedKeplerElements(body, T);
-      let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
-      body.derived.position = coords.position;
-      body.derived.velocity = coords.velocity;
-
-      if (body.primary) {
-        body.derived.velocity.add(body.primary.derived.velocity);
-      }
+      let kepler_elements = this._calculateInitialKeplerElements(body, T);
+      body.derived = kepler_elements;
     });
 
     this.initialized = true;
   }
-
-  const physics_bodies = this.bodies.filter((b) => b.type !== FIXED_TYPE);
-  const fixed_bodies = this.bodies.filter((b) => b.type === FIXED_TYPE);
-
-  const integrator = new RK4Integrator(physics_bodies, fixed_bodies, t / 1000, dt / 1000, function position_fn(attractor, t) {
-    if (attractor.name === 'sun') {
-      return {
-        position: attractor.derived.position,
-        velocity: attractor.derived.velocity
-      };
-    }
-
-    let currentDate = moment(t * 1000);
-    let T = this._calculateJulianDate(currentDate);
-    let elementsAtT = this._calculateFixedKeplerElements(attractor, T);
-    let coords = this._toCartesianCoordinates(attractor.primary, elementsAtT);
-    return {
-      position: coords.position,
-      velocity: coords.velocity
-    };
-
-  }.bind(this));
-
-  // Execute the integration step
-  integrator.step();
 
   this.bodies.forEach((body) => {
 
     if (body.name === 'sun')
       return;
 
-    let kepler_elements, position, velocity;
-    if (body.type === FIXED_TYPE) {
-      kepler_elements = this._calculateFixedKeplerElements(body, T);
-      let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
-      position = coords.position;
-      velocity = coords.velocity;
-    } else {
-      kepler_elements = this._calculateKeplerElementsFromCartesian(body);
-      position = body.derived.position;
-      velocity = body.derived.velocity;
-    }
+    let kepler_elements = this._calculateKeplerElementsAtTime(body, t + dt);
+    let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
+    let position = coords.position;
+    let velocity = coords.velocity;
 
     let body_constants = body.constants;
     let primary = body.primary;
@@ -105,10 +64,9 @@ SolarSystem.prototype.update = function (t, dt) {
       a,
       e,
       I,
-      w,
+      argumentPerihelion,
       omega,
       M,
-      E,
     } = kepler_elements;
 
     // Semi-minor axis
@@ -119,12 +77,6 @@ SolarSystem.prototype.update = function (t, dt) {
     let apoapsis = new Vector3(-a * (1 + e), 0, 0);
     let center = new Vector3(periapsis.x - a, 0, 0);
 
-    // Calculate position in the planets orbital plane
-    let position_in_plane = new Vector3(
-      a * (Math.cos((Math.PI / 180) * E) - e),
-      a * Math.sqrt(1 - Math.pow(e, 2)) * Math.sin((Math.PI / 180) * E),
-      0);
-
     // Orbital Period and Rotational Period
     let orbital_period = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) /
       (u + (body_constants.u || 0)));
@@ -133,22 +85,16 @@ SolarSystem.prototype.update = function (t, dt) {
       2 * Math.PI * dt /
       ((body_constants.rotation_period || 1) * 86400e3);
 
-    // Convert params to radians for this next transformation
-    let argumentPerihelion = (w - omega) * (Math.PI / 180);
-    omega = omega * (Math.PI / 180);
-    I = I * (Math.PI / 180);
-    w = w * (Math.PI / 180);
-
     body.derived = {
       T: T,
       a: a,
       e: e,
       I: I,
-      w: w,
       omega: omega,
       argumentPerihelion: argumentPerihelion,
+      M: M,
       position: position,
-      position_in_plane: position_in_plane,
+      position_in_plane: coords.position_in_plane,
       velocity: velocity,
       semiMajorAxis: a,
       semiMinorAxis: b,
@@ -165,7 +111,7 @@ SolarSystem.prototype.update = function (t, dt) {
   this.lastTime = t + dt;
 };
 
-SolarSystem.prototype._calculateFixedKeplerElements = function (body, T) {
+SolarSystem.prototype._calculateInitialKeplerElements = function (body, T) {
 
   // Planets are fixed on rails; we simply a
   let kepler_elements = body.kepler_elements;
@@ -177,16 +123,46 @@ SolarSystem.prototype._calculateFixedKeplerElements = function (body, T) {
   let omega = kepler_elements.omega[0] + kepler_elements.omega[1] * T;
   let perturbations = kepler_elements.perturbations;
   let M = this._calculateMeanAnomaly(L, w, perturbations, T);
-  let E = this._calculateEccentricAnomaly(e, M);
+  let argumentPerihelion = w - omega;
+
+  return {
+    a: a,
+    e: e,
+    I: I * Math.PI / 180,
+    omega: omega * Math.PI / 180,
+    argumentPerihelion: argumentPerihelion * Math.PI / 180,
+    M: M * Math.PI / 180,
+  };
+};
+
+SolarSystem.prototype._calculateKeplerElementsAtTime = function (body, t) {
+
+  let {
+    a,
+    e,
+    I,
+    omega,
+    argumentPerihelion,
+    M
+  } = body.derived;
+
+  /**
+   * For elliptical orbits, M - M0 = n(t - t0)
+   */
+
+  let lastTime = this.lastTime || t;
+  let delta = (t - lastTime) / 1000;
+  let u = body.primary.constants.u;
+  let n = Math.sqrt(u / Math.pow(a, 3));
+  M = n * delta + M;
 
   return {
     a,
     e,
     I,
-    w,
     omega,
-    M,
-    E
+    argumentPerihelion,
+    M
   };
 };
 
@@ -279,33 +255,31 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
     a,
     e,
     I,
-    w,
+    argumentPerihelion,
     omega,
-    M
+    M,
   } = kepler_elements;
 
-  let argumentPerihelion = w - omega;
   let u = primary.constants.u;
-
-  const E = this._calculateEccentricAnomaly(e, M);
+  let E = this._calculateEccentricAnomaly(e, M * 180 / Math.PI) * Math.PI / 180;
 
   let trueAnomaly = Math.sign(E) * Math.acos(
-    (Math.cos((Math.PI / 180) * E) - e) /
-    (1 - e * Math.cos((Math.PI / 180) * E)))
+    (Math.cos(E) - e) /
+    (1 - e * Math.cos(E)))
 
   // Calculate heliocentric coordinates in the planets orbital plane
   let helioCentricPosition = new Vector3(
-    a * (Math.cos((Math.PI / 180) * E) - e),
-    a * Math.sqrt(1 - Math.pow(e, 2)) * Math.sin((Math.PI / 180) * E),
+    a * (Math.cos(E) - e),
+    a * Math.sqrt(1 - Math.pow(e, 2)) * Math.sin(E),
     0);
 
   // Convert to the ecliptic plane
   let eclipticPosition = this._transformToEcliptic(
     primary.derived.position,
     helioCentricPosition,
-    argumentPerihelion * Math.PI / 180,
-    omega * Math.PI / 180,
-    I * Math.PI / 180);
+    argumentPerihelion,
+    omega,
+    I);
 
   // Calculate the velocity in the planets orbital planet
   let helioCentricVelocity = new Vector3(-Math.sin(trueAnomaly),
@@ -317,13 +291,13 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
   let eclipticVelocity = this._transformToEcliptic(
     new Vector3(0, 0, 0),
     helioCentricVelocity,
-    argumentPerihelion * Math.PI / 180,
-    omega * Math.PI / 180,
-    I * Math.PI / 180);
+    argumentPerihelion,
+    omega,
+    I);
 
   return {
-    meanAnomaly: M * (Math.PI / 180),
-    eccentricAnomaly: E * (Math.PI / 180),
+    meanAnomaly: M,
+    eccentricAnomaly: E,
     trueAnomaly: trueAnomaly,
     position: eclipticPosition,
     position_in_plane: helioCentricPosition,
