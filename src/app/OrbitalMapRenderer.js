@@ -1,8 +1,8 @@
 import BaseRenderer from './BaseRenderer';
 import OrbitControls from './lib/OrbitControls';
 import {
-  PLANET_TYPE,
-  SHIP_TYPE,
+  FIXED_TYPE,
+  PHYSICS_TYPE,
   ASTEROID_TYPE
 } from './Bodies';
 import * as THREE from 'three';
@@ -168,6 +168,8 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
             .trajectory = trajectory;
           this.bodyMap.get(body.name)
             .trajectoryVertices = Array.from(trajectory.geometry.attributes.position.array);
+          this.bodyMap.get(body.name)
+            .trajectoryVerticesDirty = [];
         }
 
         Object.assign(this.bodyMap.get(body.name), {
@@ -261,6 +263,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   let bodyMap = this.bodyMap.get(body.name);
   let trajectory = bodyMap.trajectory;
   let trajectoryVertices = bodyMap.trajectoryVertices;
+  let trajectoryVerticesDirty = bodyMap.trajectoryVerticesDirty;
 
   let derived = body.derived;
   let position_in_plane = body.derived.position_in_plane;
@@ -298,7 +301,15 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
       return left[0] - right[0];
     });
 
-  // Overwrite the closest vertex with the planets actual position.  This will
+  trajectoryVerticesDirty.forEach((idx) => {
+    let offset = idx * 3;
+    positions[offset] = trajectoryVertices[offset];
+    positions[offset + 1] = trajectoryVertices[offset + 1];
+    positions[offset + 2] = trajectoryVertices[offset + 2];
+  });
+  const updatedDirtyVertices = [];
+
+  // Overwrite the closest vertices with the planets actual position.  This will
   // ensure that a vertex for our trajectory is always located at the planets
   // location.
   sorted.slice(0, verticesToChange)
@@ -308,17 +319,12 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
       positions[offset] = scaledPosition.x;
       positions[offset + 1] = scaledPosition.y
       positions[offset + 2] = scaledPosition.z;
+
+      updatedDirtyVertices.push(element[2]);
     });
 
-  // Ensure that the rest of the vertices are set to their original value
-  sorted.slice(verticesToChange)
-    .forEach((element) => {
-      let vertex = element[1];
-      let offset = element[2] * 3;
-      positions[offset] = trajectoryVertices[offset];
-      positions[offset + 1] = trajectoryVertices[offset + 1];
-      positions[offset + 2] = trajectoryVertices[offset + 2];
-    });
+  // Set new value of dirty vertices;
+  bodyMap.trajectoryVerticesDirty = updatedDirtyVertices;
 
   // Signal that this geometry needs a redraw
   geometry.attributes.position.needsUpdate = true;
@@ -341,7 +347,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
 
 OrbitalMapRenderer.prototype._createTrajectoryGeometry = function () {
 
-  const NUM_POINTS = 2056;
+  const NUM_POINTS = 256;
 
   // Create the trajectory using a strandard ellipse curve that will
   // eventually scale/rotate/translate into the correct orbit path during

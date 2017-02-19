@@ -18,8 +18,8 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.isStopped = true;
   this.time = Date.now();
   this.startingTime = this.time;
-  this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
-  this.timeWarpIdx = 3;
+  this.timeWarpValues = [1, 5, 10, 50];
+  this.timeWarpIdx = 0;
 
   this.timeCounter = document.getElementById('time');
   this.warpValues = document.getElementById('warp-values');
@@ -190,8 +190,10 @@ Simulation.prototype.run = function () {
 
   this.isStopped = false;
   let numTimes = 0;
+  let accumulator = 0.0;
+  let dt = 10;
 
-  runAnimation(function (dt) {
+  runAnimation(function (frameTime) {
 
     if (this.isStopped) {
       return false;
@@ -199,13 +201,26 @@ Simulation.prototype.run = function () {
 
     this.stats.begin();
 
-    let t = this.time;
-    let timeScale = this.timeWarpValues[this.timeWarpIdx];
-    dt *= timeScale;
+    accumulator += frameTime;
 
-    // Update physics
-    this.solarSystem.update(t, dt);
+    console.log(frameTime);
+
+    while (accumulator >= dt) {
+      let t = this.time;
+      let scaledDt = this.timeWarpValues[this.timeWarpIdx] * dt;
+
+      // Update physics
+      this.solarSystem.update(t, scaledDt);
+
+      accumulator -= dt;
+      this.time += scaledDt;
+    }
+
     this.renderer.render(this.solarSystem);
+
+    this.updateOrbitalDisplay();
+    this.updateTimeDisplay();
+    this.stats.end();
 
     numTimes++;
     if (numTimes >= numToRun) {
@@ -213,11 +228,6 @@ Simulation.prototype.run = function () {
       this.isStopped = true;
       return false;
     }
-
-    this.updateOrbitalDisplay();
-    this.updateTimeDisplay();
-    this.time += dt;
-    this.stats.end();
 
   }.bind(this));
 };
@@ -237,7 +247,8 @@ Simulation.prototype.updateOrbitalDisplay = function () {
   document.getElementById('orbital-name')
     .innerHTML = name.escapeHtml();
   document.getElementById('orbital-primary')
-    .innerHTML = (focus.primary ? focus.primary.name : '').escapeHtml();
+    .innerHTML = (focus.primary ? focus.primary.name : '')
+    .escapeHtml();
   document.getElementById('orbital-speed')
     .innerHTML = `${velocity.toFixed(2)} m/s`.escapeHtml();
   document.getElementById('orbital-eccentricity')

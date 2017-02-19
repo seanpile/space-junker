@@ -11,22 +11,19 @@ import {
  */
 
 export const AU = 149.59787e9;
-export const PLANET_TYPE = "planet";
-export const SHIP_TYPE = "ship";
-export const ASTEROID_TYPE = "asteroid";
-
-const INCLUDE_PLANETS = ["sun", "earth", "firefly"];
+export const FIXED_TYPE = "fixed";
+export const PHYSICS_TYPE = "physics";
 
 const body_data = {
   "sun": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     constants: {
       u: 1.32712438e20 / Math.pow(AU, 3),
       radius: 696e6 / AU,
     }
   },
   "mercury": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.02203e15 / Math.pow(AU, 3),
@@ -44,7 +41,7 @@ const body_data = {
     }
   },
   "venus": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.3249e15 / Math.pow(AU, 3),
@@ -63,7 +60,7 @@ const body_data = {
   },
 
   "moon": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "earth",
     constants: {
       u: 4.902794e12 / Math.pow(AU, 3),
@@ -84,7 +81,7 @@ const body_data = {
     }
   },
   "earth": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.3986e15 / Math.pow(AU, 3),
@@ -102,7 +99,7 @@ const body_data = {
     }
   },
   "firefly": {
-    type: SHIP_TYPE,
+    type: PHYSICS_TYPE,
     primary: "earth",
     constants: {
       radius: 100 / AU,
@@ -118,7 +115,7 @@ const body_data = {
     },
   },
   "mars": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.04283e15 / Math.pow(AU, 3),
@@ -136,7 +133,7 @@ const body_data = {
     }
   },
   "jupiter": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 126.686e15 / Math.pow(AU, 3),
@@ -160,7 +157,7 @@ const body_data = {
     }
   },
   "saturn": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 37.391e15 / Math.pow(AU, 3),
@@ -184,7 +181,7 @@ const body_data = {
     }
   },
   "uranus": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 5.794e15 / Math.pow(AU, 3),
@@ -208,7 +205,7 @@ const body_data = {
     }
   },
   "neptune": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 6.835e15 / Math.pow(AU, 3),
@@ -232,7 +229,7 @@ const body_data = {
     }
   },
   "pluto": {
-    type: PLANET_TYPE,
+    type: FIXED_TYPE,
     primary: "sun",
     constants: {
       u: 0.00083e15 / Math.pow(AU, 3),
@@ -258,8 +255,7 @@ const body_data = {
 };
 
 // Initialize map
-//const bodyMap = new Map(Object.keys(body_data)
-const bodyMap = new Map(INCLUDE_PLANETS
+const bodyMap = new Map(Object.keys(body_data)
   .map(function (name) {
     let body = body_data[name];
     body.name = name;

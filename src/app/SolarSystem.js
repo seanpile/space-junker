@@ -3,8 +3,8 @@ import MathExtensions from './util/MathExtensions';
 import RK4Integrator from './integrators/RK4Integrator';
 import {
   AU,
-  PLANET_TYPE,
-  SHIP_TYPE,
+  FIXED_TYPE,
+  PHYSICS_TYPE,
   ASTEROID_TYPE,
   ALL_BODIES,
 } from './Bodies';
@@ -55,19 +55,25 @@ SolarSystem.prototype.update = function (t, dt) {
     this.initialized = true;
   }
 
-  const bodies = this.bodies.filter((b) => b.type !== PLANET_TYPE);
-  const attractors = this.bodies.filter((b) => b.type === PLANET_TYPE);
+  const physics_bodies = this.bodies.filter((b) => b.type !== FIXED_TYPE);
+  const fixed_bodies = this.bodies.filter((b) => b.type === FIXED_TYPE);
 
-  const integrator = new RK4Integrator(bodies, attractors, t / 1000, dt / 1000, function position_fn(attractor, t) {
+  const integrator = new RK4Integrator(physics_bodies, fixed_bodies, t / 1000, dt / 1000, function position_fn(attractor, t) {
     if (attractor.name === 'sun') {
-      return attractor.derived.position;
+      return {
+        position: attractor.derived.position,
+        velocity: attractor.derived.velocity
+      };
     }
 
     let currentDate = moment(t * 1000);
     let T = this._calculateJulianDate(currentDate);
     let elementsAtT = this._calculateFixedKeplerElements(attractor, T);
     let coords = this._toCartesianCoordinates(attractor.primary, elementsAtT);
-    return coords.position;
+    return {
+      position: coords.position,
+      velocity: coords.velocity
+    };
 
   }.bind(this));
 
@@ -80,7 +86,7 @@ SolarSystem.prototype.update = function (t, dt) {
       return;
 
     let kepler_elements, position, velocity;
-    if (body.type === PLANET_TYPE) {
+    if (body.type === FIXED_TYPE) {
       kepler_elements = this._calculateFixedKeplerElements(body, T);
       let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
       position = coords.position;
@@ -192,7 +198,8 @@ SolarSystem.prototype._calculateKeplerElementsFromCartesian = function (body) {
 
   let r = new Vector3()
     .subVectors(position, primary.derived.position);
-  let v = new Vector3().subVectors(velocity, primary.derived.velocity);
+  let v = new Vector3()
+    .subVectors(velocity, primary.derived.velocity);
   let u = primary.constants.u;
 
   const h = new Vector3()
