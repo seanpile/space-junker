@@ -1,3 +1,7 @@
+import {
+  Vector3
+} from 'three';
+
 /**
  * Kepler elements taken from http://ssd.jpl.nasa.gov/txt/aprx_pos_planets.pdf
  * Planetary constants taken from http://www.braeunig.us/space/constant.htm
@@ -7,20 +11,15 @@
  */
 
 export const AU = 149.59787e9;
-export const PLANET_TYPE = "planet";
-export const SHIP_TYPE = "ship";
-export const ASTEROID_TYPE = "asteroid";
 
-export default {
+const body_data = {
   "sun": {
-    type: PLANET_TYPE,
     constants: {
       u: 1.32712438e20 / Math.pow(AU, 3),
       radius: 696e6 / AU,
     }
   },
   "mercury": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.02203e15 / Math.pow(AU, 3),
@@ -38,7 +37,6 @@ export default {
     }
   },
   "venus": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.3249e15 / Math.pow(AU, 3),
@@ -57,7 +55,6 @@ export default {
   },
 
   "moon": {
-    type: PLANET_TYPE,
     primary: "earth",
     constants: {
       u: 4.902794e12 / Math.pow(AU, 3),
@@ -78,7 +75,6 @@ export default {
     }
   },
   "earth": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.3986e15 / Math.pow(AU, 3),
@@ -96,15 +92,14 @@ export default {
     }
   },
   "firefly": {
-    type: SHIP_TYPE,
-    primary: "sun",
+    primary: "earth",
     constants: {
       radius: 100 / AU,
     },
     kepler_elements: {
-      a: [0.5, 0],
-      //a: [(400e3 + 6.3781e6) / AU, 0],
-      e: [0.3, 0],
+      //a: [0.2, 0],
+      a: [(400e3 + 6.3781e6) / AU, 0],
+      e: [0.2, 0],
       I: [10, 0],
       L: [0, 0],
       w: [0, 0],
@@ -112,7 +107,6 @@ export default {
     },
   },
   "mars": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.04283e15 / Math.pow(AU, 3),
@@ -130,7 +124,6 @@ export default {
     }
   },
   "jupiter": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 126.686e15 / Math.pow(AU, 3),
@@ -154,7 +147,6 @@ export default {
     }
   },
   "saturn": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 37.391e15 / Math.pow(AU, 3),
@@ -178,7 +170,6 @@ export default {
     }
   },
   "uranus": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 5.794e15 / Math.pow(AU, 3),
@@ -202,7 +193,6 @@ export default {
     }
   },
   "neptune": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 6.835e15 / Math.pow(AU, 3),
@@ -226,7 +216,6 @@ export default {
     }
   },
   "pluto": {
-    type: PLANET_TYPE,
     primary: "sun",
     constants: {
       u: 0.00083e15 / Math.pow(AU, 3),
@@ -250,3 +239,55 @@ export default {
     }
   }
 };
+
+// Initialize map
+const bodyMap = new Map(Object.keys(body_data)
+  .map(function (name) {
+    let body = body_data[name];
+    body.name = name;
+    body.derived = {};
+
+    if (name === 'sun') {
+      body.derived = {
+        position: new Vector3(0, 0, 0),
+        velocity: new Vector3(0, 0, 0),
+        apoapsis: new Vector3(0, 0, 0),
+        periapsis: new Vector3(0, 0, 0),
+        center: new Vector3(0, 0, 0)
+      };
+    }
+
+    return [name, body];
+  }));
+
+// Set back-references on body graph
+Array.from(bodyMap.values())
+  .forEach((body) => {
+
+    // Set primary
+    if (body.primary) {
+      body.primary = bodyMap.get(body.primary);
+
+      // Add self to primary's secondaries property
+      if (!body.primary.secondaries)
+        body.primary.secondaries = [];
+
+      body.primary.secondaries.push(body);
+    }
+  });
+
+// Flatten the dependency graph to ensure that primary bodies are always
+// evaluated before their secondaries (satellites)
+
+function flatten(body) {
+  if (!body) {
+    return [];
+  }
+
+  return (body.secondaries || [])
+    .reduce((bodies, b) => {
+      return bodies.concat(flatten(b));
+    }, [body]);
+}
+
+export const ALL_BODIES = flatten(bodyMap.get('sun'));
