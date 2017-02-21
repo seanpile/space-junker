@@ -18,8 +18,8 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.isStopped = true;
   this.time = Date.now();
   this.startingTime = this.time;
-  this.timeWarpValues = [1, 5, 10, 50, 10, 10e2, 10e3, 10e4, 10e5, 10e6];
-  this.timeWarpIdx = 5;
+  this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
+  this.timeWarpIdx = 0;
 
   this.timeCounter = document.getElementById('time');
   this.warpValues = document.getElementById('warp-values');

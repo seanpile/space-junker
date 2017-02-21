@@ -7,7 +7,7 @@ import {
 } from './Bodies';
 import * as THREE from 'three';
 
-const TRAJECTORY_SCALE = 5;
+const TRAJECTORY_SCALE = 1;
 const SHOW_VELOCITY_VECTORS = false;
 
 const PLANET_COLOURS = {
@@ -24,9 +24,9 @@ const PLANET_COLOURS = {
   "pluto": "silver"
 };
 
-function OrbitalMapRenderer(container, textureLoader, commonState) {
+function OrbitalMapRenderer(container, textureLoader, modelLoader, commonState) {
 
-  BaseRenderer.call(this, textureLoader, commonState);
+  BaseRenderer.call(this, textureLoader, modelLoader, commonState);
 
   this.container = container;
   this.renderer = new THREE.WebGLRenderer();
@@ -39,10 +39,12 @@ function OrbitalMapRenderer(container, textureLoader, commonState) {
 
 OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
-  return Promise.all([
-      this._loadTextures()
+  return Promise.race([
+      this._loadTextures(),
+      this._loadModels(),
+      Promise.resolve(),
     ])
-    .then(([textures]) => {
+    .then(() => {
 
       let width = window.innerWidth;
       let height = window.innerHeight;
@@ -50,7 +52,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
       this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
       this.camera.up = new THREE.Vector3(0, 0, 1);
 
-      const skybox = this._createSkyBox(textures);
+      const skybox = this._createSkyBox();
       this.scene.add(skybox);
 
       const recenter = () => {

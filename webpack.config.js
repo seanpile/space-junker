@@ -14,11 +14,30 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
       {
-        test: /\.(jpg|png)$/,
+        test: /img\/.*\.(jpg|png)$/,
         use: [{
           loader: "file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/",
         }],
-      }, {
+      },
+      {
+        test: /models\/(.*)\.(jpg|png)$/,
+        use: [{
+          loader: "file-loader",
+          options: {
+            name: '[path][name].[ext]',
+            context: path.resolve(__dirname, 'src', 'models'),
+            publicPath: 'models/',
+            outputPath: 'models/',
+          }
+        }],
+      },
+      {
+        test: /\.(dae)$/,
+        use: [{
+          loader: "file-loader?name=[name].[ext]&publicPath=models/&outputPath=models/",
+        }],
+      },
+      {
         test: /\.js$/,
         exclude: [/node_modules/],
         use: [{
@@ -44,7 +63,4 @@ module.exports = {
       name: 'vendor'
     }),
   ],
-  devServer: {
-    contentBase: path.resolve(__dirname, 'build'),
-  },
 }

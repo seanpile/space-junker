@@ -1,16 +1,21 @@
 import BaseRenderer from './BaseRenderer';
 import OrbitControls from './lib/OrbitControls';
 import * as THREE from 'three';
+import {
+  AU
+} from './Bodies';
 
-function CameraViewRenderer(container, textureLoader, commonState) {
+function CameraViewRenderer(container, textureLoader, modelLoader, commonState) {
 
-  BaseRenderer.call(this, textureLoader, commonState);
+  BaseRenderer.call(this, textureLoader, modelLoader, commonState);
 
   this.renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true
   });
   this.renderer.setPixelRatio(window.devicePixelRatio);
+  this.renderer.shadowMap.enabled = true;
+  this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   this.container = container;
   container.appendChild(this.renderer.domElement);
 
@@ -24,8 +29,9 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
   return Promise.all([
       this._loadTextures(),
+      this._loadModels(),
     ])
-    .then(([textures]) => {
+    .then(([textures, models]) => {
 
       // Find the body we are focusing on
       const focus = solarSystem.find(this.state.focus);
@@ -53,7 +59,9 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       };
 
       this.addEventListener('focus', (event) => {
-        this.orbitControls.minDistance = 5 * solarSystem.find(event.focus).constants.radius;
+        let focus = solarSystem.find(event.focus);
+        this.orbitControls.minDistance = focus.constants.radius * 1.1;
+        this.orbitControls.maxDistance = focus.constants.radius * 100;
         recenter();
       });
 
@@ -94,11 +102,25 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
           return;
         }
 
+        const material = new THREE.MeshPhongMaterial();
         const threeBody = new THREE.Mesh(
-          new THREE.SphereGeometry(body.constants.radius, 32, 32),
-          new THREE.MeshStandardMaterial({
-            map: textures.get(body.name),
-          }));
+          new THREE.SphereGeometry(body.constants.radius, 128, 128),
+          material);
+
+        if (body.name === 'earth') {
+          material.bumpMap = textures.get(body.name + 'bump');
+          material.bumpScale = 100000 / AU;
+
+          material.specularMap = textures.get(body.name + 'spec');
+          material.specular = new THREE.Color('grey');
+        }
+
+        // Reduce harsh glare effect of the light source (default 30 -> 1);
+        material.map = textures.get(body.name) || textures.get('moon');
+        material.shininess = 1;
+
+        threeBody.receiveShadow = true;
+        threeBody.castShadow = true;
 
         this.scene.add(threeBody);
         this.bodyMap.set(body.name, threeBody);
@@ -119,8 +141,20 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
   // Update light sources
   const sun = solarSystem.find('sun');
   this.lightSources.forEach((light) => {
-    light.position.copy(this._adjustCoordinates(focus, sun.derived.position));
-  })
+    const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
+    light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
+
+    if (light.shadow && focus.primary && focus.primary.name !== 'sun') {
+      let lightBoxLength = focus.primary.constants.radius;
+      light.shadow.camera.near = 0.99 * focus.primary.derived.position.length();
+      light.shadow.camera.far = 1.01 * focus.primary.derived.position.length();
+      light.shadow.camera.left = -lightBoxLength;
+      light.shadow.camera.right = lightBoxLength;
+      light.shadow.camera.top = lightBoxLength;
+      light.shadow.camera.bottom = -lightBoxLength;
+    }
+
+  });
 
   // Update the positions of all of our bodies
   solarSystem.bodies.forEach((body) => {

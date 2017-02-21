@@ -1,36 +1,30 @@
 import * as THREE from 'three';
 
 // Textures
-import map_sun from '../img/sunmap.jpg';
-import map_moon from '../img/moonmap.jpg';
-import map_earth from '../img/earthmap.jpg';
-import map_jupiter from '../img/jupitermap.jpg';
-import map_saturn from '../img/saturnmap.jpg';
-import map_mercury from '../img/mercurymap.jpg';
-import map_venus from '../img/venusmap.jpg';
-import map_mars from '../img/marsmap.jpg';
-import map_pluto from '../img/plutomap.jpg';
-import map_neptune from '../img/neptunemap.jpg';
-import map_uranus from '../img/uranusmap.jpg';
-import lensflare from '../img/lensflare.png';
-
 const TEXTURES = {
-  //'sun': map_sun,
-  'earth': map_earth,
-  'moon': map_moon,
-  'jupiter': map_jupiter,
-  'saturn': map_saturn,
-  'mercury': map_mercury,
-  'mars': map_mars,
-  'venus': map_venus,
-  'pluto': map_pluto,
-  'neptune': map_neptune,
-  'uranus': map_uranus,
-  'lensflare': lensflare,
+  'moon': require('../img/moonmap.jpg'),
+  'earth': require('../img/earthmap.jpg'),
+  'earthspec': require('../img/earthspec.jpg'),
+  'earthbump': require('../img/earthbump.jpg'),
+  'jupiter': require('../img/jupitermap.jpg'),
+  'saturn': require('../img/saturnmap.jpg'),
+  'mercury': require('../img/mercurymap.jpg'),
+  'venus': require('../img/venusmap.jpg'),
+  'mars': require('../img/marsmap.jpg'),
+  'pluto': require('../img/plutomap.jpg'),
+  'neptune': require('../img/neptunemap.jpg'),
+  'uranus': require('../img/uranusmap.jpg'),
+  'lensflare': require('../img/lensflare.png'),
+  'rock1': require('../models/rock1/ArmGra05.jpg'),
 };
 
-export default function BaseRenderer(textureLoader, state) {
+const MODELS = {
+  'rock1': require('../models/rock1.dae'),
+}
+
+export default function BaseRenderer(textureLoader, modelLoader, state) {
   this.textureLoader = textureLoader;
+  this.modelLoader = modelLoader;
   this.state = state;
 };
 
@@ -67,19 +61,38 @@ BaseRenderer.prototype._loadTextures = function () {
     });
 };
 
-BaseRenderer.prototype._setupLightSources = function (textures) {
-  const ambientLight = new THREE.AmbientLight(0x404040);
-  const pointLight = new THREE.PointLight(0xFFFFFF, 1, 100, 2);
-  const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 100, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffff00));
-
-  this.scene.add(ambientLight);
-  this.scene.add(pointLight);
-  this.scene.add(lensFlare);
-
-  return [pointLight, lensFlare];
+BaseRenderer.prototype._loadModels = function () {
+  return Promise.all(Object.entries(MODELS)
+      .map(([key, value]) => {
+        return new Promise((resolve, reject) => {
+          this.modelLoader.load(value,
+            (model) => {
+              resolve([key, model]);
+            });
+        });
+      }))
+    .then(values => {
+      return Promise.resolve(new Map(values));
+    });
 };
 
-BaseRenderer.prototype._createSkyBox = function (textures) {
+BaseRenderer.prototype._setupLightSources = function (textures) {
+  const ambientLight = new THREE.AmbientLight(0x202020);
+  const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 100, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffff00));
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+
+  directionalLight.castShadow = true;
+  directionalLight.shadow.camera.up = new THREE.Vector3(0, 0, 1);
+
+  this.scene.add(ambientLight);
+  this.scene.add(directionalLight);
+  this.scene.add(lensFlare);
+
+  //return [pointLight];
+  return [directionalLight, lensFlare];
+};
+
+BaseRenderer.prototype._createSkyBox = function () {
 
   //This will add a starfield to the background of a scene
   let vertices = [];
@@ -88,7 +101,7 @@ BaseRenderer.prototype._createSkyBox = function (textures) {
 
     let r;
 
-    // Generate stars that are at least 5 AU away
+    // Generate stars that are a minimum distance away
     do {
       r = new THREE.Vector3(
         THREE.Math.randFloatSpread(2000),
