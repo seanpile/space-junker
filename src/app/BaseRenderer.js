@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 
 // Textures
-import map_sun from '../../docs/sunmap.jpg';
-import map_moon from '../../docs/moonmap.jpg';
-import map_earth from '../../docs/earthmap.jpg';
-import map_jupiter from '../../docs/jupitermap.jpg';
-import map_saturn from '../../docs/saturnmap.jpg';
-import map_mercury from '../../docs/mercurymap.jpg';
-import map_venus from '../../docs/venusmap.jpg';
-import map_mars from '../../docs/marsmap.jpg';
-import map_pluto from '../../docs/plutomap.jpg';
-import map_neptune from '../../docs/neptunemap.jpg';
-import map_uranus from '../../docs/uranusmap.jpg';
-import lensflare from '../../docs/lensflare.png';
+import map_sun from '../img/sunmap.jpg';
+import map_moon from '../img/moonmap.jpg';
+import map_earth from '../img/earthmap.jpg';
+import map_jupiter from '../img/jupitermap.jpg';
+import map_saturn from '../img/saturnmap.jpg';
+import map_mercury from '../img/mercurymap.jpg';
+import map_venus from '../img/venusmap.jpg';
+import map_mars from '../img/marsmap.jpg';
+import map_pluto from '../img/plutomap.jpg';
+import map_neptune from '../img/neptunemap.jpg';
+import map_uranus from '../img/uranusmap.jpg';
+import lensflare from '../img/lensflare.png';
 
 const TEXTURES = {
   //'sun': map_sun,

@@ -16,7 +16,7 @@ module.exports = {
       {
         test: /\.(jpg|png)$/,
         use: [{
-          loader: "file-loader?name=[name].[ext]",
+          loader: "file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/",
         }],
       }, {
         test: /\.js$/,
