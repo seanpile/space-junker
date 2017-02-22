@@ -40,8 +40,6 @@ function OrbitalMapRenderer(container, textureLoader, modelLoader, commonState) 
 OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
   return Promise.race([
-      this._loadTextures(),
-      this._loadModels(),
       Promise.resolve(),
     ])
     .then(() => {

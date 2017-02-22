@@ -46,18 +46,20 @@ BaseRenderer.prototype._onWindowResize = function (originalHeight, originalFov) 
 
 };
 
-BaseRenderer.prototype._loadTextures = function () {
-  return Promise.all(Object.entries(TEXTURES)
-      .map(([key, value]) => {
+BaseRenderer.prototype._loadTextures = function (textures) {
+  return Promise.all(
+      textures.filter((t) => TEXTURES.hasOwnProperty(t))
+      .map((key) => {
         return new Promise((resolve, reject) => {
-          this.textureLoader.load(value,
+          this.textureLoader.load(TEXTURES[key],
             (texture) => {
               resolve([key, texture]);
             });
         });
-      }))
+      })
+    )
     .then(values => {
-      return Promise.resolve(new Map(values));
+      return Promise.resolve(new Map(values))
     });
 };
 
@@ -76,9 +78,8 @@ BaseRenderer.prototype._loadModels = function () {
     });
 };
 
-BaseRenderer.prototype._setupLightSources = function (textures) {
+BaseRenderer.prototype._setupLightSources = function () {
   const ambientLight = new THREE.AmbientLight(0x202020);
-  const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 100, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffff00));
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 
   directionalLight.castShadow = true;
@@ -86,10 +87,8 @@ BaseRenderer.prototype._setupLightSources = function (textures) {
 
   this.scene.add(ambientLight);
   this.scene.add(directionalLight);
-  this.scene.add(lensFlare);
 
-  //return [pointLight];
-  return [directionalLight, lensFlare];
+  return directionalLight;
 };
 
 BaseRenderer.prototype._createSkyBox = function () {

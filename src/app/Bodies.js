@@ -17,6 +17,14 @@ const body_data = {
     constants: {
       u: 1.32712438e20 / Math.pow(AU, 3),
       radius: 696e6 / AU,
+    },
+    kepler_elements: {
+      a: [0, 0],
+      e: [0, 0],
+      I: [0, 0],
+      L: [0, 0],
+      w: [0, 0],
+      omega: [0, 0],
     }
   },
   "mercury": {

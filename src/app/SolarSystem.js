@@ -34,9 +34,6 @@ SolarSystem.prototype.update = function (t, dt) {
      * elements
      */
     this.bodies.forEach((body) => {
-      if (body.name === 'sun')
-        return;
-
       let kepler_elements = this._calculateInitialKeplerElements(body, T);
       body.derived = kepler_elements;
     });
@@ -46,9 +43,6 @@ SolarSystem.prototype.update = function (t, dt) {
 
   this.bodies.forEach((body) => {
 
-    if (body.name === 'sun')
-      return;
-
     let kepler_elements = this._calculateKeplerElementsAtTime(body, t + dt);
     let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
     let position = coords.position;
@@ -57,7 +51,8 @@ SolarSystem.prototype.update = function (t, dt) {
     let body_constants = body.constants;
     let primary = body.primary;
     let derived = body.derived;
-    let u = primary.constants.u;
+    let u = body.primary ? primary.constants.u : 0;
+    let offset = body.primary ? primary.derived.position : new Vector3(0, 0, 0);
     let {
       a,
       e,
@@ -99,9 +94,9 @@ SolarSystem.prototype.update = function (t, dt) {
       orbital_period: orbital_period,
       rotation: rotation,
       center_in_plane: center,
-      center: this._transformToEcliptic(primary.derived.position, center, argumentPerihelion, omega, I),
-      periapsis: this._transformToEcliptic(primary.derived.position, periapsis, argumentPerihelion, omega, I),
-      apoapsis: this._transformToEcliptic(primary.derived.position, apoapsis, argumentPerihelion, omega, I),
+      center: this._transformToEcliptic(offset, center, argumentPerihelion, omega, I),
+      periapsis: this._transformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
+      apoapsis: this._transformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
     }
 
   });
@@ -150,7 +145,7 @@ SolarSystem.prototype._calculateKeplerElementsAtTime = function (body, t) {
 
   let lastTime = this.lastTime || t;
   let delta = (t - lastTime) / 1000;
-  let u = body.primary.constants.u;
+  let u = body.primary ? body.primary.constants.u : 0;
   let n = Math.sqrt(u / Math.pow(a, 3));
   M = n * delta + M;
 
@@ -258,7 +253,8 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
     M,
   } = kepler_elements;
 
-  let u = primary.constants.u;
+  let u = primary ? primary.constants.u : 0;
+  let offset = primary ? primary.derived.position : new Vector3(0, 0, 0);
   let E = this._calculateEccentricAnomaly(e, M * 180 / Math.PI) * Math.PI / 180;
 
   let trueAnomaly = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2),
@@ -272,7 +268,7 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
 
   // Convert to the ecliptic plane
   let eclipticPosition = this._transformToEcliptic(
-    primary.derived.position,
+    offset,
     helioCentricPosition,
     argumentPerihelion,
     omega,
