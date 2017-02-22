@@ -1,6 +1,4 @@
 import moment from 'moment';
-import MathExtensions from './util/MathExtensions';
-import RK4Integrator from './integrators/RK4Integrator';
 import {
   AU,
   ALL_BODIES,
@@ -263,9 +261,8 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
   let u = primary.constants.u;
   let E = this._calculateEccentricAnomaly(e, M * 180 / Math.PI) * Math.PI / 180;
 
-  let trueAnomaly = Math.sign(E) * Math.acos(
-    (Math.cos(E) - e) /
-    (1 - e * Math.cos(E)))
+  let trueAnomaly = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2),
+    Math.sqrt(1 - e) * Math.cos(E / 2));
 
   // Calculate heliocentric coordinates in the planets orbital plane
   let helioCentricPosition = new Vector3(

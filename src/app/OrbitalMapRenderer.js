@@ -1,13 +1,13 @@
 import BaseRenderer from './BaseRenderer';
-import OrbitControls from './lib/OrbitControls';
 import {
   FIXED_TYPE,
   PHYSICS_TYPE,
   ASTEROID_TYPE
 } from './Bodies';
 import * as THREE from 'three';
+const OrbitControls = require('three-orbit-controls')(THREE);
 
-const TRAJECTORY_SCALE = 1;
+const TRAJECTORY_SCALE = 2;
 const SHOW_VELOCITY_VECTORS = false;
 
 const PLANET_COLOURS = {

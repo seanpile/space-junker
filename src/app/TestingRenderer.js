@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import OrbitControls from './lib/OrbitControls';
+const OrbitControls = require('three-orbit-controls')(THREE);
 
 const POINTS = 8;
 

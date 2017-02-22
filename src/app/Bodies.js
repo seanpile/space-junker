@@ -99,7 +99,7 @@ const body_data = {
     kepler_elements: {
       a: [(400e3 + 6.3781e6) / AU, 0],
       e: [0, 0],
-      I: [50, 0],
+      I: [10, 0],
       L: [0, 0],
       w: [0, 0],
       omega: [0, 0],

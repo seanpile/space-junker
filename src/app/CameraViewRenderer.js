@@ -1,9 +1,10 @@
 import BaseRenderer from './BaseRenderer';
-import OrbitControls from './lib/OrbitControls';
 import * as THREE from 'three';
 import {
   AU
 } from './Bodies';
+
+const OrbitControls = require('three-orbit-controls')(THREE);
 
 function CameraViewRenderer(container, textureLoader, modelLoader, commonState) {
 
@@ -50,19 +51,46 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
       // initialize camera and scene
       this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
-      this.camera.up = new THREE.Vector3(0, 0, 1); // make 'z' be the UP direction
 
+      /**
+       * Callback to recenter the camera
+       */
       const recenter = () => {
         let focus = solarSystem.find(this.state.focus);
-        this.camera.position.set(0, -5 * focus.constants.radius, 0);
+        let camera_position = focus.derived.velocity.clone()
+          .normalize()
+          .negate()
+          .multiplyScalar(5 * focus.constants.radius);
+
+        let primary_position = new THREE.Vector3()
+          .sub(this._adjustCoordinates(focus, focus.primary.derived.position));
+
+        this.camera.up = new THREE.Vector3()
+          .copy(focus.derived.velocity)
+          .applyAxisAngle(primary_position.normalize(), Math.PI / 2)
+          .normalize();
+
+        this.camera.position.set(camera_position.x, camera_position.y, camera_position.z);
         this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+      };
+
+      /**
+       * Callback for when we change the body focus
+       */
+      const onFocus = (focus) => {
+        this.orbitControls && this.orbitControls.dispose();
+
+        recenter();
+
+        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls.minDistance = focus.constants.radius * 1.5;
+        this.orbitControls.maxDistance = focus.constants.radius * 100;
       };
 
       this.addEventListener('focus', (event) => {
         let focus = solarSystem.find(event.focus);
-        this.orbitControls.minDistance = focus.constants.radius * 1.1;
-        this.orbitControls.maxDistance = focus.constants.radius * 100;
-        recenter();
+        onFocus(focus);
       });
 
       this.addEventListener('recenter', (event) => {
@@ -80,12 +108,8 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
       this.viewWillAppear = () => {
         const focus = solarSystem.find(this.state.focus);
-        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.orbitControls.minDistance = focus.constants.radius * 1.1;
-        this.orbitControls.maxDistance = focus.constants.radius * 100;
-
+        onFocus(focus);
         onWindowResize();
-        recenter();
       };
 
       this.viewWillDisappear = () => {

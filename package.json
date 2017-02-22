@@ -32,6 +32,7 @@
     "ode45-cash-karp": "^1.0.3",
     "stats.js": "^0.17.0",
     "three": "^0.84.0",
-    "three-collada-loader": "0.0.1"
+    "three-collada-loader": "0.0.1",
+    "three-orbit-controls": "^82.1.0"
   }
 }
