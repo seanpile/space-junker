@@ -1,4 +1,4 @@
-const DEFAULT_FOCUS = 'sun';
+const DEFAULT_FOCUS = 'earth';
 
 export default class CommonState {
   constructor(focus = DEFAULT_FOCUS) {
