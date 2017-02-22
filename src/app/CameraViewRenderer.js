@@ -28,9 +28,6 @@ function CameraViewRenderer(container, textureLoader, modelLoader, commonState) 
  */
 CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
-  // Find the body we are focusing on
-  const focus = solarSystem.find(this.state.focus);
-
   this.scene = new THREE.Scene();
   this.scene.background = new THREE.Color('black');
 
@@ -111,15 +108,52 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
    * Setup lifecycle methods for registering/deregistering event listeners
    */
 
+  const onKeypress = (event) => {
+    // Find the body we are focusing on
+    const threeObj = this.bodyCache.get(this.state.focus);
+
+    switch (event.keyCode) {
+    case 113:
+      // q
+      threeObj.rotateZ(Math.PI / 32);
+      break;
+    case 101:
+      // e
+      threeObj.rotateZ(-Math.PI / 32);
+      break;
+    case 119:
+      // w
+      threeObj.rotateX(Math.PI / 32);
+      break;
+    case 97:
+      // a
+      threeObj.rotateY(Math.PI / 32);
+      break;
+    case 115:
+      // s
+      threeObj.rotateX(-Math.PI / 32);
+      break;
+    case 100:
+      // d
+      threeObj.rotateY(-Math.PI / 32);
+      break;
+    default:
+    }
+  };
+
   this.viewWillAppear = () => {
     const focus = solarSystem.find(this.state.focus);
     onFocus(focus);
     onWindowResize();
+
+    window.addEventListener('keypress', onKeypress);
   };
 
   this.viewWillDisappear = () => {
     this.orbitControls.dispose();
     this.orbitControls = null;
+
+    window.removeEventListener('keypress', onKeypress);
   };
 
   return Promise.resolve();
@@ -148,33 +182,38 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
   });
 
   // Update the positions of all of our bodies
-  neighbours.forEach((body) => {
+  Promise.all(
+      neighbours.map((body) => {
+        return this.loadThreeBody(body)
+          .then((threeBody) => {
 
-    this.loadThreeBody(body)
-      .then((threeBody) => {
+            threeBody.visible = true;
 
-        threeBody.visible = true;
+            let derived = body.derived;
 
-        let derived = body.derived;
+            // Adjust position to re-center the coordinate system on the focus
+            let position = this._adjustCoordinates(focus, derived.position);
+            threeBody.position.set(position.x, position.y, position.z);
 
-        // Adjust position to re-center the coordinate system on the focus
-        let position = this._adjustCoordinates(focus, derived.position);
-        threeBody.position.set(position.x, position.y, position.z);
+            // Adjust orbital tilt and rotation.  First, rotate the body using the same
+            // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
+            // and the accumulated rotation around the axis ('derived.rotation');
 
-        // Adjust orbital tilt and rotation.  First, rotate the body using the same
-        // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
-        // and the accumulated rotation around the axis ('derived.rotation');
-        threeBody.rotation.set(0, 0, 0);
-        threeBody.rotateZ(derived.omega);
-        threeBody.rotateX(derived.I);
-        threeBody.rotateZ(derived.argumentPerihelion);
-        threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-        threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
-        threeBody.rotateY(derived.rotation);
-      });
-  });
-
-  this.renderer.render(this.scene, this.camera);
+            if (body.name !== 'apollo') {
+              threeBody.rotation.set(0, 0, 0);
+              threeBody.rotateZ(derived.omega);
+              threeBody.rotateX(derived.I);
+              threeBody.rotateZ(derived.argumentPerihelion);
+              threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+              threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
+              threeBody.rotateY(derived.rotation);
+            }
+          });
+      })
+    )
+    .then(() => {
+      this.renderer.render(this.scene, this.camera);
+    });
 };
 
 CameraViewRenderer.prototype.loadThreeBody = function (body) {
@@ -184,6 +223,44 @@ CameraViewRenderer.prototype.loadThreeBody = function (body) {
   if (cached) {
     return Promise.resolve(cached);
   }
+
+  if (body.name === 'apollo') {
+    return this._loadModelBody(body);
+  } else {
+    return this._loadTextureBody(body);
+  }
+};
+
+CameraViewRenderer.prototype._loadModelBody = function (body) {
+
+  const placeHolder = new THREE.Mesh(
+    new THREE.SphereGeometry(0, 128, 128),
+    new THREE.MeshBasicMaterial({
+      color: 'black'
+    }));
+
+  this.bodyCache.set(body.name, placeHolder);
+
+  return this._loadTextures([body.name])
+    .then((textures) => {
+      return this._loadModels([body.name])
+        .then((models) => {
+
+          const modelObj = models.get(body.name);
+          const scale = 1 / AU;
+          const threeObj = modelObj.scene;
+
+          threeObj.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+          threeObj.scale.set(scale, scale, scale);
+          this.scene.add(threeObj);
+          this.bodyCache.set(body.name, threeObj);
+
+          return Promise.resolve(threeObj);
+        });
+    });
+};
+
+CameraViewRenderer.prototype._loadTextureBody = function (body) {
 
   let material;
   if (body.name === 'sun') {

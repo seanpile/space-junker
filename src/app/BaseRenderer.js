@@ -16,10 +16,12 @@ const TEXTURES = {
   'uranus': require('../img/uranusmap.jpg'),
   'lensflare': require('../img/lensflare.png'),
   'rock1': require('../models/rock1/ArmGra05.jpg'),
+  'apollo': require('../models/apollo/OldGlory.jpg'),
 };
 
 const MODELS = {
   'rock1': require('../models/rock1.dae'),
+  'apollo': require('../models/apollo.dae'),
 }
 
 export default function BaseRenderer(textureLoader, modelLoader, state) {
@@ -63,18 +65,20 @@ BaseRenderer.prototype._loadTextures = function (textures) {
     });
 };
 
-BaseRenderer.prototype._loadModels = function () {
-  return Promise.all(Object.entries(MODELS)
-      .map(([key, value]) => {
+BaseRenderer.prototype._loadModels = function (models) {
+  return Promise.all(
+      models.filter((m) => MODELS.hasOwnProperty(m))
+      .map((key) => {
         return new Promise((resolve, reject) => {
-          this.modelLoader.load(value,
+          this.modelLoader.load(MODELS[key],
             (model) => {
               resolve([key, model]);
             });
         });
-      }))
+      })
+    )
     .then(values => {
-      return Promise.resolve(new Map(values));
+      return Promise.resolve(new Map(values))
     });
 };
 

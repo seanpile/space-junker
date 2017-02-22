@@ -99,7 +99,7 @@ const body_data = {
       omega: [-5.11260389, -0.24123856],
     }
   },
-  "firefly": {
+  "apollo": {
     primary: "earth",
     constants: {
       radius: 100 / AU,
