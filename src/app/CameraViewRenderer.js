@@ -6,9 +6,9 @@ import {
 
 const OrbitControls = require('three-orbit-controls')(THREE);
 
-function CameraViewRenderer(container, textureLoader, modelLoader, commonState) {
+function CameraViewRenderer(container, resourceLoader, commonState) {
 
-  BaseRenderer.call(this, textureLoader, modelLoader, commonState);
+  BaseRenderer.call(this, resourceLoader, commonState);
 
   this.renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -28,22 +28,145 @@ function CameraViewRenderer(container, textureLoader, modelLoader, commonState) 
  */
 CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
-  this.scene = new THREE.Scene();
-  this.scene.background = new THREE.Color('black');
+  return new Promise((resolve, reject) => {
+    Promise.all([
+        this._loadTextures(),
+        this._loadModels(),
+      ])
+      .then(([textures, models]) => {
 
-  // Background stars
-  const skybox = this._createSkyBox();
-  this.scene.add(skybox);
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color('black');
 
-  // Setup light
-  this.lightSource = this._setupLightSources();
+        // Background stars
+        const skybox = this._createSkyBox();
+        this.scene.add(skybox);
 
-  let width = window.innerWidth;
-  let height = window.innerHeight;
+        // Setup light
+        this.lightSource = this._setupLightSources();
 
-  // initialize camera and scene
-  this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+        let width = window.innerWidth;
+        let height = window.innerHeight;
 
+        // initialize camera and scene
+        this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+
+        /**
+         * Callback to recenter the camera
+         */
+        const onRecenter = this._onCenter(solarSystem);
+
+        /**
+         * Callback for when we change the body focus
+         */
+        const onFocus = this._onFocus(onRecenter);
+
+        /**
+         * Callback for when the window resizes
+         */
+        const onWindowResize = this._onWindowResize(height, this.camera.fov);
+
+        /**
+         * Handle user input
+         */
+        const onKeyPress = this._onKeyPress(solarSystem);
+
+        /**
+         * Register to listen for events
+         */
+        this.addEventListener('focus', (event) => {
+          let focus = solarSystem.find(event.focus);
+          onFocus(focus);
+        });
+
+        this.addEventListener('recenter', (event) => {
+          onRecenter();
+        })
+
+        this.addEventListener('resize', (event) => {
+          onWindowResize();
+        });
+
+        this.addEventListener('keypress', (event) => {
+          onKeyPress(event.key);
+        });
+
+        /**
+         * Setup lifecycle methods for registering/deregistering event listeners
+         */
+        this.viewWillAppear = () => {
+          const focus = solarSystem.find(this.state.focus);
+          onFocus(focus);
+          onWindowResize();
+        };
+
+        this.viewWillDisappear = () => {
+          this.orbitControls.dispose();
+          this.orbitControls = null;
+        };
+
+        solarSystem.bodies.forEach((body) => {
+          this.loadThreeBody(body, textures, models);
+        });
+
+        resolve();
+      });
+  });
+};
+
+/**
+ * Render the given solar system
+ */
+CameraViewRenderer.prototype.render = function (solarSystem) {
+
+  // Find the body we are focusing on
+  const focus = solarSystem.find(this.state.focus);
+  const sun = solarSystem.find('sun');
+
+  // Track the light source
+  this._adjustLightSource(focus, sun);
+
+  // Find all of the bodies that are we are concerned about in our render loop
+  const [neighbours, outliers] = this._lookupNearbyBodies(focus, solarSystem.bodies);
+
+  // Make objects outside of our current sphere invisible (to save resources)
+  outliers.forEach((body) => {
+    const cached = this.bodyCache.get(body.name);
+    if (cached)
+      cached.visible = false;
+  });
+
+  // Update the positions of all of our bodies
+  neighbours.forEach((body) => {
+
+    let threeBody = this.bodyCache.get(body.name);
+    let derived = body.derived;
+
+    threeBody.visible = true;
+
+    // Adjust position to re-center the coordinate system on the focus
+    let position = this._adjustCoordinates(focus, derived.position);
+    threeBody.position.set(position.x, position.y, position.z);
+
+    // Adjust orbital tilt and rotation.  First, rotate the body using the same
+    // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
+    // and the accumulated rotation around the axis ('derived.rotation');
+
+    if (body.name !== 'apollo') {
+      threeBody.rotation.set(0, 0, 0);
+      threeBody.rotateZ(derived.omega);
+      threeBody.rotateX(derived.I);
+      threeBody.rotateZ(derived.argumentPerihelion);
+      threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+      threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
+      threeBody.rotateY(derived.rotation);
+    }
+  });
+
+  this.renderer.render(this.scene, this.camera);
+};
+
+CameraViewRenderer.prototype._onCenter = function (solarSystem) {
   /**
    * Callback to recenter the camera
    */
@@ -76,9 +199,11 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   };
 
-  /**
-   * Callback for when we change the body focus
-   */
+  return recenter;
+};
+
+CameraViewRenderer.prototype._onFocus = function (recenter) {
+
   const onFocus = (focus) => {
     // First dispose of existing orbit controls if they exist.
     this.orbitControls && this.orbitControls.dispose();
@@ -90,25 +215,13 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
     this.orbitControls.maxDistance = focus.constants.radius * 100;
   };
 
-  this.addEventListener('focus', (event) => {
-    let focus = solarSystem.find(event.focus);
-    onFocus(focus);
-  });
+  return onFocus;
+};
 
-  this.addEventListener('recenter', (event) => {
-    recenter();
-  })
+CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
 
-  const onWindowResize = this._onWindowResize(height, this.camera.fov);
-  this.addEventListener('resize', (event) => {
-    onWindowResize();
-  });
+  return ((key) => {
 
-  /**
-   * Setup lifecycle methods for registering/deregistering event listeners
-   */
-
-  const onKeypress = (event) => {
     // Find the body we are focusing on
     const threeObj = this.bodyCache.get(this.state.focus);
 
@@ -139,128 +252,32 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       break;
     default:
     }
-  };
-
-  this.viewWillAppear = () => {
-    const focus = solarSystem.find(this.state.focus);
-    onFocus(focus);
-    onWindowResize();
-
-    window.addEventListener('keypress', onKeypress);
-  };
-
-  this.viewWillDisappear = () => {
-    this.orbitControls.dispose();
-    this.orbitControls = null;
-
-    window.removeEventListener('keypress', onKeypress);
-  };
-
-  return Promise.resolve();
-};
-
-/**
- * Render the given solar system
- */
-CameraViewRenderer.prototype.render = function (solarSystem) {
-
-  // Find the body we are focusing on
-  const focus = solarSystem.find(this.state.focus);
-  const sun = solarSystem.find('sun');
-
-  // Track the light source
-  this._adjustLightSource(focus, sun);
-
-  // Find all of the bodies that are we are concerned about in our render loop
-  const [neighbours, outliers] = this._lookupNearbyBodies(focus, solarSystem.bodies);
-
-  // Make objects outside of our current sphere invisible (to save resources)
-  outliers.forEach((body) => {
-    const cached = this.bodyCache.get(body.name);
-    if (cached)
-      cached.visible = false;
   });
-
-  // Update the positions of all of our bodies
-  Promise.all(
-      neighbours.map((body) => {
-        return this.loadThreeBody(body)
-          .then((threeBody) => {
-
-            threeBody.visible = true;
-
-            let derived = body.derived;
-
-            // Adjust position to re-center the coordinate system on the focus
-            let position = this._adjustCoordinates(focus, derived.position);
-            threeBody.position.set(position.x, position.y, position.z);
-
-            // Adjust orbital tilt and rotation.  First, rotate the body using the same
-            // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
-            // and the accumulated rotation around the axis ('derived.rotation');
-
-            if (body.name !== 'apollo') {
-              threeBody.rotation.set(0, 0, 0);
-              threeBody.rotateZ(derived.omega);
-              threeBody.rotateX(derived.I);
-              threeBody.rotateZ(derived.argumentPerihelion);
-              threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-              threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
-              threeBody.rotateY(derived.rotation);
-            }
-          });
-      })
-    )
-    .then(() => {
-      this.renderer.render(this.scene, this.camera);
-    });
 };
 
-CameraViewRenderer.prototype.loadThreeBody = function (body) {
-
-  // Cache our bodies
-  const cached = this.bodyCache.get(body.name);
-  if (cached) {
-    return Promise.resolve(cached);
-  }
-
+CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
   if (body.name === 'apollo') {
-    return this._loadModelBody(body);
+    return this._loadModelBody(body, models);
   } else {
-    return this._loadTextureBody(body);
+    return this._loadTextureBody(body, textures);
   }
 };
 
-CameraViewRenderer.prototype._loadModelBody = function (body) {
+CameraViewRenderer.prototype._loadModelBody = function (body, models) {
 
-  const placeHolder = new THREE.Mesh(
-    new THREE.SphereGeometry(0, 128, 128),
-    new THREE.MeshBasicMaterial({
-      color: 'black'
-    }));
+  const modelObj = models.get(body.name);
+  const scale = 1 / AU;
+  const threeObj = modelObj.scene;
 
-  this.bodyCache.set(body.name, placeHolder);
+  threeObj.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+  threeObj.scale.set(scale, scale, scale);
 
-  return this._loadTextures([body.name])
-    .then((textures) => {
-      return this._loadModels([body.name])
-        .then((models) => {
+  this.scene.add(threeObj);
+  this.bodyCache.set(body.name, threeObj);
 
-          const modelObj = models.get(body.name);
-          const scale = 1 / AU;
-          const threeObj = modelObj.scene;
-
-          threeObj.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-          threeObj.scale.set(scale, scale, scale);
-          this.scene.add(threeObj);
-          this.bodyCache.set(body.name, threeObj);
-
-          return Promise.resolve(threeObj);
-        });
-    });
 };
 
-CameraViewRenderer.prototype._loadTextureBody = function (body) {
+CameraViewRenderer.prototype._loadTextureBody = function (body, textures) {
 
   let material;
   if (body.name === 'sun') {
@@ -269,6 +286,21 @@ CameraViewRenderer.prototype._loadTextureBody = function (body) {
     });
   } else {
     material = new THREE.MeshPhongMaterial();
+    if (textures.has(body.name + 'bump')) {
+      material.bumpMap = textures.get(body.name + 'bump');
+      material.bumpScale = 100000 / AU;
+    }
+
+    if (textures.has(body.name + 'spec')) {
+      material.specularMap = textures.get(body.name + 'spec');
+      material.specular = new THREE.Color('grey');
+    }
+
+    if (textures.has(body.name)) {
+      // Reduce harsh glare effect of the light source (default 30 -> 1);
+      material.map = textures.get(body.name);
+      material.shininess = 1;
+    }
   }
 
   const threeBody = new THREE.Mesh(
@@ -280,39 +312,6 @@ CameraViewRenderer.prototype._loadTextureBody = function (body) {
 
   this.scene.add(threeBody);
   this.bodyCache.set(body.name, threeBody);
-
-  return Promise.race([
-    new Promise((resolve, reject) => resolve(threeBody)),
-    new Promise((resolve, reject) => {
-
-      const texturesToLoad = [body.name, body.name + 'bump', body.name + 'spec'];
-      return this._loadTextures(texturesToLoad)
-        .then(
-          (textures) => {
-
-            if (textures.has(body.name + 'bump')) {
-              material.bumpMap = textures.get(body.name + 'bump');
-              material.bumpScale = 100000 / AU;
-            }
-
-            if (textures.has(body.name + 'spec')) {
-              material.specularMap = textures.get(body.name + 'spec');
-              material.specular = new THREE.Color('grey');
-            }
-
-            if (textures.has(body.name)) {
-              // Reduce harsh glare effect of the light source (default 30 -> 1);
-              material.map = textures.get(body.name);
-              material.shininess = 1;
-            }
-
-            material.needsUpdate = true;
-            return Promise.resolve(threeBody);
-          }
-        );
-    })
-  ]);
-
 };
 
 CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {

@@ -7,6 +7,11 @@ module.exports = {
     main: './src/index.js',
     vendor: './src/vendor.js'
   },
+  resolve: {
+    alias: {
+      SplashCss: path.resolve(__dirname, 'node_modules/splash-screen/dist/splash.min.css')
+    },
+  },
   devtool: 'cheap-module-eval-source-map',
   module: {
     rules: [{

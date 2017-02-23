@@ -24,9 +24,9 @@ const PLANET_COLOURS = {
   "pluto": "silver"
 };
 
-function OrbitalMapRenderer(container, textureLoader, modelLoader, commonState) {
+function OrbitalMapRenderer(container, resourceLoader, commonState) {
 
-  BaseRenderer.call(this, textureLoader, modelLoader, commonState);
+  BaseRenderer.call(this, resourceLoader, commonState);
 
   this.container = container;
   this.renderer = new THREE.WebGLRenderer();
@@ -39,149 +39,110 @@ function OrbitalMapRenderer(container, textureLoader, modelLoader, commonState) 
 
 OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
-  return Promise.race([
-      Promise.resolve(),
-    ])
-    .then(() => {
+  return new Promise((resolve, reject) => {
+    Promise.all([
+        this._loadTextures(),
+        this._loadModels(),
+      ])
+      .then((textures) => {
 
-      let width = window.innerWidth;
-      let height = window.innerHeight;
+        let width = window.innerWidth;
+        let height = window.innerHeight;
 
-      this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
-      this.camera.up = new THREE.Vector3(0, 0, 1);
+        this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+        this.camera.up = new THREE.Vector3(0, 0, 1);
 
-      const skybox = this._createSkyBox();
-      this.scene.add(skybox);
+        const skyBox = this._createSkyBox();
+        this.scene.add(skyBox);
 
-      const recenter = () => {
-        const focus = solarSystem.find(this.state.focus);
+        const recenter = this._onRecenter(solarSystem);
+        const onWindowResize = this._onWindowResize(height, this.camera.fov);
 
-        // For all bodies (except sun), use the size of the orbiting radius for
-        // the camera position.
-        let cameraDistance;
-        if (focus.name === 'sun') {
-          cameraDistance = 100;
-        } else {
-          let position = focus.derived.position;
-          let primary_position = focus.primary.derived.position;
-          cameraDistance = 10 * primary_position.distanceTo(position);
-        }
+        /**
+         * Register to receive events from the simulation
+         */
+        this.addEventListener('click', (event) => {
+          this._onClick(event.location);
+        });
 
-        this.orbitControls.reset();
-        this.camera.position.set(0, 0, cameraDistance);
-        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
-      };
+        this.addEventListener('focus', (event) => {
+          recenter();
+        });
 
-      this.addEventListener('click', (event) => {
-        const location = event.location;
+        this.addEventListener('recenter', (event) => {
+          recenter();
+        })
 
-        // Do a hit-test check for all planets
-        const found = Array.from(this.bodyMap.entries())
-          .map((entry) => {
+        this.addEventListener('resize', (event) => {
+          onWindowResize();
+        });
 
-            const id = entry[0];
-            const objects = entry[1];
+        this.viewWillAppear = function () {
+          this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+          this.orbitControls.maxDistance = 100 * TRAJECTORY_SCALE;
+          this.orbitControls.dollySpeed = 2.0;
+          onWindowResize();
+          recenter();
+        };
 
-            const position = objects.body.position.clone();
-            const projection = position.project(this.camera);
-            const body = new THREE.Vector2(projection.x * width, projection.y * height);
+        this.viewWillDisappear = function () {
+          this.orbitControls.dispose();
+          this.orbitControls = null;
+        };
 
-            return {
-              id: id,
-              distance: body.distanceTo(location)
-            };
-          })
-          .sort((left, right) => left.distance - right.distance)
-          .find(({
-            id,
-            distance
-          }) => distance < 50);
+        // Maintain a mapping from planet -> THREE object representing the planet
+        // This will allow us to update the existing THREE object on each iteration
+        // of the render loop.
+        solarSystem.bodies.forEach((body) => {
 
-        // Update the focus to the target planet
-        if (found) {
-          this.state.focus = found.id;
-        }
-      });
+          this.bodyMap.set(body.name, {});
 
-      this.addEventListener('focus', (event) => {
-        recenter();
-      });
-
-      this.addEventListener('recenter', (event) => {
-        recenter();
-      })
-
-      const onWindowResize = this._onWindowResize(height, this.camera.fov);
-      this.addEventListener('resize', (event) => {
-        onWindowResize();
-      });
-
-      this.viewWillAppear = function () {
-        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.orbitControls.maxDistance = 100 * TRAJECTORY_SCALE;
-        this.orbitControls.dollySpeed = 2.0;
-        onWindowResize();
-        recenter();
-      };
-
-      this.viewWillDisappear = function () {
-        this.orbitControls.dispose();
-        this.orbitControls = null;
-      };
-
-      // Maintain a mapping from planet -> THREE object representing the planet
-      // This will allow us to update the existing THREE object on each iteration
-      // of the render loop.
-      solarSystem.bodies.forEach((body) => {
-
-        this.bodyMap.set(body.name, {});
-
-        const threeBody = new THREE.Mesh(new THREE.SphereGeometry(body.constants.radius, 32, 32),
-          new THREE.MeshBasicMaterial({
-            color: PLANET_COLOURS[body.name] || 'white'
-          }));
-
-        const periapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
-          new THREE.MeshBasicMaterial({
-            color: 'purple'
-          }));
-
-        const apoapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
-          new THREE.MeshBasicMaterial({
-            color: 'aqua'
-          }));
-
-        this.scene.add(threeBody);
-        //this.scene.add(periapsis);
-        //this.scene.add(apoapsis);
-
-        if (body.name !== 'sun') {
-
-          const trajectory = new THREE.Line(
-            this._createTrajectoryGeometry(),
-            new THREE.LineBasicMaterial({
+          const threeBody = new THREE.Mesh(new THREE.SphereGeometry(body.constants.radius, 32, 32),
+            new THREE.MeshBasicMaterial({
               color: PLANET_COLOURS[body.name] || 'white'
             }));
 
-          this.scene.add(trajectory);
-          this.bodyMap.get(body.name)
-            .trajectory = trajectory;
-          this.bodyMap.get(body.name)
-            .trajectoryVertices = Array.from(trajectory.geometry.attributes.position.array);
-          this.bodyMap.get(body.name)
-            .trajectoryVerticesDirty = [];
-        }
+          const periapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
+            new THREE.MeshBasicMaterial({
+              color: 'purple'
+            }));
 
-        Object.assign(this.bodyMap.get(body.name), {
-          body: threeBody,
-          periapsis: periapsis,
-          apoapsis: apoapsis,
+          const apoapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
+            new THREE.MeshBasicMaterial({
+              color: 'aqua'
+            }));
+
+          this.scene.add(threeBody);
+          //this.scene.add(periapsis);
+          //this.scene.add(apoapsis);
+
+          if (body.name !== 'sun') {
+
+            const trajectory = new THREE.Line(
+              this._createTrajectoryGeometry(),
+              new THREE.LineBasicMaterial({
+                color: PLANET_COLOURS[body.name] || 'white'
+              }));
+
+            this.scene.add(trajectory);
+            Object.assign(this.bodyMap.get(body.name), {
+              trajectory: trajectory,
+              trajectoryVertices: Array.from(trajectory.geometry.attributes.position.array),
+              trajectoryVerticesDirty: [],
+            });
+          }
+
+          Object.assign(this.bodyMap.get(body.name), {
+            body: threeBody,
+            periapsis: periapsis,
+            apoapsis: apoapsis,
+          });
+
         });
 
-      });
-
-      return Promise.resolve();
-    });
+        resolve();
+      })
+  });
 };
 
 OrbitalMapRenderer.prototype.render = function (solarSystem) {
@@ -376,6 +337,66 @@ OrbitalMapRenderer.prototype._createTrajectoryGeometry = function () {
 
   return bufferGeometry;
 };
+
+OrbitalMapRenderer.prototype._onClick = function (location) {
+
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  // Do a hit-test check for all planets
+  const found = Array.from(this.bodyMap.entries())
+    .map((entry) => {
+
+      const id = entry[0];
+      const objects = entry[1];
+
+      const position = objects.body.position.clone();
+      const projection = position.project(this.camera);
+      const body = new THREE.Vector2(projection.x * width, projection.y * height);
+
+      return {
+        id: id,
+        distance: body.distanceTo(location)
+      };
+    })
+    .sort((left, right) => left.distance - right.distance)
+    .find(({
+      id,
+      distance
+    }) => distance < 50);
+
+  // Update the focus to the target planet
+  let focusChanged = false;
+  if (found) {
+    focusChanged = this.state.focus !== found.id;
+    this.state.focus = found.id;
+  }
+
+  return focusChanged;
+};
+
+OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
+  const recenter = () => {
+    const focus = solarSystem.find(this.state.focus);
+
+    // For all bodies (except sun), use the size of the orbiting radius for
+    // the camera position.
+    let cameraDistance;
+    if (focus.name === 'sun') {
+      cameraDistance = 100;
+    } else {
+      let position = focus.derived.position;
+      let primary_position = focus.primary.derived.position;
+      cameraDistance = 10 * primary_position.distanceTo(position);
+    }
+
+    this.orbitControls.reset();
+    this.camera.position.set(0, 0, cameraDistance);
+    this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+  };
+
+  return recenter;
+}
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);
 

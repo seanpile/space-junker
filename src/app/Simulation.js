@@ -5,6 +5,11 @@ import {
 } from './Bodies';
 import StringExtensions from './util/StringExtensions';
 
+import {
+  Splash
+} from 'splash-screen';
+import 'SplashCss';
+
 const numToRun = 10000;
 
 function Simulation(solarSystem, renderers, state, stats) {
@@ -21,6 +26,8 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
   this.timeWarpIdx = 0;
 
+  this.hud = document.getElementById('hud');
+  this.loadingScreen = document.getElementById('loading');
   this.timeCounter = document.getElementById('time');
   this.warpValues = document.getElementById('warp-values');
   this.timeWarpValues.forEach((value, idx) => {
@@ -42,9 +49,14 @@ function Simulation(solarSystem, renderers, state, stats) {
       122: this.toggleView,
     };
 
-    if (event.type === "keypress" && keyCodes.hasOwnProperty(event.keyCode)) {
+    if (keyCodes.hasOwnProperty(event.keyCode)) {
       keyCodes[event.keyCode].call(this, event);
       event.preventDefault();
+    } else {
+      this.renderer.dispatchEvent({
+        type: 'keypress',
+        key: event.keyCode
+      });
     }
   };
 
@@ -135,6 +147,8 @@ Simulation.prototype.toggleFocus = function (event) {
 
 Simulation.prototype.initialize = function () {
 
+  Splash.enable('spinner-section-far');
+
   // Ensure the solar system is fully 'seeded' before we attempt to render
   this.solarSystem.update(this.time, 0);
 
@@ -150,6 +164,11 @@ Simulation.prototype.initialize = function () {
       this.renderer.viewWillAppear();
       this.renderer.container.style = '';
       this.loaded.add(this.renderer);
+
+      Splash.destroy();
+      this.hud.style = '';
+      this.loadingScreen.style = 'display: none;';
+
       return Promise.resolve();
     });
 };
@@ -166,9 +185,14 @@ Simulation.prototype.toggleView = function () {
   let promise;
   if (!this.loaded.has(newRenderer)) {
     console.log(`Loading ${newRenderer.constructor.name}`);
+    Splash.enable('spinner-section-far');
+    this.loadingScreen.style = '';
+
     promise = newRenderer.viewDidLoad(this.solarSystem)
       .then(() => {
         this.loaded.add(newRenderer);
+        Splash.destroy();
+        this.loadingScreen.style = 'display: none;';
         return Promise.resolve();
       })
   } else {

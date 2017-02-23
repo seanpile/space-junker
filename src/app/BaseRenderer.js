@@ -24,9 +24,8 @@ const MODELS = {
   'apollo': require('../models/apollo.dae'),
 }
 
-export default function BaseRenderer(textureLoader, modelLoader, state) {
-  this.textureLoader = textureLoader;
-  this.modelLoader = modelLoader;
+export default function BaseRenderer(resourceLoader, state) {
+  this.resourceLoader = resourceLoader;
   this.state = state;
 };
 
@@ -48,37 +47,25 @@ BaseRenderer.prototype._onWindowResize = function (originalHeight, originalFov) 
 
 };
 
-BaseRenderer.prototype._loadTextures = function (textures) {
-  return Promise.all(
-      textures.filter((t) => TEXTURES.hasOwnProperty(t))
-      .map((key) => {
-        return new Promise((resolve, reject) => {
-          this.textureLoader.load(TEXTURES[key],
-            (texture) => {
-              resolve([key, texture]);
-            });
-        });
-      })
+BaseRenderer.prototype._loadTextures = function () {
+  const all_keys = Object.keys(TEXTURES);
+
+  return Promise.all(all_keys
+      .map((key) => this.resourceLoader.loadTexture(TEXTURES[key]))
     )
     .then(values => {
-      return Promise.resolve(new Map(values))
+      return Promise.resolve(new Map(values.map(([url, texture], idx) => [all_keys[idx], texture])));
     });
 };
 
-BaseRenderer.prototype._loadModels = function (models) {
-  return Promise.all(
-      models.filter((m) => MODELS.hasOwnProperty(m))
-      .map((key) => {
-        return new Promise((resolve, reject) => {
-          this.modelLoader.load(MODELS[key],
-            (model) => {
-              resolve([key, model]);
-            });
-        });
-      })
+BaseRenderer.prototype._loadModels = function () {
+  const all_keys = Object.keys(MODELS);
+
+  return Promise.all(all_keys
+      .map((key) => this.resourceLoader.loadModel(MODELS[key]))
     )
     .then(values => {
-      return Promise.resolve(new Map(values))
+      return Promise.resolve(new Map(values.map(([url, model], idx) => [all_keys[idx], model])));
     });
 };
 
@@ -98,33 +85,61 @@ BaseRenderer.prototype._setupLightSources = function () {
 BaseRenderer.prototype._createSkyBox = function () {
 
   //This will add a starfield to the background of a scene
-  let vertices = [];
+  const stars = [{
+      color: 'blue',
+      number: 500,
+    },
+    {
+      color: 'red',
+      number: 500,
+    },
+    {
+      color: 0x888888,
+      number: 10000,
+    },
+    {
+      color: 0xdddddd,
+      number: 10000
+    }
+  ]
 
-  for (let i = 0; i < 20000; i++) {
+  const skyBox = new THREE.Group();
 
-    let r;
+  stars.forEach(({
+    color,
+    number
+  }) => {
 
-    // Generate stars that are a minimum distance away
-    do {
-      r = new THREE.Vector3(
-        THREE.Math.randFloatSpread(2000),
-        THREE.Math.randFloatSpread(2000),
-        THREE.Math.randFloatSpread(2000))
-    } while (r.lengthSq() < 100)
+    const vertices = [];
+    for (let i = 0; i < number; i++) {
 
-    vertices.push(r.x, r.y, r.z);
-  }
+      let r;
 
-  let starsGeometry = new THREE.BufferGeometry();
-  starsGeometry.addAttribute('position',
-    new THREE.BufferAttribute(Float32Array.from(vertices), 3));
+      // Generate stars that are a minimum distance away
+      do {
+        r = new THREE.Vector3(
+          THREE.Math.randFloatSpread(3000),
+          THREE.Math.randFloatSpread(3000),
+          THREE.Math.randFloatSpread(3000))
+      } while (r.lengthSq() < 500)
 
-  let starsMaterial = new THREE.PointsMaterial({
-    color: 0x888888
-  })
+      vertices.push(r.x, r.y, r.z);
+    }
 
-  let starField = new THREE.Points(starsGeometry, starsMaterial);
-  starField.matrixAutoUpdate = false;
+    let starsGeometry = new THREE.BufferGeometry();
+    starsGeometry.addAttribute('position',
+      new THREE.BufferAttribute(Float32Array.from(vertices), 3));
 
-  return starField;
+    let starsMaterial = new THREE.PointsMaterial({
+      color: color,
+      size: Math.random() * 0.8 + 0.2
+    });
+
+    let field = new THREE.Points(starsGeometry, starsMaterial);
+    field.matrixAutoUpdate = false;
+    skyBox.add(field);
+  });
+
+  skyBox.matrixAutoUpdate = false;
+  return skyBox;
 };

@@ -6,8 +6,7 @@ import CameraViewRenderer from './app/CameraViewRenderer';
 import OrbitalMapRenderer from './app/OrbitalMapRenderer';
 import TestingRenderer from './app/TestingRenderer';
 import Stats from 'stats.js';
-import * as THREE from 'three';
-import ColladaLoader from 'three-collada-loader';
+import ResourceLoader from './app/ResourceLoader';
 
 const solarSystem = new SolarSystem();
 
@@ -24,15 +23,11 @@ document.body.appendChild(cameraViewContainer);
 document.getElementById('stats-overlay')
   .appendChild(stats.dom);
 
-const textureLoader = new THREE.TextureLoader();
-const modelLoader = new ColladaLoader();
-modelLoader.options.convertUpAxis = true;
-modelLoader.options.upAxis = 'Z';
-
+const resourceLoader = new ResourceLoader();
 const state = new CommonState();
 const renderers = [
-  new OrbitalMapRenderer(mapViewContainer, textureLoader, modelLoader, state),
-  new CameraViewRenderer(cameraViewContainer, textureLoader, modelLoader, state),
+  new OrbitalMapRenderer(mapViewContainer, resourceLoader, state),
+  new CameraViewRenderer(cameraViewContainer, resourceLoader, state),
 ];
 
 const simulation = new Simulation(solarSystem, renderers, state, stats);

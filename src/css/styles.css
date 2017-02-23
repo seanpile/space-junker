@@ -6,6 +6,16 @@
 html, body {
     width: 100%;
     height: 100%;
+    background-color: black;
+}
+
+#loading {
+    position: absolute;
+    color: white;
+    top: 40%;
+    left: 0;
+    width: 100%;
+    text-align: center;
 }
 
 #camera-view canvas {
@@ -18,8 +28,8 @@ html, body {
 
 #hud {
     position: absolute;
-    top: 0px;
-    left: 0px;
+    top: 0;
+    left: 0;
     height: 100%;
     opacity: 0.6;
     z-index: 100;
@@ -151,8 +161,8 @@ html, body {
 
 #stats-overlay {
     flex: 0 1 auto;
-    border-radius: 0px;
+    border-radius: 0;
     border-style: none;
-    background-color: unset;
+    background-color: inherit;
     opacity: 1.0;
 }
