@@ -12,11 +12,12 @@ function CameraViewRenderer(container, resourceLoader, commonState) {
 
   this.renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: false
+    alpha: false,
   });
   this.renderer.setPixelRatio(window.devicePixelRatio);
   this.renderer.shadowMap.enabled = true;
   this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  this.renderer.autoClear = false;
   this.container = container;
   container.appendChild(this.renderer.domElement);
 
@@ -35,8 +36,15 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
       ])
       .then(([textures, models]) => {
 
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+
+        // initialize camera and scene
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color('black');
+        this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+
+        this.loadNavball(textures);
 
         // Background stars
         const skybox = this._createSkyBox();
@@ -44,12 +52,6 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 
         // Setup light
         this.lightSource = this._setupLightSources();
-
-        let width = window.innerWidth;
-        let height = window.innerHeight;
-
-        // initialize camera and scene
-        this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
 
         /**
          * Callback to recenter the camera
@@ -64,7 +66,8 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         /**
          * Callback for when the window resizes
          */
-        const onWindowResize = this._onWindowResize(height, this.camera.fov);
+        const onWindowResize = this._onWindowResize([this.camera, this.navballCamera],
+          height, this.camera.fov);
 
         /**
          * Handle user input
@@ -163,7 +166,11 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     }
   });
 
+  this.renderer.clear();
   this.renderer.render(this.scene, this.camera);
+  this.renderer.clearDepth();
+  this.renderer.render(this.navballScene, this.navballCamera, this.renderer.getCurrentRenderTarget(), false);
+  this.navball.rotateY(Math.PI / 128);
 };
 
 CameraViewRenderer.prototype._onCenter = function (solarSystem) {
@@ -255,6 +262,48 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
   });
 };
 
+CameraViewRenderer.prototype.loadNavball = function (textures) {
+
+  const lightSource = new THREE.DirectionalLight(0xffffff, 1);
+
+  this.navballScene = new THREE.Scene();
+  this.navballCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+
+  const navball = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 128, 128),
+    new THREE.MeshPhongMaterial({
+      map: textures.get('navball'),
+      shininess: 10
+    }));
+
+  const border = new THREE.Mesh(
+    new THREE.TorusGeometry(0.45, 0.05, 80, 60),
+    new THREE.MeshPhongMaterial({
+      color: 'gray'
+    }));
+
+  border.rotateY(Math.PI / 2);
+
+  this.navball = navball;
+
+  this.navballScene.add(navball);
+  this.navballScene.add(border);
+  this.navballScene.add(lightSource);
+
+  this.navballCamera.up = new THREE.Vector3(0, 1, 0);
+  this.navballCamera.position.set(5, 0, 0);
+  this.navballCamera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  lightSource.position.set(5, 0, 0);
+
+  this.navballCamera.setViewOffset(
+    window.innerWidth,
+    window.innerHeight,
+    0, -0.40 * window.innerHeight,
+    window.innerWidth,
+    window.innerHeight);
+};
+
 CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
   if (body.name === 'apollo') {
     return this._loadModelBody(body, models);
@@ -274,7 +323,6 @@ CameraViewRenderer.prototype._loadModelBody = function (body, models) {
 
   this.scene.add(threeObj);
   this.bodyCache.set(body.name, threeObj);
-
 };
 
 CameraViewRenderer.prototype._loadTextureBody = function (body, textures) {

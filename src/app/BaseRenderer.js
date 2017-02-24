@@ -17,6 +17,7 @@ const TEXTURES = {
   'lensflare': require('../img/lensflare.png'),
   'rock1': require('../models/rock1/ArmGra05.jpg'),
   'apollo': require('../models/apollo/OldGlory.jpg'),
+  'navball': require('../img/navball.png'),
 };
 
 const MODELS = {
@@ -35,16 +36,19 @@ Object.assign(BaseRenderer.prototype, THREE.EventDispatcher.prototype);
 /**
  *
  */
-BaseRenderer.prototype._onWindowResize = function (originalHeight, originalFov) {
+BaseRenderer.prototype._onWindowResize = function (cameras, originalHeight, originalFov) {
   const tanFOV = Math.tan(((Math.PI / 180) * originalFov / 2));
   return (event) => {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.fov = (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / originalHeight));
 
-    this.camera.updateProjectionMatrix();
+    cameras.forEach((camera) => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.fov = (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / originalHeight));
+
+      camera.updateProjectionMatrix();
+    });
+
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
-
 };
 
 BaseRenderer.prototype._loadTextures = function () {

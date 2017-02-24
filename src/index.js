@@ -26,8 +26,8 @@ document.getElementById('stats-overlay')
 const resourceLoader = new ResourceLoader();
 const state = new CommonState();
 const renderers = [
-  new OrbitalMapRenderer(mapViewContainer, resourceLoader, state),
   new CameraViewRenderer(cameraViewContainer, resourceLoader, state),
+  new OrbitalMapRenderer(mapViewContainer, resourceLoader, state),
 ];
 
 const simulation = new Simulation(solarSystem, renderers, state, stats);

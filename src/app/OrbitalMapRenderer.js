@@ -56,7 +56,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.scene.add(skyBox);
 
         const recenter = this._onRecenter(solarSystem);
-        const onWindowResize = this._onWindowResize(height, this.camera.fov);
+        const onWindowResize = this._onWindowResize([this.camera], height, this.camera.fov);
 
         /**
          * Register to receive events from the simulation
