@@ -13,7 +13,7 @@ function CameraViewRenderer(container, resourceLoader, commonState) {
 
   this.renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: false,
+    alpha: true,
   });
   this.renderer.setPixelRatio(window.devicePixelRatio);
   this.renderer.shadowMap.enabled = true;
@@ -266,74 +266,12 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
   });
 };
 
-CameraViewRenderer.prototype.loadNavball = function (textures) {
-
-  const lightSource = new THREE.DirectionalLight(0xffffff, 1);
-
-  this.navballScene = new THREE.Scene();
-  this.navballCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-
-  const navball = new THREE.Mesh(
-    new THREE.SphereGeometry(0.4, 128, 128),
-    new THREE.MeshPhongMaterial({
-      map: textures.get('navball'),
-      shininess: 10
-    }));
-
-  const border = new THREE.Mesh(
-    new THREE.TorusGeometry(0.44, 0.05, 80, 60),
-    new THREE.MeshPhongMaterial({
-      color: 'gray',
-      depthFunc: THREE.AlwaysDepth,
-      shininess: 10
-    }));
-
-  const prograde = new THREE.Mesh(
-    new THREE.RingGeometry(0.045, 0.06, 32),
-    new THREE.MeshBasicMaterial({
-      color: 'yellow',
-    })
-  );
-
-  const retrograde = new THREE.Mesh(
-    new THREE.RingGeometry(0.045, 0.06, 32),
-    new THREE.MeshBasicMaterial({
-      color: 'red',
-    })
-  );
-
-  this.navball = navball;
-  this.navballPrograde = prograde;
-  this.navballRetrograde = retrograde;
-
-  this.navballScene.add(navball);
-  this.navballScene.add(border);
-  this.navballScene.add(prograde);
-  this.navballScene.add(retrograde);
-  this.navballScene.add(lightSource);
-
-  this.navballCamera.up = new THREE.Vector3(0, 0, 1);
-  this.navballCamera.position.set(0, -5, 0);
-  this.navballCamera.lookAt(new THREE.Vector3(0, 0, 0));
-
-  this.navballLight = lightSource;
-  this.navballBorder = border;
-
-  lightSource.position.set(0, -5, 0);
-
-  this.navballCamera.setViewOffset(
-    window.innerWidth,
-    window.innerHeight,
-    0, -0.40 * window.innerHeight,
-    window.innerWidth,
-    window.innerHeight);
-};
-
 CameraViewRenderer.prototype.setNavballOrientation = function () {
 
   const orientation = new THREE.Vector3();
   const offset = new THREE.Vector3();
   const ORIGIN = new THREE.Vector3();
+  const up = new THREE.Vector3();
   const up0 = new THREE.Vector3(0, 0, 1);
   const orientation0 = new THREE.Vector3(0, 1, 0);
 
@@ -348,6 +286,10 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
     orientation.copy(orientation0);
     orientation.applyQuaternion(threeBody.quaternion);
     orientation.normalize();
+
+    up.copy(up0);
+    up.applyQuaternion(threeBody.quaternion);
+    up.normalize();
 
     /**
      * Helpers to visualize velocity, orientation, position
@@ -381,12 +323,7 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
     this.navballCamera.position.copy(offset);
     this.navballLight.position.copy(offset);
 
-    // Apply the same rotation to the UP vector
-    offset.copy(up0);
-    offset.applyQuaternion(threeBody.quaternion);
-    offset.normalize();
-
-    this.navballCamera.up.copy(offset);
+    this.navballCamera.up.copy(up);
     this.navballCamera.lookAt(ORIGIN);
 
     // Set the border to always face the camera
@@ -405,20 +342,30 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
     this.navball.rotateY(Math.PI / 2);
     this.navball.rotateY(-verticalAngle);
 
-    offset.copy(velocity)
-      .normalize()
-      .negate()
-      .multiplyScalar(0.41);
-    this.navballPrograde.position.copy(offset);
-    this.navballPrograde.lookAt(ORIGIN);
-    this.navballPrograde.rotateX(Math.PI);
+    /**
+     * Adjust Navball Markers (Prograde, Retrograde, etc...)
+     */
 
-    offset.copy(velocity)
-      .normalize()
-      .multiplyScalar(0.41);
-    this.navballRetrograde.position.copy(offset);
-    this.navballRetrograde.lookAt(ORIGIN);
-    this.navballRetrograde.rotateX(Math.PI);
+    let markers = [
+      [this.navballPrograde, velocity.clone()
+        .normalize()
+        .negate()
+        .multiplyScalar(0.41)
+      ],
+      [this.navballRetrograde, velocity.clone()
+        .normalize()
+        .multiplyScalar(0.41)
+      ],
+    ];
+
+    markers.forEach(([marker, position]) => {
+      marker.position.copy(position);
+      marker.setRotationFromQuaternion(threeBody.quaternion);
+      marker.up.copy(up);
+      marker.lookAt(ORIGIN);
+      marker.rotateX(Math.PI);
+      marker.rotateZ(Math.PI);
+    });
   }
 
 }();

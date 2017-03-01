@@ -147,3 +147,187 @@ BaseRenderer.prototype._createSkyBox = function () {
   skyBox.matrixAutoUpdate = false;
   return skyBox;
 };
+
+BaseRenderer.prototype.loadNavball = function (textures) {
+
+  const lightSource = new THREE.DirectionalLight(0xffffff, 1);
+
+  this.navballScene = new THREE.Scene();
+  this.navballCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+
+  const navball = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 128, 128),
+    new THREE.MeshPhongMaterial({
+      map: textures.get('navball'),
+      shininess: 1
+    }));
+
+  const border = new THREE.Mesh(
+    new THREE.TorusGeometry(0.44, 0.05, 80, 60),
+    new THREE.MeshPhongMaterial({
+      color: 'gray',
+      depthFunc: THREE.AlwaysDepth,
+      shininess: 10
+    }));
+
+  const prograde = (() => {
+
+    let shapes = [
+      // Circle
+      (() => {
+        let shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        let innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+      (() => {
+        let lineShape = new THREE.Shape();
+        lineShape.moveTo(-1, 8);
+        lineShape.lineTo(-1, 13);
+        lineShape.lineTo(1, 13);
+        lineShape.lineTo(1, 8);
+        return lineShape;
+      })(),
+      (() => {
+        let lineShape = new THREE.Shape();
+        lineShape.moveTo(8, 1);
+        lineShape.lineTo(13, 1);
+        lineShape.lineTo(13, -1);
+        lineShape.lineTo(8, -1);
+        return lineShape;
+      })(),
+      (() => {
+        let lineShape = new THREE.Shape();
+        lineShape.moveTo(-8, 1);
+        lineShape.lineTo(-13, 1);
+        lineShape.lineTo(-13, -1);
+        lineShape.lineTo(-8, -1);
+        return lineShape;
+      })(),
+      (() => {
+        let dotShape = new THREE.Shape();
+        dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
+        return dotShape;
+      })(),
+    ];
+
+    return new THREE.Mesh(
+      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.MeshBasicMaterial({
+        color: 'yellow',
+      })
+    );
+
+  })();
+
+  const retrograde = (() => {
+
+    let shapes = [
+      // Circle
+      (() => {
+        let shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        let innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+      (() => {
+        // Up line
+        let lineShape = new THREE.Shape();
+        lineShape.moveTo(-1, 8);
+        lineShape.lineTo(-1, 13);
+        lineShape.lineTo(1, 13);
+        lineShape.lineTo(1, 8);
+        return lineShape;
+      })(),
+      (() => {
+        // Cross X
+        let lineShape = new THREE.Shape();
+        let e = 3 / 180 * Math.PI;
+        lineShape.moveTo(7 * Math.cos(Math.PI / 4 - e), 7 * Math.sin(Math.PI / 4 - e));
+        lineShape.lineTo(7 * Math.cos(Math.PI / 4 + e), 7 * Math.sin(Math.PI / 4 + e));
+        lineShape.lineTo(7 * Math.cos(5 / 4 * Math.PI - e), 7 * Math.sin(5 / 4 * Math.PI - e));
+        lineShape.lineTo(7 * Math.cos(5 / 4 * Math.PI + e), 7 * Math.sin(5 / 4 * Math.PI + e));
+        return lineShape;
+      })(),
+      (() => {
+        // Cross X
+        let lineShape = new THREE.Shape();
+        let e = 3 / 180 * Math.PI;
+        lineShape.moveTo(7 * Math.cos(3 * Math.PI / 4 - e), 7 * Math.sin(3 * Math.PI / 4 - e));
+        lineShape.lineTo(7 * Math.cos(3 * Math.PI / 4 + e), 7 * Math.sin(3 * Math.PI / 4 + e));
+        lineShape.lineTo(7 * Math.cos(-Math.PI / 4 - e), 7 * Math.sin(-Math.PI / 4 - e));
+        lineShape.lineTo(7 * Math.cos(-Math.PI / 4 + e), 7 * Math.sin(-Math.PI / 4 + e));
+        return lineShape;
+      })(),
+      (() => {
+        // Cross X
+        let lineShape = new THREE.Shape();
+        let e = 5 / 180 * Math.PI;
+        let angle = -30 / 180 * Math.PI;
+        let baseRadius = 7;
+        let length = 6;
+        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+        lineShape.lineTo((baseRadius + length) * Math.cos(angle + e), (baseRadius + length) * Math.sin(angle + e));
+        lineShape.lineTo((baseRadius + length) * Math.cos(angle - e), (baseRadius + length) * Math.sin(angle - e));
+        return lineShape;
+      })(),
+      (() => {
+        // Cross X
+        let lineShape = new THREE.Shape();
+        let e = 5 / 180 * Math.PI;
+        let angle = -150 / 180 * Math.PI;
+        let baseRadius = 7;
+        let length = 6;
+        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+        lineShape.lineTo((baseRadius + length) * Math.cos(angle + e), (baseRadius + length) * Math.sin(angle + e));
+        lineShape.lineTo((baseRadius + length) * Math.cos(angle - e), (baseRadius + length) * Math.sin(angle - e));
+        return lineShape;
+      })(),
+    ];
+
+    return new THREE.Mesh(
+      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.MeshBasicMaterial({
+        color: 'yellow',
+      })
+    );
+
+  })();
+
+  prograde.scale.set(0.008, 0.008, 0.008);
+  retrograde.scale.set(0.008, 0.008, 0.008);
+
+  this.navball = navball;
+  this.navballPrograde = prograde;
+  this.navballRetrograde = retrograde;
+
+  this.navballScene.add(navball);
+  this.navballScene.add(border);
+  this.navballScene.add(prograde);
+  this.navballScene.add(retrograde);
+  this.navballScene.add(lightSource);
+
+  this.navballCamera.up = new THREE.Vector3(0, 0, 1);
+  this.navballCamera.position.set(0, -5, 0);
+  this.navballCamera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  this.navballLight = lightSource;
+  this.navballBorder = border;
+
+  lightSource.position.set(0, -5, 0);
+
+  this.navballCamera.setViewOffset(
+    window.innerWidth,
+    window.innerHeight,
+    0, -0.40 * window.innerHeight,
+    window.innerWidth,
+    window.innerHeight);
+};
