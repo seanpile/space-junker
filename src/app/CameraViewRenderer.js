@@ -5,6 +5,7 @@ import {
 } from './Bodies';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
+const SHOW_HELPERS = true;
 
 function CameraViewRenderer(container, resourceLoader, commonState) {
 
@@ -43,6 +44,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color('black');
         this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+        this.camera.up = new THREE.Vector3(0, 0, 1);
 
         this.loadNavball(textures);
 
@@ -166,11 +168,12 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     }
   });
 
+  this.setNavballOrientation(focus);
+
   this.renderer.clear();
   this.renderer.render(this.scene, this.camera);
   this.renderer.clearDepth();
   this.renderer.render(this.navballScene, this.navballCamera, this.renderer.getCurrentRenderTarget(), false);
-  this.navball.rotateY(Math.PI / 128);
 };
 
 CameraViewRenderer.prototype._onCenter = function (solarSystem) {
@@ -197,10 +200,10 @@ CameraViewRenderer.prototype._onCenter = function (solarSystem) {
       .sub(this._adjustCoordinates(focus, focus.primary.derived.position));
 
     // Base the camera UP direction off of the velocity vector, rotated 90 degrees up.
-    this.camera.up = new THREE.Vector3()
-      .copy(focus.derived.velocity)
-      .applyAxisAngle(primary_position.normalize(), Math.PI / 2)
-      .normalize();
+    // this.camera.up = new THREE.Vector3()
+    //   .copy(focus.derived.velocity)
+    //   .applyAxisAngle(primary_position.normalize(), Math.PI / 2)
+    //   .normalize();
 
     this.camera.position.set(camera_position.x, camera_position.y, camera_position.z);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -231,31 +234,32 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
 
     // Find the body we are focusing on
     const threeObj = this.bodyCache.get(this.state.focus);
+    const step = 64;
 
     switch (event.keyCode) {
     case 113:
       // q
-      threeObj.rotateZ(Math.PI / 32);
+      threeObj.rotateY(-Math.PI / step);
       break;
     case 101:
       // e
-      threeObj.rotateZ(-Math.PI / 32);
+      threeObj.rotateY(Math.PI / step);
       break;
     case 119:
       // w
-      threeObj.rotateX(Math.PI / 32);
-      break;
-    case 97:
-      // a
-      threeObj.rotateY(Math.PI / 32);
+      threeObj.rotateX(-Math.PI / step);
       break;
     case 115:
       // s
-      threeObj.rotateX(-Math.PI / 32);
+      threeObj.rotateX(Math.PI / step);
+      break;
+    case 97:
+      // a
+      threeObj.rotateZ(Math.PI / step);
       break;
     case 100:
       // d
-      threeObj.rotateY(-Math.PI / 32);
+      threeObj.rotateZ(-Math.PI / step);
       break;
     default:
     }
@@ -277,24 +281,45 @@ CameraViewRenderer.prototype.loadNavball = function (textures) {
     }));
 
   const border = new THREE.Mesh(
-    new THREE.TorusGeometry(0.45, 0.05, 80, 60),
+    new THREE.TorusGeometry(0.44, 0.05, 80, 60),
     new THREE.MeshPhongMaterial({
-      color: 'gray'
+      color: 'gray',
+      depthFunc: THREE.AlwaysDepth,
+      shininess: 10
     }));
 
-  border.rotateY(Math.PI / 2);
+  const prograde = new THREE.Mesh(
+    new THREE.RingGeometry(0.045, 0.06, 32),
+    new THREE.MeshBasicMaterial({
+      color: 'yellow',
+    })
+  );
+
+  const retrograde = new THREE.Mesh(
+    new THREE.RingGeometry(0.045, 0.06, 32),
+    new THREE.MeshBasicMaterial({
+      color: 'red',
+    })
+  );
 
   this.navball = navball;
+  this.navballPrograde = prograde;
+  this.navballRetrograde = retrograde;
 
   this.navballScene.add(navball);
   this.navballScene.add(border);
+  this.navballScene.add(prograde);
+  this.navballScene.add(retrograde);
   this.navballScene.add(lightSource);
 
-  this.navballCamera.up = new THREE.Vector3(0, 1, 0);
-  this.navballCamera.position.set(5, 0, 0);
+  this.navballCamera.up = new THREE.Vector3(0, 0, 1);
+  this.navballCamera.position.set(0, -5, 0);
   this.navballCamera.lookAt(new THREE.Vector3(0, 0, 0));
 
-  lightSource.position.set(5, 0, 0);
+  this.navballLight = lightSource;
+  this.navballBorder = border;
+
+  lightSource.position.set(0, -5, 0);
 
   this.navballCamera.setViewOffset(
     window.innerWidth,
@@ -303,6 +328,100 @@ CameraViewRenderer.prototype.loadNavball = function (textures) {
     window.innerWidth,
     window.innerHeight);
 };
+
+CameraViewRenderer.prototype.setNavballOrientation = function () {
+
+  const orientation = new THREE.Vector3();
+  const offset = new THREE.Vector3();
+  const ORIGIN = new THREE.Vector3();
+  const up0 = new THREE.Vector3(0, 0, 1);
+  const orientation0 = new THREE.Vector3(0, 1, 0);
+
+  return function (focus) {
+
+    let derived = focus.derived;
+    let primary = focus.primary;
+    let velocity = derived.velocity.clone();
+    let threeBody = this.bodyCache.get(focus.name);
+    let primaryBody = this.bodyCache.get(primary.name);
+
+    orientation.copy(orientation0);
+    orientation.applyQuaternion(threeBody.quaternion);
+    orientation.normalize();
+
+    /**
+     * Helpers to visualize velocity, orientation, position
+     */
+    if (SHOW_HELPERS) {
+      this.velocityHelper && this.scene.remove(this.velocityHelper);
+      this.velocityHelper = new THREE.ArrowHelper(velocity.clone()
+        .normalize(), ORIGIN, 1000 / AU, 'yellow');
+      this.scene.add(this.velocityHelper);
+
+      this.orientationHelper && this.scene.remove(this.orientationHelper);
+      this.orientationHelper = new THREE.ArrowHelper(orientation, ORIGIN, 1000 / AU, 'blue');
+      this.scene.add(this.orientationHelper);
+
+      let primaryDirection = primaryBody.position.clone()
+        .normalize();
+      this.positionHelper && this.scene.remove(this.positionHelper);
+      this.positionHelper = new THREE.ArrowHelper(primaryDirection, ORIGIN, 1000 / AU, 'red');
+      this.scene.add(this.positionHelper);
+    }
+
+    /**
+     * Rotate the camera, reproducing the pitch/yaw/rotation on the
+     * foucs.
+     */
+    offset.copy(orientation);
+    offset.normalize()
+      .negate()
+      .multiplyScalar(5);
+
+    this.navballCamera.position.copy(offset);
+    this.navballLight.position.copy(offset);
+
+    // Apply the same rotation to the UP vector
+    offset.copy(up0);
+    offset.applyQuaternion(threeBody.quaternion);
+    offset.normalize();
+
+    this.navballCamera.up.copy(offset);
+    this.navballCamera.lookAt(ORIGIN);
+
+    // Set the border to always face the camera
+    this.navballBorder.setRotationFromQuaternion(threeBody.quaternion);
+    this.navballBorder.rotateX(Math.PI / 2);
+
+    let radial = primaryBody.position;
+    let angle = radial.angleTo(orientation0);
+    offset.crossVectors(radial, orientation0)
+      .normalize();
+
+    this.navball.rotation.set(0, 0, 0);
+    this.navball.rotateOnAxis(offset, -angle);
+
+    let verticalAngle = -(primary.constants.axial_tilt || 0) * Math.PI / 180;
+    this.navball.rotateY(Math.PI / 2);
+    this.navball.rotateY(-verticalAngle);
+
+    offset.copy(velocity)
+      .normalize()
+      .negate()
+      .multiplyScalar(0.41);
+    this.navballPrograde.position.copy(offset);
+    this.navballPrograde.lookAt(ORIGIN);
+    this.navballPrograde.rotateX(Math.PI);
+
+    offset.copy(velocity)
+      .normalize()
+      .multiplyScalar(0.41);
+    this.navballRetrograde.position.copy(offset);
+    this.navballRetrograde.lookAt(ORIGIN);
+    this.navballRetrograde.rotateX(Math.PI);
+  }
+
+}();
 
 CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
   if (body.name === 'apollo') {
@@ -318,10 +437,12 @@ CameraViewRenderer.prototype._loadModelBody = function (body, models) {
   const scale = 1 / AU;
   const threeObj = modelObj.scene;
 
-  threeObj.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
   threeObj.scale.set(scale, scale, scale);
-
   this.scene.add(threeObj);
+
+  let box = new THREE.BoxHelper(threeObj, 0xffff00);
+  this.scene.add(box);
+
   this.bodyCache.set(body.name, threeObj);
 };
 
