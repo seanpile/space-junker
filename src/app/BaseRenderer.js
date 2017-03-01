@@ -302,17 +302,100 @@ BaseRenderer.prototype.loadNavball = function (textures) {
 
   })();
 
+  const radialIn = (() => {
+
+    let shapes = [
+      // Circle
+      (() => {
+        let shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        let innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+    ];
+
+    [Math.PI / 4, 3 * Math.PI / 4, 5 / 4 * Math.PI, 7 / 4 * Math.PI].forEach((angle) => {
+      let lineShape = new THREE.Shape();
+      let e = 5 / 180 * Math.PI;
+      let baseRadius = 7;
+      let length = 4;
+      lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+      lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+      lineShape.lineTo((baseRadius - length) * Math.cos(angle + e), (baseRadius - length) * Math.sin(angle + e));
+      lineShape.lineTo((baseRadius - length) * Math.cos(angle - e), (baseRadius - length) * Math.sin(angle - e));
+      shapes.push(lineShape);
+    });
+
+    return new THREE.Mesh(
+      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.MeshBasicMaterial({
+        color: 'aqua',
+      })
+    );
+
+  })();
+
+  const radialOut = (() => {
+
+    let shapes = [
+      // Circle
+      (() => {
+        let shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        let innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+      (() => {
+        let dotShape = new THREE.Shape();
+        dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
+        return dotShape;
+      })(),
+    ];
+
+    [Math.PI / 4, 3 * Math.PI / 4, 5 / 4 * Math.PI, 7 / 4 * Math.PI].forEach((angle) => {
+      let lineShape = new THREE.Shape();
+      let e = 5 / 180 * Math.PI;
+      let baseRadius = 7;
+      let length = 4;
+      lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+      lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+      lineShape.lineTo((baseRadius + length) * Math.cos(angle + e), (baseRadius + length) * Math.sin(angle + e));
+      lineShape.lineTo((baseRadius + length) * Math.cos(angle - e), (baseRadius + length) * Math.sin(angle - e));
+      shapes.push(lineShape);
+    });
+
+    return new THREE.Mesh(
+      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.MeshBasicMaterial({
+        color: 'aqua',
+      })
+    );
+
+  })();
+
   prograde.scale.set(0.008, 0.008, 0.008);
   retrograde.scale.set(0.008, 0.008, 0.008);
+  radialIn.scale.set(0.008, 0.008, 0.008);
+  radialOut.scale.set(0.008, 0.008, 0.008);
 
   this.navball = navball;
   this.navballPrograde = prograde;
   this.navballRetrograde = retrograde;
+  this.navballRadialIn = radialIn;
+  this.navballRadialOut = radialOut;
 
   this.navballScene.add(navball);
   this.navballScene.add(border);
   this.navballScene.add(prograde);
   this.navballScene.add(retrograde);
+  this.navballScene.add(radialIn);
+  this.navballScene.add(radialOut);
   this.navballScene.add(lightSource);
 
   this.navballCamera.up = new THREE.Vector3(0, 0, 1);

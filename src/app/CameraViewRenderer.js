@@ -269,6 +269,7 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
 CameraViewRenderer.prototype.setNavballOrientation = function () {
 
   const orientation = new THREE.Vector3();
+  const primaryOrientation = new THREE.Vector3();
   const offset = new THREE.Vector3();
   const ORIGIN = new THREE.Vector3();
   const up = new THREE.Vector3();
@@ -291,6 +292,9 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
     up.applyQuaternion(threeBody.quaternion);
     up.normalize();
 
+    primaryOrientation.copy(primaryBody.position);
+    primaryOrientation.normalize();
+
     /**
      * Helpers to visualize velocity, orientation, position
      */
@@ -304,10 +308,8 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
       this.orientationHelper = new THREE.ArrowHelper(orientation, ORIGIN, 1000 / AU, 'blue');
       this.scene.add(this.orientationHelper);
 
-      let primaryDirection = primaryBody.position.clone()
-        .normalize();
       this.positionHelper && this.scene.remove(this.positionHelper);
-      this.positionHelper = new THREE.ArrowHelper(primaryDirection, ORIGIN, 1000 / AU, 'red');
+      this.positionHelper = new THREE.ArrowHelper(primaryOrientation, ORIGIN, 1000 / AU, 'red');
       this.scene.add(this.positionHelper);
     }
 
@@ -354,6 +356,15 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
       ],
       [this.navballRetrograde, velocity.clone()
         .normalize()
+        .multiplyScalar(0.41)
+      ],
+      [this.navballRadialIn,
+        primaryOrientation.clone()
+        .negate()
+        .multiplyScalar(0.41)
+      ],
+      [this.navballRadialOut,
+        primaryOrientation.clone()
         .multiplyScalar(0.41)
       ],
     ];
