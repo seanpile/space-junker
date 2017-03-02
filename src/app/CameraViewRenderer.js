@@ -8,6 +8,8 @@ import {
 
 const OrbitControls = require('three-orbit-controls')(THREE);
 const SHOW_HELPERS = false;
+const DAMPING_STEP = Math.pow(2, 14);
+const MOTION_STEP = Math.pow(2, 9);
 
 function CameraViewRenderer(container, resourceLoader, commonState) {
 
@@ -176,7 +178,7 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
 
       if (body.motion.sas) {
         const dampen = (val) => {
-          val -= Math.sign(val) * Math.PI / Math.pow(2, 13);
+          val -= Math.sign(val) * Math.PI / DAMPING_STEP;
           if (Math.abs(val) < 10e-10)
             val = 0;
 
@@ -268,8 +270,7 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
 
     // Find the body we are focusing on
     const body = solarSystem.find(this.state.focus);
-    const threeObj = this.bodyCache.get(this.state.focus);
-    const step = 256;
+    const step = MOTION_STEP;
     const motion = body.motion;
 
     switch (event.keyCode) {
@@ -406,6 +407,11 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
       [this.navballRadialOut,
         primaryOrientation.clone()
         .multiplyScalar(0.41)
+      ],
+      [this.navballLevel,
+        this.navballCamera.position.clone()
+        .normalize()
+        .multiplyScalar(0.45)
       ],
     ];
 

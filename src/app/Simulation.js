@@ -10,8 +10,6 @@ import {
 } from 'splash-screen';
 import 'SplashCss';
 
-const numToRun = 10000;
-
 function Simulation(solarSystem, renderers, state, stats) {
   this.solarSystem = solarSystem;
   this.renderers = renderers;
@@ -213,7 +211,6 @@ Simulation.prototype.run = function () {
   }
 
   this.isStopped = false;
-  let numTimes = 0;
   let accumulator = 0.0;
   let dt = 10; // ms
 
@@ -243,13 +240,6 @@ Simulation.prototype.run = function () {
     this.updateOrbitalDisplay();
     this.updateTimeDisplay();
     this.stats.end();
-
-    numTimes++;
-    if (numTimes >= numToRun) {
-      console.log('All done!');
-      this.isStopped = true;
-      return false;
-    }
 
   }.bind(this));
 };

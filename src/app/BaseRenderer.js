@@ -379,16 +379,64 @@ BaseRenderer.prototype.loadNavball = function (textures) {
 
   })();
 
+  const level = (() => {
+
+    let shapes = [
+      // Circle
+      (() => {
+        let shape = new THREE.Shape();
+        shape.moveTo(-1.5, 0);
+        shape.lineTo(0, 1.5);
+        shape.lineTo(1.5, 0);
+        shape.lineTo(0, -1.5);
+        return shape;
+      })(),
+      (() => {
+        let shape = new THREE.Shape();
+        shape.moveTo(-13, 1);
+        shape.lineTo(-5, 1);
+        shape.lineTo(0, -4);
+        shape.lineTo(5, 1);
+        shape.lineTo(13, 1);
+        shape.lineTo(13, -1);
+        shape.lineTo(5, -1);
+        shape.lineTo(0, -6);
+        shape.lineTo(-5, -1);
+        shape.lineTo(-13, -1);
+        return shape;
+      })(),
+    ];
+
+    return new THREE.Mesh(
+      //new THREE.ShapeGeometry(shapes, 64),
+      new THREE.ExtrudeGeometry(shapes, {
+        steps: 2,
+        amount: 8,
+        bevelEnabled: true,
+        bevelThickness: 0.75,
+        bevelSize: 0.75,
+        bevelSegments: 4
+      }),
+      new THREE.MeshPhongMaterial({
+        color: '#e8a739',
+        shininess: 20
+      })
+    );
+
+  })();
+
   prograde.scale.set(0.008, 0.008, 0.008);
   retrograde.scale.set(0.008, 0.008, 0.008);
   radialIn.scale.set(0.008, 0.008, 0.008);
   radialOut.scale.set(0.008, 0.008, 0.008);
+  level.scale.set(0.008, 0.008, 0.008);
 
   this.navball = navball;
   this.navballPrograde = prograde;
   this.navballRetrograde = retrograde;
   this.navballRadialIn = radialIn;
   this.navballRadialOut = radialOut;
+  this.navballLevel = level;
 
   this.navballScene.add(navball);
   this.navballScene.add(border);
@@ -396,6 +444,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
   this.navballScene.add(retrograde);
   this.navballScene.add(radialIn);
   this.navballScene.add(radialOut);
+  this.navballScene.add(level);
   this.navballScene.add(lightSource);
 
   this.navballCamera.up = new THREE.Vector3(0, 0, 1);
