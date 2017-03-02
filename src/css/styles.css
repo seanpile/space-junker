@@ -123,6 +123,7 @@ html, body {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
 }
 
 .key-entry .keys {
@@ -133,8 +134,8 @@ html, body {
 
 .keys .key {
     flex: 0 1 auto;
-    margin-top: 5px;
-    margin-bottom: 5px;
+    margin-top: 2px;
+    margin-bottom: 2px;
     border: black;
     border-width: 3px;
     border-style: outset;
@@ -150,7 +151,7 @@ html, body {
 }
 
 .key-entry .description {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     padding-left: 5px;
 }
 

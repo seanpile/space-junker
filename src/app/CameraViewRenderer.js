@@ -1,7 +1,9 @@
 import BaseRenderer from './BaseRenderer';
 import * as THREE from 'three';
 import {
-  AU
+  AU,
+  SHIP_TYPE,
+  PLANET_TYPE
 } from './Bodies';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
@@ -111,6 +113,16 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         };
 
         solarSystem.bodies.forEach((body) => {
+
+          if (body.type === SHIP_TYPE) {
+            body.motion = {
+              pitch: 0,
+              yaw: 0,
+              roll: 0,
+              sas: true
+            };
+          }
+
           this.loadThreeBody(body, textures, models);
         });
 
@@ -157,7 +169,26 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
     // and the accumulated rotation around the axis ('derived.rotation');
 
-    if (body.name !== 'apollo') {
+    if (body.type === SHIP_TYPE) {
+      threeBody.rotateX(body.motion.pitch || 0);
+      threeBody.rotateY(body.motion.roll || 0);
+      threeBody.rotateZ(body.motion.yaw || 0);
+
+      if (body.motion.sas) {
+        const dampen = (val) => {
+          val -= Math.sign(val) * Math.PI / Math.pow(2, 13);
+          if (Math.abs(val) < 10e-10)
+            val = 0;
+
+          return val;
+        };
+
+        body.motion.pitch = dampen(body.motion.pitch);
+        body.motion.roll = dampen(body.motion.roll);
+        body.motion.yaw = dampen(body.motion.yaw);
+      }
+    } else if (body.type === PLANET_TYPE) {
+
       threeBody.rotation.set(0, 0, 0);
       threeBody.rotateZ(derived.omega);
       threeBody.rotateX(derived.I);
@@ -168,12 +199,15 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     }
   });
 
-  this.setNavballOrientation(focus);
-
   this.renderer.clear();
   this.renderer.render(this.scene, this.camera);
-  this.renderer.clearDepth();
-  this.renderer.render(this.navballScene, this.navballCamera, this.renderer.getCurrentRenderTarget(), false);
+
+  if (focus.type === SHIP_TYPE) {
+    this.setNavballOrientation(focus);
+
+    this.renderer.clearDepth();
+    this.renderer.render(this.navballScene, this.navballCamera, this.renderer.getCurrentRenderTarget(), false);
+  }
 };
 
 CameraViewRenderer.prototype._onCenter = function (solarSystem) {
@@ -233,33 +267,39 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
   return ((key) => {
 
     // Find the body we are focusing on
+    const body = solarSystem.find(this.state.focus);
     const threeObj = this.bodyCache.get(this.state.focus);
-    const step = 64;
+    const step = 256;
+    const motion = body.motion;
 
     switch (event.keyCode) {
+    case 116:
+      // t
+      motion.sas = !motion.sas;
+      break;
     case 113:
       // q
-      threeObj.rotateY(-Math.PI / step);
+      motion.roll += -Math.PI / step;
       break;
     case 101:
       // e
-      threeObj.rotateY(Math.PI / step);
+      motion.roll += Math.PI / step;
       break;
     case 119:
       // w
-      threeObj.rotateX(-Math.PI / step);
+      motion.pitch += Math.PI / step;
       break;
     case 115:
       // s
-      threeObj.rotateX(Math.PI / step);
+      motion.pitch += -Math.PI / step;
       break;
     case 97:
       // a
-      threeObj.rotateZ(Math.PI / step);
+      motion.yaw += Math.PI / step;
       break;
     case 100:
       // d
-      threeObj.rotateZ(-Math.PI / step);
+      motion.yaw += -Math.PI / step;
       break;
     default:
     }

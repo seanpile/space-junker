@@ -12,8 +12,12 @@ import {
 
 export const AU = 149.59787e9;
 
+export const SHIP_TYPE = "ship";
+export const PLANET_TYPE = "planet";
+
 const body_data = {
   "sun": {
+    type: PLANET_TYPE,
     constants: {
       u: 1.32712438e20 / Math.pow(AU, 3),
       radius: 696e6 / AU,
@@ -29,6 +33,7 @@ const body_data = {
   },
   "mercury": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 0.02203e15 / Math.pow(AU, 3),
       radius: 2.4397e6 / AU,
@@ -46,6 +51,7 @@ const body_data = {
   },
   "venus": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 0.3249e15 / Math.pow(AU, 3),
       radius: 6.0518e6 / AU,
@@ -64,6 +70,7 @@ const body_data = {
 
   "moon": {
     primary: "earth",
+    type: PLANET_TYPE,
     constants: {
       u: 4.902794e12 / Math.pow(AU, 3),
       radius: 1738e3 / AU,
@@ -84,6 +91,7 @@ const body_data = {
   },
   "earth": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 0.3986e15 / Math.pow(AU, 3),
       radius: 6.3781e6 / AU,
@@ -101,6 +109,7 @@ const body_data = {
   },
   "apollo": {
     primary: "earth",
+    type: SHIP_TYPE,
     constants: {
       radius: 100 / AU,
     },
@@ -115,6 +124,7 @@ const body_data = {
   },
   "mars": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 0.04283e15 / Math.pow(AU, 3),
       radius: 3.397e6 / AU,
@@ -132,6 +142,7 @@ const body_data = {
   },
   "jupiter": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 126.686e15 / Math.pow(AU, 3),
       radius: 7.1492e7 / AU,
@@ -155,6 +166,7 @@ const body_data = {
   },
   "saturn": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 37.391e15 / Math.pow(AU, 3),
       radius: 6.0268e7 / AU,
@@ -178,6 +190,7 @@ const body_data = {
   },
   "uranus": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 5.794e15 / Math.pow(AU, 3),
       radius: 2.5559e7 / AU,
@@ -201,6 +214,7 @@ const body_data = {
   },
   "neptune": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 6.835e15 / Math.pow(AU, 3),
       radius: 2.4764e7 / AU,
@@ -224,6 +238,7 @@ const body_data = {
   },
   "pluto": {
     primary: "sun",
+    type: PLANET_TYPE,
     constants: {
       u: 0.00083e15 / Math.pow(AU, 3),
       radius: 1.195e6 / AU,
