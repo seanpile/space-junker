@@ -27,7 +27,7 @@ const resourceLoader = new ResourceLoader();
 const state = new CommonState();
 const renderers = [
   new CameraViewRenderer(cameraViewContainer, resourceLoader, state),
-  new TestingRenderer(testingViewContainer),
+  //new TestingRenderer(testingViewContainer),
   new OrbitalMapRenderer(mapViewContainer, resourceLoader, state),
 ];
 

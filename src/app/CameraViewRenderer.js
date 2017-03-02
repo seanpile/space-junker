@@ -5,7 +5,7 @@ import {
 } from './Bodies';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
-const SHOW_HELPERS = true;
+const SHOW_HELPERS = false;
 
 function CameraViewRenderer(container, resourceLoader, commonState) {
 
@@ -398,8 +398,10 @@ CameraViewRenderer.prototype._loadModelBody = function (body, models) {
   threeObj.scale.set(scale, scale, scale);
   this.scene.add(threeObj);
 
-  let box = new THREE.BoxHelper(threeObj, 0xffff00);
-  this.scene.add(box);
+  if (SHOW_HELPERS) {
+    let box = new THREE.BoxHelper(threeObj, 0xffff00);
+    this.scene.add(box);
+  }
 
   this.bodyCache.set(body.name, threeObj);
 };
