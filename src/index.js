@@ -17,9 +17,6 @@ let testingViewContainer = document.getElementById('testing-view');
 let stats = new Stats();
 stats.dom.id = 'stats';
 stats.dom.style = '';
-
-document.body.appendChild(mapViewContainer);
-document.body.appendChild(cameraViewContainer);
 document.getElementById('stats-overlay')
   .appendChild(stats.dom);
 
