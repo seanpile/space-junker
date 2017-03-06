@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import {
+  AU
+} from './Bodies';
 
 // Textures
 const TEXTURES = {
@@ -136,7 +139,8 @@ BaseRenderer.prototype._createSkyBox = function () {
 
     let starsMaterial = new THREE.PointsMaterial({
       color: color,
-      size: Math.random() * 0.8 + 0.2
+      size: Math.random() * 0.8 + 0.2,
+      depthWrite: false,
     });
 
     let field = new THREE.Points(starsGeometry, starsMaterial);
@@ -146,6 +150,69 @@ BaseRenderer.prototype._createSkyBox = function () {
 
   skyBox.matrixAutoUpdate = false;
   return skyBox;
+};
+
+/**
+ * Recenter the coordinate system on the focus being the 'center'.
+ */
+BaseRenderer.prototype._adjustCoordinates = function (focus, position) {
+
+  if (!focus)
+    return position.clone();
+
+  let coordinates = position.clone()
+    .sub(focus.derived.position);
+
+  return coordinates;
+};
+
+BaseRenderer.prototype._loadPlanet = function (body, textures) {
+
+  let material;
+  if (body.name === 'sun') {
+    material = new THREE.MeshBasicMaterial({
+      color: 'yellow'
+    });
+  } else {
+    material = new THREE.MeshPhongMaterial();
+    if (textures.has(body.name + 'bump')) {
+      material.bumpMap = textures.get(body.name + 'bump');
+      material.bumpScale = 100000 / AU;
+    }
+
+    if (textures.has(body.name + 'spec')) {
+      material.specularMap = textures.get(body.name + 'spec');
+      material.specular = new THREE.Color('grey');
+    }
+
+    if (textures.has(body.name)) {
+      // Reduce harsh glare effect of the light source (default 30 -> 1);
+      material.map = textures.get(body.name);
+      material.shininess = 1;
+    }
+  }
+
+  const threeBody = new THREE.Mesh(
+    new THREE.SphereGeometry(body.constants.radius, 128, 128),
+    material);
+
+  threeBody.receiveShadow = true;
+  threeBody.castShadow = true;
+
+  return threeBody;
+};
+
+BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
+
+  const derived = body.derived;
+
+  planet.rotation.set(0, 0, 0);
+  planet.rotateZ(derived.omega);
+  planet.rotateX(derived.I);
+  planet.rotateZ(derived.argumentPerihelion);
+  planet.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+  planet.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
+  planet.rotateY(derived.rotation);
 };
 
 BaseRenderer.prototype.loadNavball = function (textures) {
@@ -462,4 +529,28 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     0, -0.40 * window.innerHeight,
     window.innerWidth,
     window.innerHeight);
+};
+
+BaseRenderer.prototype._lookupNearbyBodies = function (focus, bodies, nearbyThreshold) {
+
+  const partitioned = bodies.map((body) => {
+      const distance = new THREE.Vector3()
+        .subVectors(focus.derived.position, body.derived.position);
+      return [body, distance.lengthSq()];
+    })
+    .reduce((acc, [body, distance]) => {
+      if (distance < nearbyThreshold || (focus.primary && focus.primary.name === body.name)) {
+        acc[0].push(body);
+      } else {
+        acc[1].push(body);
+      }
+      return acc;
+    }, [
+      [],
+      []
+    ]);
+
+  const neighbours = partitioned[0];
+  const outliers = partitioned[1];
+  return [neighbours, outliers];
 };

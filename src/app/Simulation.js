@@ -18,15 +18,16 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.loaded = new Set();
   this.state = state;
   this.stats = stats;
-  this.isStopped = true;
   this.time = Date.now();
   this.startingTime = this.time;
   this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
   this.timeWarpIdx = 0;
+  this.frameId = null;
 
   this.hud = document.getElementById('hud');
   this.loadingScreen = document.getElementById('loading');
   this.timeCounter = document.getElementById('time');
+  this.timeStatus = document.getElementById('time-status');
   this.warpValues = document.getElementById('warp-values');
   this.timeWarpValues.forEach((value, idx) => {
     const arrow = document.createElement('div');
@@ -79,6 +80,14 @@ function Simulation(solarSystem, renderers, state, stats) {
       location: target
     });
   }, true);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      this.pause();
+    } else {
+      this.run();
+    }
+  });
 };
 
 Simulation.prototype.speedUp = function () {
@@ -98,11 +107,16 @@ Simulation.prototype.slowDown = function () {
 };
 
 Simulation.prototype.pause = function () {
-  this.isStopped = true;
+  if (this.frameId) {
+    window.cancelAnimationFrame(this.frameId);
+    this.frameId = null;
+
+    this.updateTimeDisplay();
+  }
 };
 
 Simulation.prototype.isRunning = function () {
-  return !this.isStopped;
+  return this.frameId !== null;
 };
 
 Simulation.prototype.toggleRun = function () {
@@ -210,20 +224,16 @@ Simulation.prototype.run = function () {
     return;
   }
 
-  this.isStopped = false;
   let accumulator = 0.0;
   let dt = 10; // ms
 
-  runAnimation(function (frameTime) {
-
-    if (this.isStopped) {
-      return false;
-    }
+  this._runAnimation((frameTime) => {
 
     this.stats.begin();
 
     accumulator += frameTime;
 
+    let numTimes = 0;
     while (accumulator >= dt) {
       let t = this.time;
       let scaledDt = this.timeWarpValues[this.timeWarpIdx] * dt;
@@ -233,6 +243,7 @@ Simulation.prototype.run = function () {
 
       accumulator -= dt;
       this.time += scaledDt;
+      numTimes++;
     }
 
     this.renderer.render(this.solarSystem);
@@ -240,8 +251,9 @@ Simulation.prototype.run = function () {
     this.updateOrbitalDisplay();
     this.updateTimeDisplay();
     this.stats.end();
+    return true;
 
-  }.bind(this));
+  });
 };
 
 Simulation.prototype.updateOrbitalDisplay = function () {
@@ -312,12 +324,16 @@ Simulation.prototype.updateTimeDisplay = function () {
       }
     });
   this.timeCounter.innerHTML = `+T ${values.join(':')}`.escapeHtml();
+  this.timeStatus.innerHTML = (this.isRunning() ? 'Active Mission' : 'Game Paused')
+    .escapeHtml()
+  this.timeStatus.className = (this.isRunning() ? 'status-running' : 'status-paused');
+
 }
 
-function runAnimation(frameFunc) {
+Simulation.prototype._runAnimation = function (frameFunc) {
   var lastTime = null;
 
-  function frame(time) {
+  const frame = (time) => {
     var stop = false;
     if (lastTime != null) {
       var timeStep = (time - lastTime);
@@ -325,9 +341,10 @@ function runAnimation(frameFunc) {
     }
     lastTime = time;
     if (!stop)
-      requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
+      this.frameId = requestAnimationFrame(frame);
+  };
+
+  this.frameId = requestAnimationFrame(frame);
 };
 
 export default Simulation;

@@ -146,7 +146,7 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
   this._adjustLightSource(focus, sun);
 
   // Find all of the bodies that are we are concerned about in our render loop
-  const [neighbours, outliers] = this._lookupNearbyBodies(focus, solarSystem.bodies);
+  const [neighbours, outliers] = this._lookupNearbyBodies(focus, solarSystem.bodies, 0.05);
 
   // Make objects outside of our current sphere invisible (to save resources)
   outliers.forEach((body) => {
@@ -190,14 +190,7 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
         body.motion.yaw = dampen(body.motion.yaw);
       }
     } else if (body.type === PLANET_TYPE) {
-
-      threeBody.rotation.set(0, 0, 0);
-      threeBody.rotateZ(derived.omega);
-      threeBody.rotateX(derived.I);
-      threeBody.rotateZ(derived.argumentPerihelion);
-      threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-      threeBody.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
-      threeBody.rotateY(derived.rotation);
+      this._applyPlanetaryRotation(threeBody, body);
     }
   });
 
@@ -431,7 +424,10 @@ CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
   if (body.name === 'apollo') {
     return this._loadModelBody(body, models);
   } else {
-    return this._loadTextureBody(body, textures);
+    const planet = this._loadPlanet(body, textures);
+    this.scene.add(planet);
+    this.bodyCache.set(body.name, planet);
+    return
   }
 };
 
@@ -450,43 +446,6 @@ CameraViewRenderer.prototype._loadModelBody = function (body, models) {
   }
 
   this.bodyCache.set(body.name, threeObj);
-};
-
-CameraViewRenderer.prototype._loadTextureBody = function (body, textures) {
-
-  let material;
-  if (body.name === 'sun') {
-    material = new THREE.MeshBasicMaterial({
-      color: 'yellow'
-    });
-  } else {
-    material = new THREE.MeshPhongMaterial();
-    if (textures.has(body.name + 'bump')) {
-      material.bumpMap = textures.get(body.name + 'bump');
-      material.bumpScale = 100000 / AU;
-    }
-
-    if (textures.has(body.name + 'spec')) {
-      material.specularMap = textures.get(body.name + 'spec');
-      material.specular = new THREE.Color('grey');
-    }
-
-    if (textures.has(body.name)) {
-      // Reduce harsh glare effect of the light source (default 30 -> 1);
-      material.map = textures.get(body.name);
-      material.shininess = 1;
-    }
-  }
-
-  const threeBody = new THREE.Mesh(
-    new THREE.SphereGeometry(body.constants.radius, 128, 128),
-    material);
-
-  threeBody.receiveShadow = true;
-  threeBody.castShadow = true;
-
-  this.scene.add(threeBody);
-  this.bodyCache.set(body.name, threeBody);
 };
 
 CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
@@ -508,44 +467,6 @@ CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
   }
 };
 
-CameraViewRenderer.prototype._lookupNearbyBodies = function (focus, bodies) {
-
-  const nearbyThreshold = 0.05;
-  const partitioned = bodies.map((body) => {
-      const distance = new THREE.Vector3()
-        .subVectors(focus.derived.position, body.derived.position);
-      return [body, distance.lengthSq()];
-    })
-    .reduce((acc, [body, distance]) => {
-      if (distance < nearbyThreshold || body.name === 'sun') {
-        acc[0].push(body);
-      } else {
-        acc[1].push(body);
-      }
-      return acc;
-    }, [
-      [],
-      []
-    ]);
-
-  const neighbours = partitioned[0];
-  const outliers = partitioned[1];
-  return [neighbours, outliers];
-}
-
-/**
- * Recenter the coordinate system on the focus being the 'center'.
- */
-CameraViewRenderer.prototype._adjustCoordinates = function (focus, position) {
-
-  if (!focus)
-    return position.clone();
-
-  let coordinates = position.clone()
-    .sub(focus.derived.position);
-
-  return coordinates;
-};
 
 // Inherit from BaseRenderer
 Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);

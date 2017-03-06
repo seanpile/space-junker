@@ -1,14 +1,13 @@
 import BaseRenderer from './BaseRenderer';
 import {
-  FIXED_TYPE,
-  PHYSICS_TYPE,
-  ASTEROID_TYPE
+  SHIP_TYPE,
+  PLANET_TYPE,
+  AU
 } from './Bodies';
 import * as THREE from 'three';
 const OrbitControls = require('three-orbit-controls')(THREE);
 
-const TRAJECTORY_SCALE = 2;
-const SHOW_VELOCITY_VECTORS = false;
+const TRAJECTORY_SCALE = 1;
 
 const PLANET_COLOURS = {
   "sun": "yellow",
@@ -29,7 +28,9 @@ function OrbitalMapRenderer(container, resourceLoader, commonState) {
   BaseRenderer.call(this, resourceLoader, commonState);
 
   this.container = container;
-  this.renderer = new THREE.WebGLRenderer();
+  this.renderer = new THREE.WebGLRenderer({
+    antialias: true,
+  });
   this.renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(this.renderer.domElement);
 
@@ -44,7 +45,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         this._loadTextures(),
         this._loadModels(),
       ])
-      .then((textures) => {
+      .then(([textures, models]) => {
 
         let width = window.innerWidth;
         let height = window.innerHeight;
@@ -54,6 +55,9 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
         const skyBox = this._createSkyBox();
         this.scene.add(skyBox);
+
+        // Setup light
+        this.lightSource = this._setupLightSources();
 
         const recenter = this._onRecenter(solarSystem);
         const onWindowResize = this._onWindowResize([this.camera], height, this.camera.fov);
@@ -97,10 +101,15 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
           this.bodyMap.set(body.name, {});
 
-          const threeBody = new THREE.Mesh(new THREE.SphereGeometry(body.constants.radius, 32, 32),
-            new THREE.MeshBasicMaterial({
-              color: PLANET_COLOURS[body.name] || 'white'
-            }));
+          let threeBody;
+          if (body.type === PLANET_TYPE) {
+            threeBody = this._loadPlanet(body, textures);
+          } else {
+            threeBody = new THREE.Mesh(new THREE.SphereGeometry(body.constants.radius, 32, 32),
+              new THREE.MeshBasicMaterial({
+                color: 'gray'
+              }));
+          }
 
           const periapsis = new THREE.Mesh(new THREE.SphereGeometry(0.01, 32, 32),
             new THREE.MeshBasicMaterial({
@@ -112,7 +121,6 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
               color: 'aqua'
             }));
 
-          this.scene.add(threeBody);
           //this.scene.add(periapsis);
           //this.scene.add(apoapsis);
 
@@ -121,7 +129,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
             const trajectory = new THREE.Line(
               this._createTrajectoryGeometry(),
               new THREE.LineBasicMaterial({
-                color: PLANET_COLOURS[body.name] || 'white'
+                color: PLANET_COLOURS[body.name] || 'white',
               }));
 
             this.scene.add(trajectory);
@@ -131,6 +139,8 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
               trajectoryVerticesDirty: [],
             });
           }
+
+          this.scene.add(threeBody);
 
           Object.assign(this.bodyMap.get(body.name), {
             body: threeBody,
@@ -152,10 +162,25 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
 
   // Locate primary body, sun
   const sun = solarSystem.find('sun');
+  this._adjustLightSource(focus, sun);
 
-  solarSystem.bodies.forEach((body) => {
+  const [visible, hidden] = this._lookupNearbyBodies(focus, solarSystem.bodies, Math.pow(this.camera.position.length(), 2));
+  hidden.forEach((body) => {
+    let bodyMap = this.bodyMap.get(body.name);
+    Object.values(bodyMap)
+      .forEach((threeObj) => {
+        threeObj.visible = false;
+      });
+  });
+
+  visible.forEach((body) => {
 
     let bodyMap = this.bodyMap.get(body.name);
+    Object.values(bodyMap)
+      .forEach((threeObj) => {
+        threeObj.visible = true;
+      });
+
     let threeBody = bodyMap.body;
     let threePeriapsis = bodyMap.periapsis;
     let threeApoapsis = bodyMap.apoapsis;
@@ -168,16 +193,11 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
 
     threeBody.position.set(position.x, position.y, position.z);
 
-    if (SHOW_VELOCITY_VECTORS) {
-      bodyMap.arrowHelper && this.scene.remove(bodyMap.arrowHelper);
-      let arrowHelper = new THREE.ArrowHelper(derived.velocity.clone()
-        .normalize(), position, 1, 0xffff00);
-      this.scene.add(arrowHelper);
-      bodyMap.arrowHelper = arrowHelper;
-    }
-
     // threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
     // threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
+
+    if (body.type === PLANET_TYPE)
+      this._applyPlanetaryRotation(threeBody, body);
 
     this._updateTrajectory(focus, body);
     this._scaleBody(body);
@@ -186,19 +206,11 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
   this.renderer.render(this.scene, this.camera);
 };
 
-/**
- * Recenter the coordinate system on the focus being the 'center'.
- */
-OrbitalMapRenderer.prototype._adjustCoordinates = function (focus, position) {
+OrbitalMapRenderer.prototype._adjustLightSource = function (focus, sun) {
+  const light = this.lightSource;
+  const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
 
-  if (!focus)
-    return position.clone();
-
-  let coordinates = position.clone()
-    .sub(focus.derived.position)
-    .multiplyScalar(TRAJECTORY_SCALE);
-
-  return coordinates;
+  light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
 };
 
 OrbitalMapRenderer.prototype._scaleBody = function (body) {
@@ -206,10 +218,15 @@ OrbitalMapRenderer.prototype._scaleBody = function (body) {
   let bodyMap = this.bodyMap.get(body.name);
   let threeBody = bodyMap.body;
   let trajectory = bodyMap.trajectory;
+  let focusId = this.state.focus;
   let cameraDistance = this.camera.position.distanceTo(threeBody.position);
 
   let scale = Math.max(0.005 * cameraDistance, body.constants.radius) / body.constants.radius;
   threeBody.scale.set(scale, scale, scale);
+
+  if (focusId === body.name) {
+    this.orbitControls.minDistance = body.constants.radius * scale * 2;
+  }
 
   // Allow more 'space' between large bodies and their satellites
   trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
@@ -345,6 +362,7 @@ OrbitalMapRenderer.prototype._onClick = function (location) {
 
   // Do a hit-test check for all planets
   const found = Array.from(this.bodyMap.entries())
+    .filter((entry) => entry[1].body.visible)
     .map((entry) => {
 
       const id = entry[0];
@@ -387,7 +405,7 @@ OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
     } else {
       let position = focus.derived.position;
       let primary_position = focus.primary.derived.position;
-      cameraDistance = 10 * primary_position.distanceTo(position);
+      cameraDistance = primary_position.distanceTo(position);
     }
 
     this.orbitControls.reset();
@@ -396,7 +414,7 @@ OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
   };
 
   return recenter;
-}
+};
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);
 

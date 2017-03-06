@@ -60,6 +60,7 @@ html, body {
     display: flex;
     flex-direction: row;
     margin-bottom: 3px;
+    justify-content: space-between;
 }
 
 #warp-values {
@@ -72,8 +73,29 @@ html, body {
     flex: 0 1 auto;
 }
 
-#time {
+#time-section {
     flex: 0 1 auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+#time {
+  flex: 0 1 auto;
+}
+
+#time-status {
+  flex: 0 1 auto;
+}
+
+.status-running {
+  color: green;
+  font-weight: bold;
+}
+
+.status-paused {
+  color: red;
+  font-weight: bold;
 }
 
 .warp-enabled {
