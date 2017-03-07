@@ -7,8 +7,6 @@ import {
 import * as THREE from 'three';
 const OrbitControls = require('three-orbit-controls')(THREE);
 
-const TRAJECTORY_SCALE = 1;
-
 const PLANET_COLOURS = {
   "sun": "yellow",
   "mercury": "silver",
@@ -83,7 +81,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
         this.viewWillAppear = function () {
           this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-          this.orbitControls.maxDistance = 100 * TRAJECTORY_SCALE;
+          this.orbitControls.maxDistance = 100;
           this.orbitControls.dollySpeed = 2.0;
           onWindowResize();
           recenter();
@@ -199,8 +197,8 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
     if (body.type === PLANET_TYPE)
       this._applyPlanetaryRotation(threeBody, body);
 
-    this._updateTrajectory(focus, body);
     this._scaleBody(body);
+    this._updateTrajectory(focus, body);
   });
 
   this.renderer.render(this.scene, this.camera);
@@ -227,9 +225,6 @@ OrbitalMapRenderer.prototype._scaleBody = function (body) {
   if (focusId === body.name) {
     this.orbitControls.minDistance = body.constants.radius * scale * 2;
   }
-
-  // Allow more 'space' between large bodies and their satellites
-  trajectory && trajectory.scale.set(trajectory.scale.x * TRAJECTORY_SCALE, trajectory.scale.y * TRAJECTORY_SCALE, 1);
 };
 
 OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
@@ -290,6 +285,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   // Overwrite the closest vertices with the planets actual position.  This will
   // ensure that a vertex for our trajectory is always located at the planets
   // location.
+
   sorted.slice(0, verticesToChange)
     .forEach((element) => {
       let vertex = element[1];

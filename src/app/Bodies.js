@@ -1,5 +1,6 @@
 import {
-  Vector3
+  Vector3,
+  Quaternion
 } from 'three';
 
 /**
@@ -277,6 +278,15 @@ const bodyMap = new Map(Object.keys(body_data)
         periapsis: new Vector3(0, 0, 0),
         center: new Vector3(0, 0, 0)
       };
+    } else if (body.type === SHIP_TYPE) {
+      body.motion = {
+        heading0: new Vector3(0, 1, 0),
+        rotation: new Quaternion(),
+        pitch: 0,  // rad / second
+        yaw: 0,    // rad / second
+        roll: 0,   // rad / second
+        sas: true
+      }
     }
 
     return [name, body];

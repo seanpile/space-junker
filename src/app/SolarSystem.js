@@ -2,6 +2,8 @@ import moment from 'moment';
 import {
   AU,
   ALL_BODIES,
+  SHIP_TYPE,
+  PLANET_TYPE,
 } from './Bodies';
 
 import {
@@ -13,6 +15,9 @@ import {
 
 const J2000_date = moment('2000-01-01T12:00:00Z');
 const J2000_epoch = 2451545.0;
+
+// rad / second
+const DAMPING_STEP = Math.PI / Math.pow(2, 3);
 
 function SolarSystem() {
   this.bodies = Array.from(ALL_BODIES);
@@ -99,9 +104,35 @@ SolarSystem.prototype.update = function (t, dt) {
       apoapsis: this._transformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
     }
 
+    if (body.type === SHIP_TYPE) {
+      const rotation = body.motion.rotation;
+      const adjustment = new Quaternion();
+
+      adjustment.setFromAxisAngle(new Vector3(1, 0, 0), (body.motion.pitch || 0) * dt / 1000);
+      rotation.multiply(adjustment);
+      adjustment.setFromAxisAngle(new Vector3(0, 1, 0), (body.motion.roll || 0) * dt / 1000);
+      rotation.multiply(adjustment);
+      adjustment.setFromAxisAngle(new Vector3(0, 0, 1), (body.motion.yaw || 0) * dt / 1000);
+      rotation.multiply(adjustment);
+
+      if (body.motion.sas) {
+        body.motion.pitch = this._dampenMotion(body.motion.pitch, dt);
+        body.motion.roll = this._dampenMotion(body.motion.roll, dt);
+        body.motion.yaw = this._dampenMotion(body.motion.yaw, dt);
+      }
+    }
+
   });
 
   this.lastTime = t + dt;
+};
+
+SolarSystem.prototype._dampenMotion = function (val, dt) {
+  val -= Math.sign(val) * DAMPING_STEP * dt / 1000;
+  if (Math.abs(val) < 10e-10)
+    val = 0;
+
+  return val;
 };
 
 SolarSystem.prototype._calculateInitialKeplerElements = function (body, T) {

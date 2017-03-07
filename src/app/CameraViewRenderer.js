@@ -8,8 +8,9 @@ import {
 
 const OrbitControls = require('three-orbit-controls')(THREE);
 const SHOW_HELPERS = false;
-const DAMPING_STEP = Math.pow(2, 14);
-const MOTION_STEP = Math.pow(2, 9);
+
+// rad / second
+const MOTION_STEP = Math.PI / 8;
 
 function CameraViewRenderer(container, resourceLoader, commonState) {
 
@@ -115,16 +116,6 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         };
 
         solarSystem.bodies.forEach((body) => {
-
-          if (body.type === SHIP_TYPE) {
-            body.motion = {
-              pitch: 0,
-              yaw: 0,
-              roll: 0,
-              sas: true
-            };
-          }
-
           this.loadThreeBody(body, textures, models);
         });
 
@@ -172,23 +163,7 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     // and the accumulated rotation around the axis ('derived.rotation');
 
     if (body.type === SHIP_TYPE) {
-      threeBody.rotateX(body.motion.pitch || 0);
-      threeBody.rotateY(body.motion.roll || 0);
-      threeBody.rotateZ(body.motion.yaw || 0);
-
-      if (body.motion.sas) {
-        const dampen = (val) => {
-          val -= Math.sign(val) * Math.PI / DAMPING_STEP;
-          if (Math.abs(val) < 10e-10)
-            val = 0;
-
-          return val;
-        };
-
-        body.motion.pitch = dampen(body.motion.pitch);
-        body.motion.roll = dampen(body.motion.roll);
-        body.motion.yaw = dampen(body.motion.yaw);
-      }
+      threeBody.setRotationFromQuaternion(body.motion.rotation);
     } else if (body.type === PLANET_TYPE) {
       this._applyPlanetaryRotation(threeBody, body);
     }
@@ -263,7 +238,6 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
 
     // Find the body we are focusing on
     const body = solarSystem.find(this.state.focus);
-    const step = MOTION_STEP;
     const motion = body.motion;
 
     switch (event.keyCode) {
@@ -273,27 +247,27 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
       break;
     case 113:
       // q
-      motion.roll += -Math.PI / step;
+      motion.roll += -MOTION_STEP;
       break;
     case 101:
       // e
-      motion.roll += Math.PI / step;
+      motion.roll += MOTION_STEP;
       break;
     case 119:
       // w
-      motion.pitch += Math.PI / step;
+      motion.pitch += MOTION_STEP;
       break;
     case 115:
       // s
-      motion.pitch += -Math.PI / step;
+      motion.pitch += -MOTION_STEP;
       break;
     case 97:
       // a
-      motion.yaw += Math.PI / step;
+      motion.yaw += MOTION_STEP;
       break;
     case 100:
       // d
-      motion.yaw += -Math.PI / step;
+      motion.yaw += -MOTION_STEP;
       break;
     default:
     }
@@ -308,22 +282,21 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
   const ORIGIN = new THREE.Vector3();
   const up = new THREE.Vector3();
   const up0 = new THREE.Vector3(0, 0, 1);
-  const orientation0 = new THREE.Vector3(0, 1, 0);
 
   return function (focus) {
 
     let derived = focus.derived;
     let primary = focus.primary;
+    let motion = focus.motion;
     let velocity = derived.velocity.clone();
-    let threeBody = this.bodyCache.get(focus.name);
     let primaryBody = this.bodyCache.get(primary.name);
 
-    orientation.copy(orientation0);
-    orientation.applyQuaternion(threeBody.quaternion);
+    orientation.copy(motion.heading0);
+    orientation.applyQuaternion(motion.rotation);
     orientation.normalize();
 
     up.copy(up0);
-    up.applyQuaternion(threeBody.quaternion);
+    up.applyQuaternion(motion.rotation);
     up.normalize();
 
     primaryOrientation.copy(primaryBody.position);
@@ -363,12 +336,12 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
     this.navballCamera.lookAt(ORIGIN);
 
     // Set the border to always face the camera
-    this.navballBorder.setRotationFromQuaternion(threeBody.quaternion);
+    this.navballBorder.setRotationFromQuaternion(motion.rotation);
     this.navballBorder.rotateX(Math.PI / 2);
 
     let radial = primaryBody.position;
-    let angle = radial.angleTo(orientation0);
-    offset.crossVectors(radial, orientation0)
+    let angle = radial.angleTo(motion.heading0);
+    offset.crossVectors(radial, motion.heading0)
       .normalize();
 
     this.navball.rotation.set(0, 0, 0);
@@ -410,7 +383,7 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
 
     markers.forEach(([marker, position]) => {
       marker.position.copy(position);
-      marker.setRotationFromQuaternion(threeBody.quaternion);
+      marker.setRotationFromQuaternion(motion.rotation);
       marker.up.copy(up);
       marker.lookAt(ORIGIN);
       marker.rotateX(Math.PI);
@@ -466,7 +439,6 @@ CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
     light.shadow.camera.bottom = -lightBoxLength;
   }
 };
-
 
 // Inherit from BaseRenderer
 Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);
