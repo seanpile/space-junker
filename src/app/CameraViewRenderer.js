@@ -263,11 +263,11 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
       break;
     case 97:
       // a
-      motion.yaw += MOTION_STEP;
+      motion.yaw += -MOTION_STEP;
       break;
     case 100:
       // d
-      motion.yaw += -MOTION_STEP;
+      motion.yaw += MOTION_STEP;
       break;
     default:
     }

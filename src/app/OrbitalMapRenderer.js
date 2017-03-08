@@ -34,6 +34,7 @@ function OrbitalMapRenderer(container, resourceLoader, commonState) {
 
   this.scene = new THREE.Scene();
   this.bodyMap = new Map();
+  this.trajectoryData = new Map();
 };
 
 OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
@@ -119,29 +120,25 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
               color: 'aqua'
             }));
 
+          const trajectory = new THREE.Line(
+            this._createTrajectoryGeometry(),
+            new THREE.LineBasicMaterial({
+              color: PLANET_COLOURS[body.name] || 'white',
+            }));
+
+          this.trajectoryData.set(body.name, {
+            vertices: Array.from(trajectory.geometry.attributes.position.array),
+            dirtyVertices: []
+          });
+
+          this.scene.add(trajectory);
+          this.scene.add(threeBody);
           //this.scene.add(periapsis);
           //this.scene.add(apoapsis);
 
-          if (body.name !== 'sun') {
-
-            const trajectory = new THREE.Line(
-              this._createTrajectoryGeometry(),
-              new THREE.LineBasicMaterial({
-                color: PLANET_COLOURS[body.name] || 'white',
-              }));
-
-            this.scene.add(trajectory);
-            Object.assign(this.bodyMap.get(body.name), {
-              trajectory: trajectory,
-              trajectoryVertices: Array.from(trajectory.geometry.attributes.position.array),
-              trajectoryVerticesDirty: [],
-            });
-          }
-
-          this.scene.add(threeBody);
-
           Object.assign(this.bodyMap.get(body.name), {
             body: threeBody,
+            trajectory: trajectory,
             periapsis: periapsis,
             apoapsis: apoapsis,
           });
@@ -229,14 +226,35 @@ OrbitalMapRenderer.prototype._scaleBody = function (body) {
 
 OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
 
-  if (body.name === 'sun')
-    return;
-
   // Redraw the trajectory for this body
   let bodyMap = this.bodyMap.get(body.name);
+  let threeBody = bodyMap.body;
   let trajectory = bodyMap.trajectory;
-  let trajectoryVertices = bodyMap.trajectoryVertices;
-  let trajectoryVerticesDirty = bodyMap.trajectoryVerticesDirty;
+
+  const showTrajectoryTheshold = 0.25;
+  let visible = true;
+  if (body.name === 'sun') {
+    // Don't show the sun's (empty) trajectory
+    visible = false;
+  } else if (this.camera.position.distanceTo(threeBody.position) < showTrajectoryTheshold) {
+    // Don't show the trajectory of our primary body if we are zoomed in, this reduces
+    // visual clutter
+    if (focus.type === PLANET_TYPE && body.name === focus.name)
+      visible = false;
+    else if (focus.primary && focus.primary.name === body.name)
+      visible = false;
+  }
+
+  if (!visible) {
+    trajectory.visible = false;
+    return;
+  }
+
+  trajectory.visible = true;
+
+  let trajectoryData = this.trajectoryData.get(body.name);
+  let trajectoryVertices = trajectoryData.vertices;
+  let trajectoryVerticesDirty = trajectoryData.dirtyVertices;
 
   let derived = body.derived;
   let position_in_plane = body.derived.position_in_plane;
@@ -298,7 +316,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
     });
 
   // Set new value of dirty vertices;
-  bodyMap.trajectoryVerticesDirty = updatedDirtyVertices;
+  trajectoryData.dirtyVertices = updatedDirtyVertices;
 
   // Signal that this geometry needs a redraw
   geometry.attributes.position.needsUpdate = true;

@@ -20,8 +20,10 @@ stats.dom.style = '';
 document.getElementById('stats-overlay')
   .appendChild(stats.dom);
 
+const defaultFocus = 'apollo';
+const state = new CommonState(defaultFocus);
+
 const resourceLoader = new ResourceLoader();
-const state = new CommonState();
 const renderers = [
   new OrbitalMapRenderer(mapViewContainer, resourceLoader, state),
   new CameraViewRenderer(cameraViewContainer, resourceLoader, state),
