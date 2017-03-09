@@ -31,13 +31,13 @@ SolarSystem.prototype.find = function (bodyId) {
 SolarSystem.prototype.update = function (t, dt) {
 
   let currentDate = moment(t + dt);
-  let T = this._calculateJulianDate(currentDate);
 
   if (!this.initialized) {
     /**
      * Generate a starting position/velocity from the initial kepler
      * elements
      */
+    let T = this._calculateJulianDate(currentDate);
     this.bodies.forEach((body) => {
       let kepler_elements = this._calculateInitialKeplerElements(body, T);
       body.derived = kepler_elements;
@@ -84,7 +84,6 @@ SolarSystem.prototype.update = function (t, dt) {
       ((body_constants.rotation_period || 1) * 86400e3);
 
     body.derived = {
-      T: T,
       a: a,
       e: e,
       I: I,

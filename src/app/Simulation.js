@@ -66,20 +66,35 @@ function Simulation(solarSystem, renderers, state, stats) {
     });
   }, true);
 
+  window.addEventListener("mousemove", (event) => {
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    let target = new THREE.Vector2(
+      (event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+
+    if (this.isRunning()) {
+      this.renderer.dispatchEvent({
+        type: 'mouseover',
+        location: target
+      });
+    }
+  }, false);
+
   window.addEventListener("mousedown", (event) => {
     let width = window.innerWidth;
     let height = window.innerHeight;
-    let pixelMultiplier = window.devicePixelRatio;
 
     let target = new THREE.Vector2(
-      (event.clientX - width / 2) * pixelMultiplier,
-      (height / 2 - event.clientY) * pixelMultiplier);
+      (event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
 
-    this.renderer.dispatchEvent({
-      type: 'click',
-      location: target
-    });
-  }, true);
+    if (this.isRunning()) {
+      this.renderer.dispatchEvent({
+        type: 'click',
+        location: target
+      });
+    }
+  }, false);
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {

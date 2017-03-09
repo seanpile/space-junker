@@ -539,7 +539,7 @@ BaseRenderer.prototype._lookupNearbyBodies = function (focus, bodies, nearbyThre
       return [body, distance.lengthSq()];
     })
     .reduce((acc, [body, distance]) => {
-      if (distance < nearbyThreshold || (focus.primary && focus.primary.name === body.name)) {
+      if (distance < nearbyThreshold || body.name === 'sun' || (focus.primary && focus.primary.name === body.name)) {
         acc[0].push(body);
       } else {
         acc[1].push(body);

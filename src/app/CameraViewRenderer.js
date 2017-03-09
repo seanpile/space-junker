@@ -30,6 +30,9 @@ function CameraViewRenderer(container, resourceLoader, commonState) {
   this.bodyCache = new Map();
 };
 
+// Inherit from BaseRenderer
+Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);
+
 /**
  * Use this lifeycle method to add event listeners
  */
@@ -202,12 +205,6 @@ CameraViewRenderer.prototype._onCenter = function (solarSystem) {
 
     let primary_position = new THREE.Vector3()
       .sub(this._adjustCoordinates(focus, focus.primary.derived.position));
-
-    // Base the camera UP direction off of the velocity vector, rotated 90 degrees up.
-    // this.camera.up = new THREE.Vector3()
-    //   .copy(focus.derived.velocity)
-    //   .applyAxisAngle(primary_position.normalize(), Math.PI / 2)
-    //   .normalize();
 
     this.camera.position.set(camera_position.x, camera_position.y, camera_position.z);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
@@ -439,8 +436,5 @@ CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
     light.shadow.camera.bottom = -lightBoxLength;
   }
 };
-
-// Inherit from BaseRenderer
-Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);
 
 export default CameraViewRenderer;
