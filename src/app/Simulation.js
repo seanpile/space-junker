@@ -70,8 +70,7 @@ function Simulation(solarSystem, renderers, state, stats) {
     let width = window.innerWidth;
     let height = window.innerHeight;
 
-    let target = new THREE.Vector2(
-      (event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+    let target = new THREE.Vector2(event.clientX, event.clientY);
 
     if (this.isRunning()) {
       this.renderer.dispatchEvent({
@@ -85,8 +84,7 @@ function Simulation(solarSystem, renderers, state, stats) {
     let width = window.innerWidth;
     let height = window.innerHeight;
 
-    let target = new THREE.Vector2(
-      (event.clientX / width) * 2 - 1, -(event.clientY / height) * 2 + 1);
+    let target = new THREE.Vector2(event.clientX, event.clientY);
 
     if (this.isRunning()) {
       this.renderer.dispatchEvent({

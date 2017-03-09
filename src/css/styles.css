@@ -26,6 +26,24 @@ html, body {
     display: block;
 }
 
+#map-mouse-overlay {
+    position: absolute;
+    display: flex;
+    background-color: lightgray;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    border-style: ridge;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    opacity: 0.8;
+}
+
+#map-mouse-overlay .body-name {
+    text-transform: capitalize;
+}
+
 #hud {
     position: absolute;
     top: 0;
@@ -81,21 +99,21 @@ html, body {
 }
 
 #time {
-  flex: 0 1 auto;
+    flex: 0 1 auto;
 }
 
 #time-status {
-  flex: 0 1 auto;
+    flex: 0 1 auto;
 }
 
 .status-running {
-  color: green;
-  font-weight: bold;
+    color: green;
+    font-weight: bold;
 }
 
 .status-paused {
-  color: red;
-  font-weight: bold;
+    color: red;
+    font-weight: bold;
 }
 
 .warp-enabled {

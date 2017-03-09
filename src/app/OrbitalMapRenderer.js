@@ -1,3 +1,4 @@
+import StringExtensions from './util/StringExtensions';
 import BaseRenderer from './BaseRenderer';
 import {
   SHIP_TYPE,
@@ -36,6 +37,7 @@ function OrbitalMapRenderer(container, resourceLoader, commonState) {
 
   /* Location of mouse for planetary overlay */
   this.mouse = null;
+  this.mouseOverlay = document.getElementById("map-mouse-overlay");
 };
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);
@@ -72,7 +74,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         });
 
         this.addEventListener('mouseover', (event) => {
-          this.mouse = event.location.clone();
+          this._onMouseover(event.location);
         });
 
         this.addEventListener('focus', (event) => {
@@ -339,14 +341,30 @@ OrbitalMapRenderer.prototype._onMouseover = function () {
 
   return function onMouseOver(location) {
 
-    raycaster.setFromCamera(location, this.camera);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Convert to normalized device coordinates
+    let target = new THREE.Vector2(
+      (location.x / width) * 2 - 1, -(location.y / height) * 2 + 1);
+
+    raycaster.setFromCamera(target, this.camera);
 
     let bodiesToTest = Array.from(this.bodyMap.entries())
       .map((entry) => entry[1].body)
       .filter((body) => body.visible);
 
     let intersection = raycaster.intersectObjects(bodiesToTest);
-    if (intersection.length > 0) {}
+    if (intersection.length > 0) {
+      this.mouseOverlay.style = '';
+      this.mouseOverlay.style.bottom = `${height - location.y}px`;
+      this.mouseOverlay.style.left = `${location.x}px`;
+
+      let nameElement = this.mouseOverlay.getElementsByClassName("body-name")[0];
+      nameElement.innerHTML = intersection[0].object.name.escapeHtml();
+    } else {
+      this.mouseOverlay.style = "display: none;";
+    }
   }
 }();
 
@@ -355,7 +373,14 @@ OrbitalMapRenderer.prototype._onClick = function () {
 
   return function (location, solarSystem) {
 
-    raycaster.setFromCamera(location, this.camera);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Convert to normalized device coordinates
+    let target = new THREE.Vector2(
+      (location.x / width) * 2 - 1, -(location.y / height) * 2 + 1);
+
+    raycaster.setFromCamera(target, this.camera);
 
     let bodiesToTest = Array.from(this.bodyMap.entries())
       .map((entry) => entry[1].body)
