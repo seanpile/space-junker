@@ -28,6 +28,7 @@ function CameraViewRenderer(container, resourceLoader, commonState) {
   container.appendChild(this.renderer.domElement);
 
   this.bodyCache = new Map();
+  this.showHelpers = SHOW_HELPERS;
 };
 
 // Inherit from BaseRenderer
@@ -54,7 +55,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
         this.camera.up = new THREE.Vector3(0, 0, 1);
 
-        this.loadNavball(textures);
+        this.navball = this.loadNavball(textures);
 
         // Background stars
         const skybox = this._createSkyBox();
@@ -76,7 +77,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         /**
          * Callback for when the window resizes
          */
-        const onWindowResize = this._onWindowResize([this.camera, this.navballCamera],
+        const onWindowResize = this._onWindowResize([this.camera, this.navball.camera],
           height, this.camera.fov);
 
         /**
@@ -176,10 +177,10 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
   this.renderer.render(this.scene, this.camera);
 
   if (focus.type === SHIP_TYPE) {
-    this.setNavballOrientation(focus);
+    this.setNavballOrientation(focus, this.navball);
 
     this.renderer.clearDepth();
-    this.renderer.render(this.navballScene, this.navballCamera, this.renderer.getCurrentRenderTarget(), false);
+    this.renderer.render(this.navball.scene, this.navball.camera);
   }
 };
 
@@ -271,125 +272,6 @@ CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
   });
 };
 
-CameraViewRenderer.prototype.setNavballOrientation = function () {
-
-  const orientation = new THREE.Vector3();
-  const primaryOrientation = new THREE.Vector3();
-  const offset = new THREE.Vector3();
-  const ORIGIN = new THREE.Vector3();
-  const up = new THREE.Vector3();
-  const up0 = new THREE.Vector3(0, 0, 1);
-
-  return function (focus) {
-
-    let derived = focus.derived;
-    let primary = focus.primary;
-    let motion = focus.motion;
-    let velocity = derived.velocity.clone();
-    let primaryBody = this.bodyCache.get(primary.name);
-
-    orientation.copy(motion.heading0);
-    orientation.applyQuaternion(motion.rotation);
-    orientation.normalize();
-
-    up.copy(up0);
-    up.applyQuaternion(motion.rotation);
-    up.normalize();
-
-    primaryOrientation.copy(primaryBody.position);
-    primaryOrientation.normalize();
-
-    /**
-     * Helpers to visualize velocity, orientation, position
-     */
-    if (SHOW_HELPERS) {
-      this.velocityHelper && this.scene.remove(this.velocityHelper);
-      this.velocityHelper = new THREE.ArrowHelper(velocity.clone()
-        .normalize(), ORIGIN, 1000 / AU, 'yellow');
-      this.scene.add(this.velocityHelper);
-
-      this.orientationHelper && this.scene.remove(this.orientationHelper);
-      this.orientationHelper = new THREE.ArrowHelper(orientation, ORIGIN, 1000 / AU, 'blue');
-      this.scene.add(this.orientationHelper);
-
-      this.positionHelper && this.scene.remove(this.positionHelper);
-      this.positionHelper = new THREE.ArrowHelper(primaryOrientation, ORIGIN, 1000 / AU, 'red');
-      this.scene.add(this.positionHelper);
-    }
-
-    /**
-     * Rotate the camera, reproducing the pitch/yaw/rotation on the
-     * foucs.
-     */
-    offset.copy(orientation);
-    offset.normalize()
-      .negate()
-      .multiplyScalar(5);
-
-    this.navballCamera.position.copy(offset);
-    this.navballLight.position.copy(offset);
-
-    this.navballCamera.up.copy(up);
-    this.navballCamera.lookAt(ORIGIN);
-
-    // Set the border to always face the camera
-    this.navballBorder.setRotationFromQuaternion(motion.rotation);
-    this.navballBorder.rotateX(Math.PI / 2);
-
-    let radial = primaryBody.position;
-    let angle = radial.angleTo(motion.heading0);
-    offset.crossVectors(radial, motion.heading0)
-      .normalize();
-
-    this.navball.rotation.set(0, 0, 0);
-    this.navball.rotateOnAxis(offset, -angle);
-
-    let verticalAngle = -(primary.constants.axial_tilt || 0) * Math.PI / 180;
-    this.navball.rotateY(Math.PI / 2);
-    this.navball.rotateY(-verticalAngle);
-
-    /**
-     * Adjust Navball Markers (Prograde, Retrograde, etc...)
-     */
-
-    let markers = [
-      [this.navballPrograde, velocity.clone()
-        .normalize()
-        .negate()
-        .multiplyScalar(0.41)
-      ],
-      [this.navballRetrograde, velocity.clone()
-        .normalize()
-        .multiplyScalar(0.41)
-      ],
-      [this.navballRadialIn,
-        primaryOrientation.clone()
-        .negate()
-        .multiplyScalar(0.41)
-      ],
-      [this.navballRadialOut,
-        primaryOrientation.clone()
-        .multiplyScalar(0.41)
-      ],
-      [this.navballLevel,
-        this.navballCamera.position.clone()
-        .normalize()
-        .multiplyScalar(0.45)
-      ],
-    ];
-
-    markers.forEach(([marker, position]) => {
-      marker.position.copy(position);
-      marker.setRotationFromQuaternion(motion.rotation);
-      marker.up.copy(up);
-      marker.lookAt(ORIGIN);
-      marker.rotateX(Math.PI);
-      marker.rotateZ(Math.PI);
-    });
-  }
-
-}();
-
 CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
 
   let threeBody;
@@ -435,7 +317,7 @@ CameraViewRenderer.prototype._loadModelBody = function () {
         obj.castShadow = true;
       });
 
-    if (SHOW_HELPERS) {
+    if (this.showHelpers) {
       let box = new THREE.BoxHelper(threeObj, 0xffff00);
       this.scene.add(box);
     }
@@ -479,7 +361,7 @@ CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
       light.shadow.camera.top = lightBoxLength;
       light.shadow.camera.bottom = -lightBoxLength;
 
-      if (SHOW_HELPERS) {
+      if (this.showHelpers) {
         this.lightShadowHelper && this.scene.remove(this.lightShadowHelper);
         this.lightShadowHelper = new THREE.CameraHelper(light.shadow.camera);
         this.scene.add(this.lightShadowHelper);

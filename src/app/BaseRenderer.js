@@ -204,10 +204,8 @@ BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
 
 BaseRenderer.prototype.loadNavball = function (textures) {
 
-  const lightSource = new THREE.DirectionalLight(0xffffff, 1);
-
-  this.navballScene = new THREE.Scene();
-  this.navballCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+  const navballScene = new THREE.Scene();
+  const navballCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 
   const navball = new THREE.Mesh(
     new THREE.SphereGeometry(0.4, 128, 128),
@@ -485,38 +483,169 @@ BaseRenderer.prototype.loadNavball = function (textures) {
   radialOut.scale.set(0.008, 0.008, 0.008);
   level.scale.set(0.008, 0.008, 0.008);
 
-  this.navball = navball;
-  this.navballPrograde = prograde;
-  this.navballRetrograde = retrograde;
-  this.navballRadialIn = radialIn;
-  this.navballRadialOut = radialOut;
-  this.navballLevel = level;
+  navballScene.add(navball);
+  navballScene.add(border);
+  navballScene.add(prograde);
+  navballScene.add(retrograde);
+  navballScene.add(radialIn);
+  navballScene.add(radialOut);
+  navballScene.add(level);
 
-  this.navballScene.add(navball);
-  this.navballScene.add(border);
-  this.navballScene.add(prograde);
-  this.navballScene.add(retrograde);
-  this.navballScene.add(radialIn);
-  this.navballScene.add(radialOut);
-  this.navballScene.add(level);
-  this.navballScene.add(lightSource);
+  navballCamera.up = new THREE.Vector3(0, 0, 1);
+  navballCamera.position.set(0, -5, 0);
+  navballCamera.lookAt(new THREE.Vector3(0, 0, 0));
 
-  this.navballCamera.up = new THREE.Vector3(0, 0, 1);
-  this.navballCamera.position.set(0, -5, 0);
-  this.navballCamera.lookAt(new THREE.Vector3(0, 0, 0));
-
-  this.navballLight = lightSource;
-  this.navballBorder = border;
-
+  const lightSource = new THREE.DirectionalLight(0xffffff, 1);
   lightSource.position.set(0, -5, 0);
+  navballScene.add(lightSource);
 
-  this.navballCamera.setViewOffset(
+  navballCamera.setViewOffset(
     window.innerWidth,
     window.innerHeight,
     0, -0.40 * window.innerHeight,
     window.innerWidth,
     window.innerHeight);
+
+  return {
+    light: lightSource,
+    border: border,
+    camera: navballCamera,
+    scene: navballScene,
+    gyroscope: navball,
+    markers: {
+      radialIn: radialIn,
+      radialOut: radialOut,
+      prograde: prograde,
+      retrograde: retrograde,
+      level: level,
+    }
+  }
 };
+
+BaseRenderer.prototype.setNavballOrientation = function () {
+
+  const orientation = new THREE.Vector3();
+  const primaryOrientation = new THREE.Vector3();
+  const offset = new THREE.Vector3();
+  const ORIGIN = new THREE.Vector3();
+  const up = new THREE.Vector3();
+  const up0 = new THREE.Vector3(0, 0, 1);
+
+  return function (focus, navball) {
+
+    let derived = focus.derived;
+    let primary = focus.primary;
+    let motion = focus.motion;
+    let velocity = derived.velocity.clone();
+    let primaryPosition = this._adjustCoordinates(focus, primary.derived.position);
+
+    orientation.copy(motion.heading0);
+    orientation.applyQuaternion(motion.rotation);
+    orientation.normalize();
+
+    up.copy(up0);
+    up.applyQuaternion(motion.rotation);
+    up.normalize();
+
+    primaryOrientation.copy(primaryPosition);
+    primaryOrientation.normalize();
+
+    /**
+     * Helpers to visualize velocity, orientation, position
+     */
+    if (this.showHelpers) {
+      this.velocityHelper && this.scene.remove(this.velocityHelper);
+      this.velocityHelper = new THREE.ArrowHelper(velocity.clone()
+        .normalize(), ORIGIN, 1000 / AU, 'yellow');
+      this.scene.add(this.velocityHelper);
+
+      this.orientationHelper && this.scene.remove(this.orientationHelper);
+      this.orientationHelper = new THREE.ArrowHelper(orientation, ORIGIN, 1000 / AU, 'blue');
+      this.scene.add(this.orientationHelper);
+
+      this.positionHelper && this.scene.remove(this.positionHelper);
+      this.positionHelper = new THREE.ArrowHelper(primaryOrientation, ORIGIN, 1000 / AU, 'red');
+      this.scene.add(this.positionHelper);
+    }
+
+    /**
+     * Rotate the camera, reproducing the pitch/yaw/rotation on the
+     * foucs.
+     */
+    offset.copy(orientation);
+    offset.normalize()
+      .negate()
+      .multiplyScalar(5);
+
+    const navballCamera = navball.camera;
+    const navballLight = navball.light;
+    const navballBorder = navball.border;
+
+    navballCamera.position.copy(offset);
+    navballLight.position.copy(offset);
+
+    navballCamera.up.copy(up);
+    navballCamera.lookAt(ORIGIN);
+
+    // Set the border to always face the camera
+    navballBorder.setRotationFromQuaternion(motion.rotation);
+    navballBorder.rotateX(Math.PI / 2);
+
+    let radial = primaryPosition;
+    let angle = radial.angleTo(motion.heading0);
+    offset.crossVectors(radial, motion.heading0)
+      .normalize();
+
+    const gyroscope = navball.gyroscope;
+
+    gyroscope.rotation.set(0, 0, 0);
+    gyroscope.rotateOnAxis(offset, -angle);
+
+    let verticalAngle = -(primary.constants.axial_tilt || 0) * Math.PI / 180;
+    gyroscope.rotateY(Math.PI / 2);
+    gyroscope.rotateY(-verticalAngle);
+
+    /**
+     * Adjust Navball Markers (Prograde, Retrograde, etc...)
+     */
+
+    let markers = [
+      [navball.markers.prograde, velocity.clone()
+        .normalize()
+        .negate()
+        .multiplyScalar(0.41)
+      ],
+      [navball.markers.retrograde, velocity.clone()
+        .normalize()
+        .multiplyScalar(0.41)
+      ],
+      [navball.markers.radialIn,
+        primaryOrientation.clone()
+        .negate()
+        .multiplyScalar(0.41)
+      ],
+      [navball.markers.radialOut,
+        primaryOrientation.clone()
+        .multiplyScalar(0.41)
+      ],
+      [navball.markers.level,
+        this.navball.camera.position.clone()
+        .normalize()
+        .multiplyScalar(0.45)
+      ],
+    ];
+
+    markers.forEach(([marker, position]) => {
+      marker.position.copy(position);
+      marker.setRotationFromQuaternion(motion.rotation);
+      marker.up.copy(up);
+      marker.lookAt(ORIGIN);
+      marker.rotateX(Math.PI);
+      marker.rotateZ(Math.PI);
+    });
+  }
+
+}();
 
 BaseRenderer.prototype._lookupNearbyBodies = function (focus, bodies, nearbyThreshold) {
 

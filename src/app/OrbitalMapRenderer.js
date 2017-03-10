@@ -31,6 +31,7 @@ function OrbitalMapRenderer(container, resourceLoader, commonState) {
     alpha: true,
   });
   this.renderer.setPixelRatio(window.devicePixelRatio);
+  this.renderer.autoClear = false;
   container.appendChild(this.renderer.domElement);
 
   this.scene = new THREE.Scene();
@@ -63,6 +64,9 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
         // Setup light
         this.lightSources = this._setupLightSources(textures);
+
+        // Setup navball
+        this.navball = this.loadNavball(textures);
 
         const recenter = this._onRecenter(solarSystem);
         const onWindowResize = this._onWindowResize([this.camera], height, this.camera.fov);
@@ -211,6 +215,13 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
 
   this._updateCamera(focus);
   this.renderer.render(this.scene, this.camera);
+
+  if (focus.type === SHIP_TYPE) {
+    this.setNavballOrientation(focus, this.navball);
+
+    this.renderer.clearDepth();
+    this.renderer.render(this.navball.scene, this.navball.camera);
+  }
 };
 
 OrbitalMapRenderer.prototype._setupLightSources = function (textures) {
