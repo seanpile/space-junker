@@ -23,6 +23,7 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
   this.timeWarpIdx = 0;
   this.frameId = null;
+  this.initialized = false;
 
   this.hud = document.getElementById('hud');
   this.loadingScreen = document.getElementById('loading');
@@ -193,8 +194,7 @@ Simulation.prototype.initialize = function () {
       Splash.destroy();
       this.hud.style = '';
       this.loadingScreen.style = 'display: none;';
-
-      return Promise.resolve();
+      this.initialized = true;
     });
 };
 
@@ -233,7 +233,7 @@ Simulation.prototype.toggleView = function () {
 
 Simulation.prototype.run = function () {
 
-  if (this.isRunning()) {
+  if (this.isRunning() || !this.initialized) {
     return;
   }
 

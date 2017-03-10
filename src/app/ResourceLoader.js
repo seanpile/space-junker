@@ -27,6 +27,11 @@ ResourceLoader.prototype.loadTexture = function (key) {
         (texture) => {
           cache.set(key, texture);
           resolve([key, texture]);
+        },
+        () => {},
+        (error) => {
+          console.log(error);
+          reject(`Failed to load texture '${key}'`);
         });
     }
   });
@@ -43,6 +48,11 @@ ResourceLoader.prototype.loadModel = function (key) {
         (model) => {
           cache.set(key, model);
           resolve([key, model]);
+        },
+        () => {},
+        (error) => {
+          console.log(error);
+          reject(`Failed to load model '${key}'`);
         });
     }
   });

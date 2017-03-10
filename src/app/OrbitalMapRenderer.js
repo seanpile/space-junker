@@ -150,6 +150,10 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
         resolve();
       })
+      .catch((error) => {
+        console.log(error);
+        reject(error);
+      });
   });
 };
 

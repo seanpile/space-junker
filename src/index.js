@@ -27,7 +27,6 @@ const resourceLoader = new ResourceLoader();
 const renderers = [
   new OrbitalMapRenderer(mapViewContainer, resourceLoader, state),
   new CameraViewRenderer(cameraViewContainer, resourceLoader, state),
-  //new TestingRenderer(testingViewContainer),
 ];
 
 const simulation = new Simulation(solarSystem, renderers, state, stats);
