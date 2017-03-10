@@ -61,7 +61,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.scene.add(skybox);
 
         // Setup light
-        this.lightSource = this._setupLightSources();
+        this.lightSources = this._setupLightSources(textures);
 
         /**
          * Callback to recenter the camera
@@ -155,7 +155,7 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
     let threeBody = this.bodyCache.get(body.name);
     let derived = body.derived;
 
-    threeBody.visible = true;
+    threeBody.visible = body.name !== 'sun';
 
     // Adjust position to re-center the coordinate system on the focus
     let position = this._adjustCoordinates(focus, derived.position);
@@ -391,50 +391,109 @@ CameraViewRenderer.prototype.setNavballOrientation = function () {
 }();
 
 CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
+
+  let threeBody;
   if (body.name === 'apollo') {
-    return this._loadModelBody(body, models);
+    threeBody = this._loadModelBody(body, models);
   } else {
-    const planet = this._loadPlanet(body, textures);
-    this.scene.add(planet);
-    this.bodyCache.set(body.name, planet);
-    return
+    threeBody = this._loadPlanet(body, textures);
   }
+
+  this.scene.add(threeBody);
+  this.bodyCache.set(body.name, threeBody);
+
+  return threeBody;
 };
 
-CameraViewRenderer.prototype._loadModelBody = function (body, models) {
+CameraViewRenderer.prototype._loadModelBody = function () {
 
-  const modelObj = models.get(body.name);
-  const scale = 1 / AU;
-  const threeObj = modelObj.scene;
+  const childrenOf = (threeObj) => {
+    if (!threeObj.children || threeObj.children.length === 0)
+      return [];
 
-  threeObj.scale.set(scale, scale, scale);
-  this.scene.add(threeObj);
+    const descendants = [];
+    threeObj.children.forEach((obj) => {
+      descendants.push(obj);
+      descendants.push(...childrenOf(obj));
+    });
 
-  if (SHOW_HELPERS) {
-    let box = new THREE.BoxHelper(threeObj, 0xffff00);
-    this.scene.add(box);
+    return descendants;
+  };
+
+  return function (body, models) {
+
+    const modelObj = models.get(body.name);
+    const scale = 1 / AU;
+    const threeObj = modelObj.scene;
+
+    threeObj.scale.set(scale, scale, scale);
+    threeObj.receiveShadow = true;
+    threeObj.castShadow = true;
+    childrenOf(threeObj)
+      .forEach((obj) => {
+        obj.receiveShadow = true;
+        obj.castShadow = true;
+      });
+
+    if (SHOW_HELPERS) {
+      let box = new THREE.BoxHelper(threeObj, 0xffff00);
+      this.scene.add(box);
+    }
+
+    return threeObj;
   }
+}();
 
-  this.bodyCache.set(body.name, threeObj);
+CameraViewRenderer.prototype._setupLightSources = function (textures) {
+
+  const ambientLight = new THREE.AmbientLight(0x202020);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 150, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffffff));
+
+  directionalLight.castShadow = true;
+  directionalLight.shadow.camera.up = new THREE.Vector3(0, 0, 1);
+  directionalLight.name = 'primary-light';
+  lensFlare.name = 'lensflare';
+
+  this.scene.add(ambientLight);
+  this.scene.add(directionalLight);
+  this.scene.add(lensFlare);
+
+  return [directionalLight, lensFlare];
 };
 
 CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
 
-  const light = this.lightSource;
-  const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
+  this.lightSources.forEach((light) => {
 
-  light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
+    const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
+    light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
 
-  // Frame the shadow box appropriately
-  if (focus.primary && focus.primary.name !== 'sun') {
-    let lightBoxLength = focus.primary.constants.radius;
-    light.shadow.camera.near = 0.99 * focus.primary.derived.position.length();
-    light.shadow.camera.far = 1.01 * focus.primary.derived.position.length();
-    light.shadow.camera.left = -lightBoxLength;
-    light.shadow.camera.right = lightBoxLength;
-    light.shadow.camera.top = lightBoxLength;
-    light.shadow.camera.bottom = -lightBoxLength;
-  }
+    // Frame the shadow box appropriately
+    if (light.name === 'primary-light' && focus.primary && focus.primary.name !== 'sun') {
+      let lightBoxLength = focus.primary.constants.radius;
+      light.shadow.camera.near = 0.99 * focus.primary.derived.position.length();
+      light.shadow.camera.far = 1.01 * focus.primary.derived.position.length();
+      light.shadow.camera.left = -lightBoxLength;
+      light.shadow.camera.right = lightBoxLength;
+      light.shadow.camera.top = lightBoxLength;
+      light.shadow.camera.bottom = -lightBoxLength;
+
+      if (SHOW_HELPERS) {
+        this.lightShadowHelper && this.scene.remove(this.lightShadowHelper);
+        this.lightShadowHelper = new THREE.CameraHelper(light.shadow.camera);
+        this.scene.add(this.lightShadowHelper);
+      }
+    }
+
+    if (light.name === 'lensflare') {
+      // Bug Fix: LensFlare is showing both in front of the scene and behind;
+      // Hide the lensflare if we are not pointing the camera toward the sun
+      let cameraOrientation = this.camera.position.clone()
+        .negate();
+      light.visible = cameraOrientation.angleTo(lightPosition) <= Math.PI / 2;
+    }
+  });
 };
 
 export default CameraViewRenderer;

@@ -76,19 +76,6 @@ BaseRenderer.prototype._loadModels = function () {
     });
 };
 
-BaseRenderer.prototype._setupLightSources = function () {
-  const ambientLight = new THREE.AmbientLight(0x202020);
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-
-  directionalLight.castShadow = true;
-  directionalLight.shadow.camera.up = new THREE.Vector3(0, 0, 1);
-
-  this.scene.add(ambientLight);
-  this.scene.add(directionalLight);
-
-  return directionalLight;
-};
-
 BaseRenderer.prototype._createSkyBox = function () {
 
   //This will add a starfield to the background of a scene

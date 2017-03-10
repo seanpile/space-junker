@@ -28,6 +28,7 @@ function OrbitalMapRenderer(container, resourceLoader, commonState) {
   this.container = container;
   this.renderer = new THREE.WebGLRenderer({
     antialias: true,
+    alpha: true,
   });
   this.renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(this.renderer.domElement);
@@ -61,7 +62,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.scene.add(skyBox);
 
         // Setup light
-        this.lightSource = this._setupLightSources();
+        this.lightSources = this._setupLightSources(textures);
 
         const recenter = this._onRecenter(solarSystem);
         const onWindowResize = this._onWindowResize([this.camera], height, this.camera.fov);
@@ -180,7 +181,10 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
     let bodyMap = this.bodyMap.get(body.name);
     Object.values(bodyMap)
       .forEach((threeObj) => {
-        threeObj.visible = true;
+        if (body.name === 'sun')
+          threeObj.visible = false;
+        else
+          threeObj.visible = true;
       });
 
     let threeBody = bodyMap.body;
@@ -209,23 +213,26 @@ OrbitalMapRenderer.prototype.render = function (solarSystem) {
   this.renderer.render(this.scene, this.camera);
 };
 
-OrbitalMapRenderer.prototype._setupLightSources = function () {
+OrbitalMapRenderer.prototype._setupLightSources = function (textures) {
   const ambientLight = new THREE.AmbientLight(0x202020);
   const pointLight = new THREE.PointLight(0xffffff, 1);
+  const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 150, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffffff));
 
   pointLight.castShadow = true;
 
   this.scene.add(ambientLight);
   this.scene.add(pointLight);
+  this.scene.add(lensFlare);
 
-  return pointLight;
+  return [pointLight, lensFlare];
 };
 
 OrbitalMapRenderer.prototype._adjustLightSource = function (focus, sun) {
   const light = this.lightSource;
-  const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
-
-  light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
+  this.lightSources.forEach((light) => {
+    const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
+    light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
+  });
 };
 
 /**

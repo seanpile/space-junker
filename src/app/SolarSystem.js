@@ -16,9 +16,6 @@ import {
 const J2000_date = moment('2000-01-01T12:00:00Z');
 const J2000_epoch = 2451545.0;
 
-// rad / second
-const DAMPING_STEP = Math.PI / Math.pow(2, 3);
-
 function SolarSystem() {
   this.bodies = Array.from(ALL_BODIES);
   this.initialized = false;
@@ -104,35 +101,50 @@ SolarSystem.prototype.update = function (t, dt) {
     }
 
     if (body.type === SHIP_TYPE) {
-      const rotation = body.motion.rotation;
-      const adjustment = new Quaternion();
-
-      adjustment.setFromAxisAngle(new Vector3(1, 0, 0), (body.motion.pitch || 0) * dt / 1000);
-      rotation.multiply(adjustment);
-      adjustment.setFromAxisAngle(new Vector3(0, 1, 0), (body.motion.roll || 0) * dt / 1000);
-      rotation.multiply(adjustment);
-      adjustment.setFromAxisAngle(new Vector3(0, 0, 1), (body.motion.yaw || 0) * dt / 1000);
-      rotation.multiply(adjustment);
-
-      if (body.motion.sas) {
-        body.motion.pitch = this._dampenMotion(body.motion.pitch, dt);
-        body.motion.roll = this._dampenMotion(body.motion.roll, dt);
-        body.motion.yaw = this._dampenMotion(body.motion.yaw, dt);
-      }
+      this._applyRotation(body, dt);
     }
-
   });
 
   this.lastTime = t + dt;
 };
 
-SolarSystem.prototype._dampenMotion = function (val, dt) {
-  val -= Math.sign(val) * DAMPING_STEP * dt / 1000;
-  if (Math.abs(val) < 10e-10)
-    val = 0;
+SolarSystem.prototype._applyRotation = function () {
 
-  return val;
-};
+  // Initialize objects once to avoid frequent object creation
+  const adjustment = new Quaternion();
+  const axisX = new Vector3(1, 0, 0);
+  const axisY = new Vector3(0, 1, 0);
+  const axisZ = new Vector3(0, 0, 1);
+
+  // rad / second
+  const DAMPING_STEP = Math.PI / Math.pow(2, 3);
+
+  const dampenMotion = (val, dt) => {
+    val -= Math.sign(val) * DAMPING_STEP * dt / 1000;
+    if (Math.abs(val) < 10e-10)
+      val = 0;
+
+    return val;
+  };
+
+  return function (body, dt) {
+
+    const rotation = body.motion.rotation;
+
+    adjustment.setFromAxisAngle(axisX, (body.motion.pitch || 0) * dt / 1000);
+    rotation.multiply(adjustment);
+    adjustment.setFromAxisAngle(axisY, (body.motion.roll || 0) * dt / 1000);
+    rotation.multiply(adjustment);
+    adjustment.setFromAxisAngle(axisZ, (body.motion.yaw || 0) * dt / 1000);
+    rotation.multiply(adjustment);
+
+    if (body.motion.sas) {
+      body.motion.pitch = dampenMotion(body.motion.pitch, dt);
+      body.motion.roll = dampenMotion(body.motion.roll, dt);
+      body.motion.yaw = dampenMotion(body.motion.yaw, dt);
+    }
+  }
+}();
 
 SolarSystem.prototype._calculateInitialKeplerElements = function (body, T) {
 
