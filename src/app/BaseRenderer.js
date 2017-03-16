@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import {
-  AU
+  AU,
+  SHIP_TYPE,
+  PLANET_TYPE,
 } from './Bodies';
+
+// rad / second
+const MOTION_STEP = Math.PI / 16;
+const THRUST_STEP = 0.1;
 
 // Textures
 const TEXTURES = {
@@ -19,13 +25,13 @@ const TEXTURES = {
   'uranus': require('../img/uranusmap.jpg'),
   'lensflare': require('../img/lensflare.png'),
   'rock1': require('../models/rock1/ArmGra05.jpg'),
-  'apollo': require('../models/apollo/OldGlory.jpg'),
+  'apollo 11': require('../models/apollo/OldGlory.jpg'),
   'navball': require('../img/navball.png'),
 };
 
 const MODELS = {
   'rock1': require('../models/rock1.dae'),
-  'apollo': require('../models/apollo.dae'),
+  'apollo 11': require('../models/apollo.dae'),
 }
 
 export default function BaseRenderer(resourceLoader, state) {
@@ -646,6 +652,65 @@ BaseRenderer.prototype.setNavballOrientation = function () {
   }
 
 }();
+
+BaseRenderer.prototype._defaultKeyPressHandler = function (solarSystem, additionalKeys) {
+
+  const keyHandlers = {
+    // -  (Decrease Throttle)
+    45: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.thrust = Math.max(0, body.motion.thrust - THRUST_STEP);
+    },
+    // +  (Increase Throttle)
+    61: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.thrust = Math.min(1, body.motion.thrust + THRUST_STEP);
+    },
+    // t
+    116: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.sas = !body.motion.sas;
+    },
+    // q
+    113: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.roll += -MOTION_STEP;
+    },
+    // e
+    101: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.roll += MOTION_STEP;
+    },
+    // w
+    119: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.pitch += MOTION_STEP;
+    },
+    // s
+    115: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.pitch += -MOTION_STEP;
+    },
+    // a
+    97: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.yaw += -MOTION_STEP;
+    },
+    // d
+    100: (body) => {
+      if (body.type !== SHIP_TYPE) return;
+      body.motion.yaw += MOTION_STEP;
+    },
+  }
+
+  return ((key) => {
+
+    const body = solarSystem.find(this.state.focus);
+    if (key in keyHandlers) {
+      keyHandlers[key](body);
+    }
+  });
+};
 
 BaseRenderer.prototype._lookupNearbyBodies = function (focus, bodies, nearbyThreshold) {
 

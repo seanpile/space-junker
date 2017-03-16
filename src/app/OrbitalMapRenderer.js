@@ -71,6 +71,8 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         const recenter = this._onRecenter(solarSystem);
         const onWindowResize = this._onWindowResize([this.camera], height, this.camera.fov);
 
+        const onKeyPress = this._defaultKeyPressHandler(solarSystem);
+
         /**
          * Register to receive events from the simulation
          */
@@ -80,6 +82,10 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
 
         this.addEventListener('mouseover', (event) => {
           this._onMouseover(event.location);
+        });
+
+        this.addEventListener('keypress', (event) => {
+          onKeyPress(event.key);
         });
 
         this.addEventListener('focus', (event) => {

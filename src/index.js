@@ -20,7 +20,7 @@ stats.dom.style = '';
 document.getElementById('stats-overlay')
   .appendChild(stats.dom);
 
-const defaultFocus = 'apollo';
+const defaultFocus = 'apollo 11';
 const state = new CommonState(defaultFocus);
 
 const resourceLoader = new ResourceLoader();

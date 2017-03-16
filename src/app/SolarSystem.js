@@ -102,6 +102,7 @@ SolarSystem.prototype.update = function (t, dt) {
 
     if (body.type === SHIP_TYPE) {
       this._applyRotation(body, dt);
+      this._applyThrust(body, dt);
     }
   });
 
@@ -144,6 +145,51 @@ SolarSystem.prototype._applyRotation = function () {
       body.motion.yaw = dampenMotion(body.motion.yaw, dt);
     }
   }
+}();
+
+SolarSystem.prototype._applyThrust = function () {
+
+  const orientation = new Vector3();
+
+  return function (body, dt) {
+
+    const motion = body.motion;
+
+    // No thrust to apply
+    if (motion.thrust <= 0)
+      return;
+
+    orientation.copy(motion.heading0);
+    orientation.applyQuaternion(motion.rotation);
+    orientation.normalize();
+
+    const stage = body.stages[0];
+    const thrust = stage.thrust * motion.thrust;
+    const isp = stage.isp;
+    const g0 = body.primary.constants.u / Math.pow(body.primary.constants.radius, 2);
+    const deltaM = thrust / (g0 * isp * AU);
+
+    const m0 = stage.mass + stage.propellant;
+    stage.propellant -= deltaM * dt / 1000;
+    const m1 = stage.mass + stage.propellant;
+
+    const deltaV_scalar = isp * g0 * Math.log(m0 / m1);
+    const deltaV = orientation.clone()
+      .multiplyScalar(deltaV_scalar);
+
+    body.derived.velocity.add(deltaV);
+    body.derived.position.add(body.derived.velocity.clone()
+      .multiplyScalar(dt / 1000));
+
+    const updated = this._calculateKeplerElementsFromCartesian(body);
+    body.derived.a = updated.a;
+    body.derived.e = updated.e;
+    body.derived.I = updated.I;
+    body.derived.omega = updated.omega;
+    body.derived.argumentPerihelion = updated.argumentPerihelion;
+    body.derived.M = updated.M;
+  }
+
 }();
 
 SolarSystem.prototype._calculateInitialKeplerElements = function (body, T) {
@@ -209,8 +255,7 @@ SolarSystem.prototype._calculateKeplerElementsFromCartesian = function (body) {
 
   let r = new Vector3()
     .subVectors(position, primary.derived.position);
-  let v = new Vector3()
-    .subVectors(velocity, primary.derived.velocity);
+  let v = velocity.clone();
   let u = primary.constants.u;
 
   const h = new Vector3()
@@ -229,13 +274,10 @@ SolarSystem.prototype._calculateKeplerElementsFromCartesian = function (body) {
   const e = e_sub > 1 ? 0 : Math.sqrt(1 - e_sub);
 
   // Inclination, Longitude of the ascending node
-  const I = Math.acos(h.z / h.length());
-  const omega = Math.atan2(h.x, -h.y);
-  if (Math.abs(omega) >= Math.PI) {
-    throw new Error('omega jumped');
-  }
+  const I = -Math.acos(h.z / h.length());
+  const omega = Math.atan2(h.x, h.y);
 
-  let E, w;
+  let E, argumentPerihelion;
   if (e === 0 && I === 0) {
     // Circular Orbits with zero inclincation
 
@@ -251,7 +293,7 @@ SolarSystem.prototype._calculateKeplerElementsFromCartesian = function (body) {
     // latitude is used:
     const argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
     E = 2 * Math.atan(Math.tan(argumentLatitude / 2));
-    w = 0;
+    argumentPerihelion = 0;
   } else {
     let v_eccentricity = new Vector3()
       .crossVectors(v, h)
@@ -263,22 +305,20 @@ SolarSystem.prototype._calculateKeplerElementsFromCartesian = function (body) {
     if (r.dot(v) < 0)
       trueAnomaly = 2 * Math.PI - trueAnomaly;
 
-    let argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
+    const argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
     E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
-    w = argumentLatitude - trueAnomaly;
+    argumentPerihelion = argumentLatitude - trueAnomaly;
   }
 
   const M = E - e * Math.sin(E);
-  const L = M + w;
 
   const calculated_kepler_elements = {
-    a: a,
-    e: e,
-    I: I * 180 / Math.PI,
-    w: w * 180 / Math.PI,
-    omega: omega * 180 / Math.PI,
-    M: M * 180 / Math.PI,
-    E: E * 180 / Math.PI,
+    a,
+    e,
+    I,
+    omega,
+    argumentPerihelion,
+    M
   };
 
   return calculated_kepler_elements;

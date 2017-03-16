@@ -1,7 +1,8 @@
 import moment from 'moment';
 import * as THREE from 'three'
 import {
-  AU
+  AU,
+  SHIP_TYPE,
 } from './Bodies';
 import StringExtensions from './util/StringExtensions';
 
@@ -46,7 +47,7 @@ function Simulation(solarSystem, renderers, state, stats) {
       99: this.recenter,
       91: this.toggleFocus,
       93: this.toggleFocus,
-      122: this.toggleView,
+      109: this.toggleView,
     };
 
     if (keyCodes.hasOwnProperty(event.keyCode)) {
@@ -275,11 +276,26 @@ Simulation.prototype.updateOrbitalDisplay = function () {
   const name = focus.name;
   const velocity = focus.derived.velocity.length() * AU;
   const eccentricity = focus.derived.e || 0;
-  const semiMajorAxis = focus.derived.semiMajorAxis * AU;
-  const semiMinorAxis = focus.derived.semiMinorAxis * AU;
+  const semiMajorAxis = focus.derived.semiMajorAxis * AU / 1000;
+  const semiMinorAxis = focus.derived.semiMinorAxis * AU / 1000;
   const rotation_period = focus.constants.rotation_period || 0;
   const axial_tilt = focus.constants.axial_tilt || 0;
   const orbital_period = (focus.derived.orbital_period || 0) / 86400;
+
+  let distance = 0,
+    periapsis = 0,
+    apoapsis = 0;
+  if (focus.primary) {
+    const r = focus.derived.position.clone()
+      .sub(focus.primary.derived.position);
+    distance = (r.length() - focus.primary.constants.radius) * AU / 1000;
+    periapsis = (focus.derived.periapsis.clone()
+      .sub(focus.primary.derived.position)
+      .length() - focus.primary.constants.radius) * AU / 1000;
+    apoapsis = (focus.derived.apoapsis.clone()
+      .sub(focus.primary.derived.position)
+      .length() - focus.primary.constants.radius) * AU / 1000;
+  }
 
   document.getElementById('orbital-name')
     .innerHTML = name.escapeHtml();
@@ -288,18 +304,56 @@ Simulation.prototype.updateOrbitalDisplay = function () {
     .escapeHtml();
   document.getElementById('orbital-speed')
     .innerHTML = `${velocity.toFixed(2)} m/s`.escapeHtml();
+  document.getElementById('orbital-distance')
+    .innerHTML = `${distance.toFixed(2)} km`.escapeHtml();
+  document.getElementById('orbital-periapsis')
+    .innerHTML = `${periapsis.toFixed(2)} km`.escapeHtml();
+  document.getElementById('orbital-apoapsis')
+    .innerHTML = `${apoapsis.toFixed(2)} km`.escapeHtml();
   document.getElementById('orbital-eccentricity')
     .innerHTML = `${eccentricity.toFixed(4)}`.escapeHtml();
   document.getElementById('orbital-semiMajorAxis')
-    .innerHTML = `${semiMajorAxis.toExponential(4)} m`.escapeHtml();
+    .innerHTML = `${semiMajorAxis.toFixed(2)} km`.escapeHtml();
   document.getElementById('orbital-semiMinorAxis')
-    .innerHTML = `${semiMinorAxis.toExponential(4)} m`.escapeHtml();
+    .innerHTML = `${semiMinorAxis.toFixed(2)} km`.escapeHtml();
   document.getElementById('orbital-period')
     .innerHTML = `${orbital_period.toFixed(4)} days`.escapeHtml();
-  document.getElementById('orbital-rotation-period')
-    .innerHTML = `${rotation_period.toFixed(4)} days`.escapeHtml();
-  document.getElementById('orbital-axial-tilt')
-    .innerHTML = `${axial_tilt.toFixed(2)}°`.escapeHtml();
+
+  if (focus.type === SHIP_TYPE) {
+
+    document.querySelector('#ship-overlay')
+      .style = '';
+
+    document.getElementById('orbital-rotation-period')
+      .style = 'display: none;';
+    document.getElementById('orbital-axial-tilt')
+      .style = 'display: none;';
+
+    // Ship-only Data
+    document.querySelector('#ship-propellant div.value')
+      .innerHTML = `${focus.stages[0].propellant.toFixed(2)} kg`.escapeHtml();
+    document.querySelector('#ship-specific-impulse div.value')
+      .innerHTML = `${focus.stages[0].isp} s`.escapeHtml();
+
+    const maxThrust = focus.stages[0].thrust / 1000;
+    const thrustLevel = focus.motion.thrust;
+    document.querySelector('#ship-thrust div.value')
+      .innerHTML = `${(thrustLevel * maxThrust).toFixed(2)} / ${maxThrust.toFixed(2)} kN`.escapeHtml();
+
+  } else {
+    document.querySelector('#ship-overlay')
+      .style = 'display: none;';
+
+    document.getElementById('orbital-rotation-period')
+      .style = '';
+    document.getElementById('orbital-axial-tilt')
+      .style = '';
+
+    document.querySelector('#orbital-rotation-period div.value')
+      .innerHTML = `${rotation_period.toFixed(4)} days`.escapeHtml();
+    document.querySelector('#orbital-axial-tilt div.value')
+      .innerHTML = `${axial_tilt.toFixed(2)}°`.escapeHtml();
+  }
 };
 
 Simulation.prototype.updateTimeDisplay = function () {

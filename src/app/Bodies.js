@@ -108,15 +108,22 @@ const body_data = {
       omega: [-5.11260389, -0.24123856],
     }
   },
-  "apollo": {
+  "apollo 11": {
     primary: "earth",
     type: SHIP_TYPE,
     constants: {
       radius: 100 / AU,
     },
+    stages: [{
+      // Data taken from https://en.wikipedia.org/wiki/Apollo_Command/Service_Module
+      mass: 11900, // kg
+      isp: 314, // seconds
+      thrust: 91e3, // N   (Newtons)
+      propellant: 18410 // kg
+    }],
     kepler_elements: {
-      a: [(10000e3 + 6.3781e6) / AU, 0],
-      e: [0, 0],
+      a: [(4000e3 + 6.3781e6) / AU, 0],
+      e: [0.2, 0],
       I: [-23.4392811, 0],
       L: [0, 0],
       w: [0, 0],
@@ -282,10 +289,11 @@ const bodyMap = new Map(Object.keys(body_data)
       body.motion = {
         heading0: new Vector3(0, 1, 0),
         rotation: new Quaternion(),
-        pitch: 0,  // rad / second
-        yaw: 0,    // rad / second
-        roll: 0,   // rad / second
-        sas: true
+        pitch: 0, // rad / second
+        yaw: 0, // rad / second
+        roll: 0, // rad / second
+        sas: true,
+        thrust: 0, // 0 (no thrust) -> 1 (max thrust)
       }
     }
 

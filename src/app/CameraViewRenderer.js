@@ -9,9 +9,6 @@ import {
 const OrbitControls = require('three-orbit-controls')(THREE);
 const SHOW_HELPERS = false;
 
-// rad / second
-const MOTION_STEP = Math.PI / 8;
-
 function CameraViewRenderer(container, resourceLoader, commonState) {
 
   BaseRenderer.call(this, resourceLoader, commonState);
@@ -83,7 +80,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
         /**
          * Handle user input
          */
-        const onKeyPress = this._onKeyPress(solarSystem);
+        const onKeyPress = this._defaultKeyPressHandler(solarSystem);
 
         /**
          * Register to listen for events
@@ -230,52 +227,10 @@ CameraViewRenderer.prototype._onFocus = function (recenter) {
   return onFocus;
 };
 
-CameraViewRenderer.prototype._onKeyPress = function (solarSystem) {
-
-  return ((key) => {
-
-    // Find the body we are focusing on
-    const body = solarSystem.find(this.state.focus);
-    const motion = body.motion;
-
-    switch (event.keyCode) {
-    case 116:
-      // t
-      motion.sas = !motion.sas;
-      break;
-    case 113:
-      // q
-      motion.roll += -MOTION_STEP;
-      break;
-    case 101:
-      // e
-      motion.roll += MOTION_STEP;
-      break;
-    case 119:
-      // w
-      motion.pitch += MOTION_STEP;
-      break;
-    case 115:
-      // s
-      motion.pitch += -MOTION_STEP;
-      break;
-    case 97:
-      // a
-      motion.yaw += -MOTION_STEP;
-      break;
-    case 100:
-      // d
-      motion.yaw += MOTION_STEP;
-      break;
-    default:
-    }
-  });
-};
-
 CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
 
   let threeBody;
-  if (body.name === 'apollo') {
+  if (body.type === SHIP_TYPE) {
     threeBody = this._loadModelBody(body, models);
   } else {
     threeBody = this._loadPlanet(body, textures);

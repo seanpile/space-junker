@@ -18,6 +18,60 @@ html, body {
     text-align: center;
 }
 
+.help-button {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    -webkit-border-radius: 60;
+    -moz-border-radius: 60;
+    border-radius: 60px;
+    border-style: double;
+    opacity: 0.8;
+    font-family: Arial;
+    color: #ffffff;
+    font-size: 30px;
+    background: #3498db;
+    padding: 8px 15px 8px 15px;
+    text-decoration: none;
+    outline: none;
+}
+
+.help-overlay {
+  position: absolute;
+  width: 30%;
+  top: 25%;
+  left: 35%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border-style: ridge;
+  background-color: lightgray;
+  opacity: 0.9;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.help-overlay .close-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding-left: 3px;
+  padding-right: 3px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-radius: 5px;
+  border-style: double;
+  outline: none;
+}
+
+
+.help-overlay .title {
+    flex: 1 1 auto;
+    text-align: center;
+}
+
 #camera-view canvas {
     display: block;
 }
@@ -53,7 +107,7 @@ html, body {
     z-index: 100;
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
+    justify-content: space-between;
 }
 
 .hud-overlay {
@@ -134,19 +188,19 @@ html, body {
     margin-right: 3px;
 }
 
-.orbital-entry {
+.hud-overlay-entry {
     flex: 0 1 auto;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
 }
 
-.orbital-entry .label {
+.hud-overlay-entry .label {
     flex: 0 1 auto;
     padding-right: 10px;
 }
 
-.orbital-entry .value {
+.hud-overlay-entry .value {
     flex: 0 1 auto;
 }
 
