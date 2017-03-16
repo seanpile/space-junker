@@ -1,9 +1,8 @@
-import StringExtensions from './util/StringExtensions';
 import BaseRenderer from './BaseRenderer';
 import {
   SHIP_TYPE,
   PLANET_TYPE,
-} from './Bodies';
+} from './Constants';
 import * as THREE from 'three';
 const OrbitControls = require('three-orbit-controls')(THREE);
 
@@ -69,15 +68,15 @@ OrbitalMapRenderer.prototype.viewDidLoad = function (solarSystem) {
         this.navball = this.loadNavball(textures);
 
         const recenter = this._onRecenter(solarSystem);
-        const onWindowResize = this._onWindowResize([this.camera], height, this.camera.fov);
+        const onWindowResize = this._onWindowResize([this.camera, this.navball.camera], height, this.camera.fov);
 
         const onKeyPress = this._defaultKeyPressHandler(solarSystem);
 
         /**
          * Register to receive events from the simulation
          */
-        this.addEventListener('click', (event) => {
-          this._onClick(event.location, solarSystem);
+        this.addEventListener('doubletap', (event) => {
+          this._switchFocus(event.location, solarSystem);
         });
 
         this.addEventListener('mouseover', (event) => {
@@ -389,14 +388,14 @@ OrbitalMapRenderer.prototype._onMouseover = function () {
       this.mouseOverlay.style.left = `${location.x}px`;
 
       let nameElement = this.mouseOverlay.getElementsByClassName("body-name")[0];
-      nameElement.innerHTML = intersection[0].object.name.escapeHtml();
+      nameElement.innerHTML = intersection[0].object.name;
     } else {
       this.mouseOverlay.style = "display: none;";
     }
   }
 }();
 
-OrbitalMapRenderer.prototype._onClick = function () {
+OrbitalMapRenderer.prototype._switchFocus = function () {
   const raycaster = new THREE.Raycaster();
 
   return function (location, solarSystem) {

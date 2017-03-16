@@ -1,7 +1,4 @@
-import {
-  Vector3,
-  Quaternion
-} from 'three';
+import { Vector3, Quaternion } from 'three';
 
 /**
  * Kepler elements taken from http://ssd.jpl.nasa.gov/txt/aprx_pos_planets.pdf
@@ -11,16 +8,13 @@ import {
  * throughout the simulation.
  */
 
-export const AU = 149.59787e9;
+import { AU, PLANET_TYPE, SHIP_TYPE } from './Constants';
 
-export const SHIP_TYPE = "ship";
-export const PLANET_TYPE = "planet";
-
-const body_data = {
-  "sun": {
+const bodyData = {
+  sun: {
     type: PLANET_TYPE,
     constants: {
-      u: 1.32712438e20 / Math.pow(AU, 3),
+      u: 1.32712438e20 / (AU ** 3),
       radius: 696e6 / AU,
     },
     kepler_elements: {
@@ -30,13 +24,13 @@ const body_data = {
       L: [0, 0],
       w: [0, 0],
       omega: [0, 0],
-    }
+    },
   },
-  "mercury": {
-    primary: "sun",
+  mercury: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 0.02203e15 / Math.pow(AU, 3),
+      u: 0.02203e15 / (AU ** 3),
       radius: 2.4397e6 / AU,
       rotation_period: 58.646, // days
       axial_tilt: 0.034, // relative to orbit
@@ -48,13 +42,13 @@ const body_data = {
       L: [252.25166724, 149472.67486623],
       w: [77.45771895, 0.15940013],
       omega: [48.33961819, -0.12214182],
-    }
+    },
   },
-  "venus": {
-    primary: "sun",
+  venus: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 0.3249e15 / Math.pow(AU, 3),
+      u: 0.3249e15 / (AU ** 3),
       radius: 6.0518e6 / AU,
       rotation_period: -243.025, // days (negative == retrograde)
       axial_tilt: 177.36, // relative to orbit
@@ -66,17 +60,17 @@ const body_data = {
       L: [181.97970850, 58517.81560260],
       w: [131.76755713, 0.05679648],
       omega: [76.67261496, -0.27274174],
-    }
+    },
   },
 
-  "moon": {
-    primary: "earth",
+  moon: {
+    primary: 'earth',
     type: PLANET_TYPE,
     constants: {
-      u: 4.902794e12 / Math.pow(AU, 3),
+      u: 4.902794e12 / (AU ** 3),
       radius: 1738e3 / AU,
       rotation_period: 27.321661,
-      axial_tilt: 6.687
+      axial_tilt: 6.687,
     },
     kepler_elements: {
       a: [0.00257, 0],
@@ -88,13 +82,13 @@ const body_data = {
       w: [0, 0],
       // longitude of the ascending node
       omega: [0, 0],
-    }
+    },
   },
-  "earth": {
-    primary: "sun",
+  earth: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 0.3986e15 / Math.pow(AU, 3),
+      u: 0.3986e15 / (AU ** 3),
       radius: 6.3781e6 / AU,
       rotation_period: 0.99726968,
       axial_tilt: 23.4392811,
@@ -106,21 +100,23 @@ const body_data = {
       L: [100.46691572, 35999.37306329],
       w: [102.93005885, 0.31795260],
       omega: [-5.11260389, -0.24123856],
-    }
+    },
   },
-  "apollo 11": {
-    primary: "earth",
+  'apollo 11': {
+    primary: 'earth',
     type: SHIP_TYPE,
     constants: {
       radius: 100 / AU,
     },
-    stages: [{
-      // Data taken from https://en.wikipedia.org/wiki/Apollo_Command/Service_Module
-      mass: 11900, // kg
-      isp: 314, // seconds
-      thrust: 91e3, // N   (Newtons)
-      propellant: 18410 // kg
-    }],
+    stages: [
+      {
+        // Data taken from https://en.wikipedia.org/wiki/Apollo_Command/Service_Module
+        mass: 11900, // kg
+        isp: 314, // seconds
+        thrust: 91e3, // N   (Newtons)
+        propellant: 18410, // kg
+      },
+    ],
     kepler_elements: {
       a: [(4000e3 + 6.3781e6) / AU, 0],
       e: [0.2, 0],
@@ -130,11 +126,11 @@ const body_data = {
       omega: [0, 0],
     },
   },
-  "mars": {
-    primary: "sun",
+  mars: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 0.04283e15 / Math.pow(AU, 3),
+      u: 0.04283e15 / (AU ** 3),
       radius: 3.397e6 / AU,
       rotation_period: 1.025957, // days
       axial_tilt: 25.19, // relative to orbit
@@ -146,13 +142,13 @@ const body_data = {
       L: [-4.56813164, 19140.29934243],
       w: [-23.91744784, 0.45223625],
       omega: [49.71320984, -0.26852431],
-    }
+    },
   },
-  "jupiter": {
-    primary: "sun",
+  jupiter: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 126.686e15 / Math.pow(AU, 3),
+      u: 126.686e15 / (AU ** 3),
       radius: 7.1492e7 / AU,
       rotation_period: 0.413542, // days
       axial_tilt: 3.13, // relative to orbit
@@ -168,15 +164,15 @@ const body_data = {
         b: -0.00012452,
         c: 0.6064060,
         s: -0.35635438,
-        f: 38.35125000
-      }
-    }
+        f: 38.35125000,
+      },
+    },
   },
-  "saturn": {
-    primary: "sun",
+  saturn: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 37.391e15 / Math.pow(AU, 3),
+      u: 37.391e15 / (AU ** 3),
       radius: 6.0268e7 / AU,
       rotation_period: 0.439583, // days
       axial_tilt: 26.73, // relative to orbit
@@ -192,15 +188,15 @@ const body_data = {
         b: 0.00025899,
         c: -0.13434469,
         s: 0.87320147,
-        f: 38.35125000
-      }
-    }
+        f: 38.35125000,
+      },
+    },
   },
-  "uranus": {
-    primary: "sun",
+  uranus: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 5.794e15 / Math.pow(AU, 3),
+      u: 5.794e15 / (AU ** 3),
       radius: 2.5559e7 / AU,
       rotation_period: 0.71833, // days (negative == retrograde)
       axial_tilt: 97.77, // relative to orbit
@@ -216,18 +212,18 @@ const body_data = {
         b: 0.00058331,
         c: -0.97731848,
         s: 0.17689245,
-        f: 7.67025000
-      }
-    }
+        f: 7.67025000,
+      },
+    },
   },
-  "neptune": {
-    primary: "sun",
+  neptune: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 6.835e15 / Math.pow(AU, 3),
+      u: 6.835e15 / (AU ** 3),
       radius: 2.4764e7 / AU,
       rotation_period: 0.6713, // days (negative == retrograde)
-      axial_tilt: 28.32 // relative to orbit
+      axial_tilt: 28.32, // relative to orbit
     },
     kepler_elements: {
       a: [30.06952752, 0.00006447],
@@ -240,15 +236,15 @@ const body_data = {
         b: -0.00041348,
         c: 0.68346318,
         s: -0.10162547,
-        f: 7.67025000
-      }
-    }
+        f: 7.67025000,
+      },
+    },
   },
-  "pluto": {
-    primary: "sun",
+  pluto: {
+    primary: 'sun',
     type: PLANET_TYPE,
     constants: {
-      u: 0.00083e15 / Math.pow(AU, 3),
+      u: 0.00083e15 / (AU ** 3),
       radius: 1.195e6 / AU,
       rotation_period: 6.387230, // days
       axial_tilt: 122.53, // relative to orbit
@@ -264,53 +260,53 @@ const body_data = {
         b: -0.01262724,
         c: 0,
         s: 0,
-        f: 0
-      }
-    }
-  }
+        f: 0,
+      },
+    },
+  },
 };
 
 // Initialize map
-const bodyMap = new Map(Object.keys(body_data)
-  .map(function (name) {
-    let body = body_data[name];
-    body.name = name;
-    body.derived = {};
+const bodyMap = new Map(Object.keys(bodyData).map((name) => {
+  const body = bodyData[name];
+  body.name = name;
+  body.derived = {};
 
-    if (name === 'sun') {
-      body.derived = {
-        position: new Vector3(0, 0, 0),
-        velocity: new Vector3(0, 0, 0),
-        apoapsis: new Vector3(0, 0, 0),
-        periapsis: new Vector3(0, 0, 0),
-        center: new Vector3(0, 0, 0)
-      };
-    } else if (body.type === SHIP_TYPE) {
-      body.motion = {
-        heading0: new Vector3(0, 1, 0),
-        rotation: new Quaternion(),
-        pitch: 0, // rad / second
-        yaw: 0, // rad / second
-        roll: 0, // rad / second
-        sas: true,
-        thrust: 0, // 0 (no thrust) -> 1 (max thrust)
-      }
-    }
+  if (name === 'sun') {
+    body.derived = {
+      position: new Vector3(0, 0, 0),
+      velocity: new Vector3(0, 0, 0),
+      apoapsis: new Vector3(0, 0, 0),
+      periapsis: new Vector3(0, 0, 0),
+      center: new Vector3(0, 0, 0),
+    };
+  } else if (body.type === SHIP_TYPE) {
+    body.motion = {
+      heading0: new Vector3(0, 1, 0),
+      rotation: new Quaternion(),
+      pitch: 0, // rad / second
+      yaw: 0, // rad / second
+      roll: 0, // rad / second
+      sas: true,
+      thrust: 0, // 0 (no thrust) -> 1 (max thrust)
+    };
+  }
 
-    return [name, body];
-  }));
+  return [name, body];
+}));
 
 // Set back-references on body graph
-Array.from(bodyMap.values())
+Array
+  .from(bodyMap.values())
   .forEach((body) => {
-
     // Set primary
     if (body.primary) {
       body.primary = bodyMap.get(body.primary);
 
       // Add self to primary's secondaries property
-      if (!body.primary.secondaries)
+      if (!body.primary.secondaries) {
         body.primary.secondaries = [];
+      }
 
       body.primary.secondaries.push(body);
     }
@@ -324,10 +320,9 @@ function flatten(body) {
     return [];
   }
 
-  return (body.secondaries || [])
-    .reduce((bodies, b) => {
-      return bodies.concat(flatten(b));
-    }, [body]);
+  return (body.secondaries || []).reduce((bodies, b) => bodies.concat(flatten(b)), [body]);
 }
 
-export const ALL_BODIES = flatten(bodyMap.get('sun'));
+const ALL_BODIES = flatten(bodyMap.get('sun'));
+
+export default ALL_BODIES;

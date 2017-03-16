@@ -1,16 +1,13 @@
-import BaseRenderer from './BaseRenderer';
 import * as THREE from 'three';
-import {
-  AU,
-  SHIP_TYPE,
-  PLANET_TYPE
-} from './Bodies';
+
+import BaseRenderer from './BaseRenderer';
+import { AU, SHIP_TYPE, PLANET_TYPE } from './Constants';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
+
 const SHOW_HELPERS = false;
 
 function CameraViewRenderer(container, resourceLoader, commonState) {
-
   BaseRenderer.call(this, resourceLoader, commonState);
 
   this.renderer = new THREE.WebGLRenderer({
@@ -26,7 +23,7 @@ function CameraViewRenderer(container, resourceLoader, commonState) {
 
   this.bodyCache = new Map();
   this.showHelpers = SHOW_HELPERS;
-};
+}
 
 // Inherit from BaseRenderer
 Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);
@@ -35,16 +32,14 @@ Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);
  * Use this lifeycle method to add event listeners
  */
 CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
-
   return new Promise((resolve, reject) => {
     Promise.all([
-        this._loadTextures(),
-        this._loadModels(),
-      ])
+      this._loadTextures(),
+      this._loadModels(),
+    ])
       .then(([textures, models]) => {
-
-        let width = window.innerWidth;
-        let height = window.innerHeight;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
 
         // initialize camera and scene
         this.scene = new THREE.Scene();
@@ -86,13 +81,13 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
          * Register to listen for events
          */
         this.addEventListener('focus', (event) => {
-          let focus = solarSystem.find(event.focus);
+          const focus = solarSystem.find(event.focus);
           onFocus(focus);
         });
 
         this.addEventListener('recenter', (event) => {
           onRecenter();
-        })
+        });
 
         this.addEventListener('resize', (event) => {
           onWindowResize();
@@ -128,8 +123,7 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
 /**
  * Render the given solar system
  */
-CameraViewRenderer.prototype.render = function (solarSystem) {
-
+CameraViewRenderer.prototype.render = function render(solarSystem) {
   // Find the body we are focusing on
   const focus = solarSystem.find(this.state.focus);
   const sun = solarSystem.find('sun');
@@ -143,20 +137,18 @@ CameraViewRenderer.prototype.render = function (solarSystem) {
   // Make objects outside of our current sphere invisible (to save resources)
   outliers.forEach((body) => {
     const cached = this.bodyCache.get(body.name);
-    if (cached)
-      cached.visible = false;
+    if (cached) { cached.visible = false; }
   });
 
   // Update the positions of all of our bodies
   neighbours.forEach((body) => {
-
-    let threeBody = this.bodyCache.get(body.name);
-    let derived = body.derived;
+    const threeBody = this.bodyCache.get(body.name);
+    const derived = body.derived;
 
     threeBody.visible = body.name !== 'sun';
 
     // Adjust position to re-center the coordinate system on the focus
-    let position = this._adjustCoordinates(focus, derived.position);
+    const position = this._adjustCoordinates(focus, derived.position);
     threeBody.position.set(position.x, position.y, position.z);
 
     // Adjust orbital tilt and rotation.  First, rotate the body using the same
@@ -186,7 +178,7 @@ CameraViewRenderer.prototype._onCenter = function (solarSystem) {
    * Callback to recenter the camera
    */
   const recenter = () => {
-    let focus = solarSystem.find(this.state.focus);
+    const focus = solarSystem.find(this.state.focus);
 
     if (focus.name === 'sun') {
       this.camera.up = new THREE.Vector3(0, 0, 1);
@@ -196,15 +188,12 @@ CameraViewRenderer.prototype._onCenter = function (solarSystem) {
     }
 
     // Set camera behind in the opposite direction of the velocity vector
-    let camera_position = focus.derived.velocity.clone()
+    const cameraPosition = focus.derived.velocity.clone()
       .normalize()
       .negate()
       .multiplyScalar(5 * focus.constants.radius);
 
-    let primary_position = new THREE.Vector3()
-      .sub(this._adjustCoordinates(focus, focus.primary.derived.position));
-
-    this.camera.position.set(camera_position.x, camera_position.y, camera_position.z);
+    this.camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   };
 
@@ -212,7 +201,6 @@ CameraViewRenderer.prototype._onCenter = function (solarSystem) {
 };
 
 CameraViewRenderer.prototype._onFocus = function (recenter) {
-
   const onFocus = (focus) => {
     // First dispose of existing orbit controls if they exist.
     this.orbitControls && this.orbitControls.dispose();
@@ -228,7 +216,6 @@ CameraViewRenderer.prototype._onFocus = function (recenter) {
 };
 
 CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
-
   let threeBody;
   if (body.type === SHIP_TYPE) {
     threeBody = this._loadModelBody(body, models);
@@ -242,11 +229,9 @@ CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
   return threeBody;
 };
 
-CameraViewRenderer.prototype._loadModelBody = function () {
-
+CameraViewRenderer.prototype._loadModelBody = (function () {
   const childrenOf = (threeObj) => {
-    if (!threeObj.children || threeObj.children.length === 0)
-      return [];
+    if (!threeObj.children || threeObj.children.length === 0) { return []; }
 
     const descendants = [];
     threeObj.children.forEach((obj) => {
@@ -258,7 +243,6 @@ CameraViewRenderer.prototype._loadModelBody = function () {
   };
 
   return function (body, models) {
-
     const modelObj = models.get(body.name);
     const scale = 1 / AU;
     const threeObj = modelObj.scene;
@@ -273,16 +257,15 @@ CameraViewRenderer.prototype._loadModelBody = function () {
       });
 
     if (this.showHelpers) {
-      let box = new THREE.BoxHelper(threeObj, 0xffff00);
+      const box = new THREE.BoxHelper(threeObj, 0xffff00);
       this.scene.add(box);
     }
 
     return threeObj;
-  }
-}();
+  };
+}());
 
 CameraViewRenderer.prototype._setupLightSources = function (textures) {
-
   const ambientLight = new THREE.AmbientLight(0x202020);
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
   const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 150, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffffff));
@@ -300,15 +283,13 @@ CameraViewRenderer.prototype._setupLightSources = function (textures) {
 };
 
 CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
-
   this.lightSources.forEach((light) => {
-
     const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
     light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
 
     // Frame the shadow box appropriately
     if (light.name === 'primary-light' && focus.primary && focus.primary.name !== 'sun') {
-      let lightBoxLength = focus.primary.constants.radius;
+      const lightBoxLength = focus.primary.constants.radius;
       light.shadow.camera.near = 0.99 * focus.primary.derived.position.length();
       light.shadow.camera.far = 1.01 * focus.primary.derived.position.length();
       light.shadow.camera.left = -lightBoxLength;
@@ -326,7 +307,7 @@ CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
     if (light.name === 'lensflare') {
       // Bug Fix: LensFlare is showing both in front of the scene and behind;
       // Hide the lensflare if we are not pointing the camera toward the sun
-      let cameraOrientation = this.camera.position.clone()
+      const cameraOrientation = this.camera.position.clone()
         .negate();
       light.visible = cameraOrientation.angleTo(lightPosition) <= Math.PI / 2;
     }

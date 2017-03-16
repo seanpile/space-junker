@@ -3,7 +3,7 @@ import {
   AU,
   SHIP_TYPE,
   PLANET_TYPE,
-} from './Bodies';
+} from './Constants';
 
 // rad / second
 const MOTION_STEP = Math.PI / 16;

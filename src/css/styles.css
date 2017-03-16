@@ -204,14 +204,6 @@ html, body {
     flex: 0 1 auto;
 }
 
-#orbital-name {
-    text-transform: capitalize;
-}
-
-#orbital-primary {
-    text-transform: capitalize;
-}
-
 .key-entry {
     flex: 0 1 auto;
     display: flex;

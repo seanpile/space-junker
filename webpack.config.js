@@ -5,54 +5,54 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   entry: {
     main: './src/index.js',
-    vendor: './src/vendor.js'
+    vendor: './src/vendor.js',
   },
   resolve: {
     alias: {
-      SplashCss: path.resolve(__dirname, 'node_modules/splash-screen/dist/splash.min.css')
+      SplashCss: path.resolve(__dirname, 'node_modules/splash-screen/dist/splash.min.css'),
     },
   },
   devtool: 'cheap-module-eval-source-map',
   module: {
     rules: [{
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
-      },
-      {
-        test: /img\/.*\.(jpg|png)$/,
-        use: [{
-          loader: "file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/",
-        }],
-      },
-      {
-        test: /models\/(.*)\.(jpg|png)$/,
-        use: [{
-          loader: "file-loader",
-          options: {
-            name: '[path][name].[ext]',
-            context: path.resolve(__dirname, 'src', 'models'),
-            publicPath: 'models/',
-            outputPath: 'models/',
-          }
-        }],
-      },
-      {
-        test: /\.(dae)$/,
-        use: [{
-          loader: "file-loader?name=[name].[ext]&publicPath=models/&outputPath=models/",
-        }],
-      },
-      {
-        test: /\.js$/,
-        exclude: [/node_modules/],
-        use: [{
-          loader: 'babel-loader',
-          options: {
-            presets: ['es2015']
-          }
-        }]
-      }
-    ]
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader'],
+    },
+    {
+      test: /img\/.*\.(jpg|png)$/,
+      use: [{
+        loader: 'file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/',
+      }],
+    },
+    {
+      test: /models\/(.*)\.(jpg|png)$/,
+      use: [{
+        loader: 'file-loader',
+        options: {
+          name: '[path][name].[ext]',
+          context: path.resolve(__dirname, 'src', 'models'),
+          publicPath: 'models/',
+          outputPath: 'models/',
+        },
+      }],
+    },
+    {
+      test: /\.(dae)$/,
+      use: [{
+        loader: 'file-loader?name=[name].[ext]&publicPath=models/&outputPath=models/',
+      }],
+    },
+    {
+      test: /\.(js|jsx)$/,
+      exclude: [/node_modules/],
+      use: [{
+        loader: 'babel-loader',
+        options: {
+          presets: ['es2015', 'react'],
+        },
+      }],
+    },
+    ],
   },
   output: {
     filename: '[name]-dist.js',
@@ -65,7 +65,7 @@ module.exports = {
       inject: 'body',
     }),
     new webpack.optimize.CommonsChunkPlugin({
-      name: 'vendor'
+      name: 'vendor',
     }),
   ],
-}
+};

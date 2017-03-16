@@ -1,10 +1,6 @@
 import moment from 'moment';
-import {
-  AU,
-  ALL_BODIES,
-  SHIP_TYPE,
-  PLANET_TYPE,
-} from './Bodies';
+import Bodies from './Bodies';
+import { SHIP_TYPE } from './Constants';
 
 import {
   Vector3,
@@ -17,7 +13,7 @@ const J2000_date = moment('2000-01-01T12:00:00Z');
 const J2000_epoch = 2451545.0;
 
 function SolarSystem() {
-  this.bodies = Array.from(ALL_BODIES);
+  this.bodies = Array.from(Bodies);
   this.initialized = false;
 };
 
@@ -429,22 +425,28 @@ SolarSystem.prototype._calculateEccentricAnomaly = function (e, M) {
   return E;
 };
 
-SolarSystem.prototype._transformToEcliptic = function (offset, position, w, omega, I) {
+SolarSystem.prototype._transformToEcliptic = function () {
 
-  let Q1 = new Quaternion()
-    .setFromAxisAngle(new Vector3(0, 0, 1), w);
-  let Q2 = new Quaternion()
-    .setFromAxisAngle(new Vector3(1, 0, 0), I);
-  let Q3 = new Quaternion()
-    .setFromAxisAngle(new Vector3(0, 0, 1), omega);
+  const axisZ = new Vector3(0, 0, 1);
+  const axisX = new Vector3(1, 0, 0);
 
-  const rotation = new Vector3()
-    .copy(position)
-    .applyQuaternion(Q1)
-    .applyQuaternion(Q2)
-    .applyQuaternion(Q3);
+  return function (offset, position, w, omega, I) {
 
-  return rotation.add(offset);
-};
+    let Q1 = new Quaternion()
+      .setFromAxisAngle(axisZ, w);
+    let Q2 = new Quaternion()
+      .setFromAxisAngle(axisX, I);
+    let Q3 = new Quaternion()
+      .setFromAxisAngle(axisZ, omega);
+
+    const rotation = new Vector3()
+      .copy(position)
+      .applyQuaternion(Q1)
+      .applyQuaternion(Q2)
+      .applyQuaternion(Q3);
+
+    return rotation.add(offset);
+  }
+}();
 
 export default SolarSystem;

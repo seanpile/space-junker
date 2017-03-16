@@ -1,15 +1,14 @@
 import moment from 'moment';
+import Hammer from 'hammerjs';
 import * as THREE from 'three'
-import {
-  AU,
-  SHIP_TYPE,
-} from './Bodies';
-import StringExtensions from './util/StringExtensions';
 
-import {
-  Splash
-} from 'splash-screen';
+import {Splash} from 'splash-screen';
 import 'SplashCss';
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import WarpView from './view/WarpView.jsx';
+import OrbitalStats from './view/OrbitalStats.jsx';
 
 function Simulation(solarSystem, renderers, state, stats) {
   this.solarSystem = solarSystem;
@@ -21,20 +20,27 @@ function Simulation(solarSystem, renderers, state, stats) {
   this.stats = stats;
   this.time = Date.now();
   this.startingTime = this.time;
-  this.timeWarpValues = [1, 5, 10, 50, 100, 10e2, 10e3, 10e4, 10e5, 10e6];
+  this.timeWarpValues = [
+    1,
+    5,
+    10,
+    50,
+    100,
+    10e2,
+    10e3,
+    10e4,
+    10e5,
+    10e6
+  ];
   this.timeWarpIdx = 0;
+
   this.frameId = null;
   this.initialized = false;
 
   this.hud = document.getElementById('hud');
   this.loadingScreen = document.getElementById('loading');
-  this.timeCounter = document.getElementById('time');
-  this.timeStatus = document.getElementById('time-status');
-  this.warpValues = document.getElementById('warp-values');
-  this.timeWarpValues.forEach((value, idx) => {
-    const arrow = document.createElement('div');
-    this.warpValues.appendChild(arrow);
-  });
+  this.warpViewElement = document.getElementById('warp-overlay');
+  this.orbitalStatsElement = document.getElementById('orbital-overlay');
 
   /**
    * Handle window event listeners
@@ -47,25 +53,20 @@ function Simulation(solarSystem, renderers, state, stats) {
       99: this.recenter,
       91: this.toggleFocus,
       93: this.toggleFocus,
-      109: this.toggleView,
+      109: this.toggleView
     };
 
     if (keyCodes.hasOwnProperty(event.keyCode)) {
       keyCodes[event.keyCode].call(this, event);
       event.preventDefault();
     } else {
-      this.renderer.dispatchEvent({
-        type: 'keypress',
-        key: event.keyCode
-      });
+      this.renderer.dispatchEvent({type: 'keypress', key: event.keyCode});
     }
   };
 
   window.addEventListener("keypress", keypresses, false);
   window.addEventListener("resize", (event) => {
-    this.renderer.dispatchEvent({
-      type: "resize"
-    });
+    this.renderer.dispatchEvent({type: "resize"});
   }, true);
 
   window.addEventListener("mousemove", (event) => {
@@ -75,26 +76,39 @@ function Simulation(solarSystem, renderers, state, stats) {
     let target = new THREE.Vector2(event.clientX, event.clientY);
 
     if (this.isRunning()) {
-      this.renderer.dispatchEvent({
-        type: 'mouseover',
-        location: target
-      });
+      this.renderer.dispatchEvent({type: 'mouseover', location: target});
     }
   }, false);
 
-  window.addEventListener("mousedown", (event) => {
+  const hammer = new Hammer.Manager(window);
+  const singleTap = new Hammer.Tap({event: 'singletap'});
+  const doubleTap = new Hammer.Tap({event: 'doubletap', taps: 2});
+  hammer.add([doubleTap, singleTap]);
+  doubleTap.recognizeWith(singleTap);
+  singleTap.requireFailure([doubleTap]);
+
+  hammer.on('singletap', (event) => {
     let width = window.innerWidth;
     let height = window.innerHeight;
 
-    let target = new THREE.Vector2(event.clientX, event.clientY);
+    let target = new THREE.Vector2(event.center.x, event.center.y);
 
     if (this.isRunning()) {
-      this.renderer.dispatchEvent({
-        type: 'click',
-        location: target
-      });
+      this.renderer.dispatchEvent({type: 'tap', location: target});
     }
-  }, false);
+  });
+
+  hammer.on('doubletap', (event) => {
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    let target = new THREE.Vector2(event.center.x, event.center.y);
+
+    if (this.isRunning()) {
+      this.renderer.dispatchEvent({type: 'doubletap', location: target});
+    }
+  });
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
@@ -105,7 +119,7 @@ function Simulation(solarSystem, renderers, state, stats) {
   });
 };
 
-Simulation.prototype.speedUp = function () {
+Simulation.prototype.speedUp = function() {
   if (!this.isRunning()) {
     return;
   }
@@ -113,7 +127,7 @@ Simulation.prototype.speedUp = function () {
   this.timeWarpIdx = Math.min(this.timeWarpValues.length - 1, this.timeWarpIdx + 1);
 };
 
-Simulation.prototype.slowDown = function () {
+Simulation.prototype.slowDown = function() {
   if (!this.isRunning()) {
     return;
   }
@@ -121,7 +135,7 @@ Simulation.prototype.slowDown = function () {
   this.timeWarpIdx = Math.max(0, this.timeWarpIdx - 1);
 };
 
-Simulation.prototype.pause = function () {
+Simulation.prototype.pause = function() {
   if (this.frameId) {
     window.cancelAnimationFrame(this.frameId);
     this.frameId = null;
@@ -130,11 +144,11 @@ Simulation.prototype.pause = function () {
   }
 };
 
-Simulation.prototype.isRunning = function () {
+Simulation.prototype.isRunning = function() {
   return this.frameId !== null;
 };
 
-Simulation.prototype.toggleRun = function () {
+Simulation.prototype.toggleRun = function() {
   if (this.isRunning()) {
     this.pause();
   } else {
@@ -142,17 +156,15 @@ Simulation.prototype.toggleRun = function () {
   }
 };
 
-Simulation.prototype.recenter = function () {
+Simulation.prototype.recenter = function() {
   if (!this.isRunning()) {
     return;
   }
 
-  this.renderer.dispatchEvent({
-    type: 'recenter'
-  });
+  this.renderer.dispatchEvent({type: 'recenter'});
 };
 
-Simulation.prototype.toggleFocus = function (event) {
+Simulation.prototype.toggleFocus = function(event) {
 
   let solarSystem = this.solarSystem;
   let focusIdx = solarSystem.bodies.findIndex((p) => p.name === this.state.focus);
@@ -161,18 +173,16 @@ Simulation.prototype.toggleFocus = function (event) {
     focusIdx--;
     if (focusIdx < 0)
       focusIdx = solarSystem.bodies.length - 1;
-  } else {
+    }
+  else {
     focusIdx = (focusIdx + 1) % solarSystem.bodies.length;
   }
 
   this.state.focus = solarSystem.bodies[focusIdx].name;
-  this.renderer.dispatchEvent({
-    type: 'focus',
-    focus: this.state.focus
-  });
+  this.renderer.dispatchEvent({type: 'focus', focus: this.state.focus});
 };
 
-Simulation.prototype.initialize = function () {
+Simulation.prototype.initialize = function() {
 
   Splash.enable('spinner-section-far');
 
@@ -185,21 +195,20 @@ Simulation.prototype.initialize = function () {
 
   // Bring up the appropriate view and hide the others
   console.log(`Loading ${this.renderer.constructor.name}`);
-  return this.renderer.viewDidLoad(this.solarSystem)
-    .then(() => {
-      // Once the views are loaded, we can be prepare to surface this view
-      this.renderer.viewWillAppear();
-      this.renderer.container.style = '';
-      this.loaded.add(this.renderer);
+  return this.renderer.viewDidLoad(this.solarSystem).then(() => {
+    // Once the views are loaded, we can be prepare to surface this view
+    this.renderer.viewWillAppear();
+    this.renderer.container.style = '';
+    this.loaded.add(this.renderer);
 
-      Splash.destroy();
-      this.hud.style = '';
-      this.loadingScreen.style = 'display: none;';
-      this.initialized = true;
-    });
+    Splash.destroy();
+    this.hud.style = '';
+    this.loadingScreen.style = 'display: none;';
+    this.initialized = true;
+  });
 };
 
-Simulation.prototype.toggleView = function () {
+Simulation.prototype.toggleView = function() {
   this.rendererIdx = (this.rendererIdx + 1) % this.renderers.length;
   const oldRenderer = this.renderer;
 
@@ -214,13 +223,12 @@ Simulation.prototype.toggleView = function () {
     Splash.enable('spinner-section-far');
     this.loadingScreen.style = '';
 
-    promise = newRenderer.viewDidLoad(this.solarSystem)
-      .then(() => {
-        this.loaded.add(newRenderer);
-        Splash.destroy();
-        this.loadingScreen.style = 'display: none;';
-        return Promise.resolve();
-      })
+    promise = newRenderer.viewDidLoad(this.solarSystem).then(() => {
+      this.loaded.add(newRenderer);
+      Splash.destroy();
+      this.loadingScreen.style = 'display: none;';
+      return Promise.resolve();
+    })
   } else {
     promise = Promise.resolve();
   }
@@ -232,7 +240,7 @@ Simulation.prototype.toggleView = function () {
   });
 }
 
-Simulation.prototype.run = function () {
+Simulation.prototype.run = function() {
 
   if (this.isRunning() || !this.initialized) {
     return;
@@ -270,134 +278,38 @@ Simulation.prototype.run = function () {
   });
 };
 
-Simulation.prototype.updateOrbitalDisplay = function () {
+Simulation.prototype.updateOrbitalDisplay = function() {
 
   const focus = this.solarSystem.find(this.state.focus);
-  const name = focus.name;
-  const velocity = focus.derived.velocity.length() * AU;
-  const eccentricity = focus.derived.e || 0;
-  const semiMajorAxis = focus.derived.semiMajorAxis * AU / 1000;
-  const semiMinorAxis = focus.derived.semiMinorAxis * AU / 1000;
-  const rotation_period = focus.constants.rotation_period || 0;
-  const axial_tilt = focus.constants.axial_tilt || 0;
-  const orbital_period = (focus.derived.orbital_period || 0) / 86400;
+  //
+  //   // Ship-only Data
+  //   document.querySelector('#ship-propellant div.value').innerHTML = `${focus.stages[0].propellant.toFixed(2)} kg`.escapeHtml();
+  //   document.querySelector('#ship-specific-impulse div.value').innerHTML = `${focus.stages[0].isp} s`.escapeHtml();
+  //
+  //   const maxThrust = focus.stages[0].thrust / 1000;
+  //   const thrustLevel = focus.motion.thrust;
+  //   document.querySelector('#ship-thrust div.value').innerHTML = `${ (thrustLevel * maxThrust).toFixed(2)} / ${maxThrust.toFixed(2)} kN`.escapeHtml();
+  //
 
-  let distance = 0,
-    periapsis = 0,
-    apoapsis = 0;
-  if (focus.primary) {
-    const r = focus.derived.position.clone()
-      .sub(focus.primary.derived.position);
-    distance = (r.length() - focus.primary.constants.radius) * AU / 1000;
-    periapsis = (focus.derived.periapsis.clone()
-      .sub(focus.primary.derived.position)
-      .length() - focus.primary.constants.radius) * AU / 1000;
-    apoapsis = (focus.derived.apoapsis.clone()
-      .sub(focus.primary.derived.position)
-      .length() - focus.primary.constants.radius) * AU / 1000;
-  }
-
-  document.getElementById('orbital-name')
-    .innerHTML = name.escapeHtml();
-  document.getElementById('orbital-primary')
-    .innerHTML = (focus.primary ? focus.primary.name : '')
-    .escapeHtml();
-  document.getElementById('orbital-speed')
-    .innerHTML = `${velocity.toFixed(2)} m/s`.escapeHtml();
-  document.getElementById('orbital-distance')
-    .innerHTML = `${distance.toFixed(2)} km`.escapeHtml();
-  document.getElementById('orbital-periapsis')
-    .innerHTML = `${periapsis.toFixed(2)} km`.escapeHtml();
-  document.getElementById('orbital-apoapsis')
-    .innerHTML = `${apoapsis.toFixed(2)} km`.escapeHtml();
-  document.getElementById('orbital-eccentricity')
-    .innerHTML = `${eccentricity.toFixed(4)}`.escapeHtml();
-  document.getElementById('orbital-semiMajorAxis')
-    .innerHTML = `${semiMajorAxis.toFixed(2)} km`.escapeHtml();
-  document.getElementById('orbital-semiMinorAxis')
-    .innerHTML = `${semiMinorAxis.toFixed(2)} km`.escapeHtml();
-  document.getElementById('orbital-period')
-    .innerHTML = `${orbital_period.toFixed(4)} days`.escapeHtml();
-
-  if (focus.type === SHIP_TYPE) {
-
-    document.querySelector('#ship-overlay')
-      .style = '';
-
-    document.getElementById('orbital-rotation-period')
-      .style = 'display: none;';
-    document.getElementById('orbital-axial-tilt')
-      .style = 'display: none;';
-
-    // Ship-only Data
-    document.querySelector('#ship-propellant div.value')
-      .innerHTML = `${focus.stages[0].propellant.toFixed(2)} kg`.escapeHtml();
-    document.querySelector('#ship-specific-impulse div.value')
-      .innerHTML = `${focus.stages[0].isp} s`.escapeHtml();
-
-    const maxThrust = focus.stages[0].thrust / 1000;
-    const thrustLevel = focus.motion.thrust;
-    document.querySelector('#ship-thrust div.value')
-      .innerHTML = `${(thrustLevel * maxThrust).toFixed(2)} / ${maxThrust.toFixed(2)} kN`.escapeHtml();
-
-  } else {
-    document.querySelector('#ship-overlay')
-      .style = 'display: none;';
-
-    document.getElementById('orbital-rotation-period')
-      .style = '';
-    document.getElementById('orbital-axial-tilt')
-      .style = '';
-
-    document.querySelector('#orbital-rotation-period div.value')
-      .innerHTML = `${rotation_period.toFixed(4)} days`.escapeHtml();
-    document.querySelector('#orbital-axial-tilt div.value')
-      .innerHTML = `${axial_tilt.toFixed(2)}°`.escapeHtml();
-  }
+  ReactDOM.render(
+    <OrbitalStats focus={focus}/>, document.getElementById('orbital-overlay'));
 };
 
-Simulation.prototype.updateTimeDisplay = function () {
+Simulation.prototype.updateTimeDisplay = function() {
+
   const elapsed = moment.duration(this.time - this.startingTime);
-  const years = elapsed.years();
-  const months = elapsed.months();
-  const days = elapsed.days() + months * 30;
-  const hours = elapsed.hours();
-  const minutes = elapsed.minutes();
-  const seconds = elapsed.seconds();
+  const props = {
+    idx: this.timeWarpIdx,
+    values: this.timeWarpValues,
+    elapsed: elapsed,
+    isRunning: this.isRunning()
+  }
 
-  const values = [];
-
-  if (years > 0)
-    values.push(`${years}Y`);
-
-  if (days > 0)
-    values.push(`${days}d`);
-
-  values.push(
-    hours.toString()
-    .paddingLeft('00'),
-    minutes.toString()
-    .paddingLeft('00'),
-    seconds.toString()
-    .paddingLeft('00')
-  )
-
-  Array.from(this.warpValues.children)
-    .forEach((value, idx) => {
-      if (idx <= this.timeWarpIdx) {
-        value.className = 'warp-enabled';
-      } else {
-        value.className = 'warp-disabled';
-      }
-    });
-  this.timeCounter.innerHTML = `+T ${values.join(':')}`.escapeHtml();
-  this.timeStatus.innerHTML = (this.isRunning() ? 'Active Mission' : 'Game Paused')
-    .escapeHtml()
-  this.timeStatus.className = (this.isRunning() ? 'status-running' : 'status-paused');
-
+  ReactDOM.render(
+    <WarpView {...props}/>, document.getElementById('warp-overlay'));
 }
 
-Simulation.prototype._runAnimation = function (frameFunc) {
+Simulation.prototype._runAnimation = function(frameFunc) {
   var lastTime = null;
 
   const frame = (time) => {
@@ -409,7 +321,7 @@ Simulation.prototype._runAnimation = function (frameFunc) {
     lastTime = time;
     if (!stop)
       this.frameId = requestAnimationFrame(frame);
-  };
+    };
 
   this.frameId = requestAnimationFrame(frame);
 };
