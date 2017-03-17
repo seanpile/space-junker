@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import ColladaLoader from 'three-collada-loader';
 
 function ResourceLoader() {
-
   const textureLoader = new THREE.TextureLoader();
   const modelLoader = new ColladaLoader();
   modelLoader.options.convertUpAxis = true;
@@ -13,11 +12,10 @@ function ResourceLoader() {
 
   this.textureCache = new Map();
   this.modelCache = new Map();
-};
+}
 
 ResourceLoader.prototype.loadTexture = function (key) {
   return new Promise((resolve, reject) => {
-
     const cache = this.textureCache;
 
     if (cache.has(key)) {
@@ -30,7 +28,7 @@ ResourceLoader.prototype.loadTexture = function (key) {
         },
         () => {},
         (error) => {
-          console.log(error);
+          console.error(error);
           reject(`Failed to load texture '${key}'`);
         });
     }
@@ -39,7 +37,6 @@ ResourceLoader.prototype.loadTexture = function (key) {
 
 ResourceLoader.prototype.loadModel = function (key) {
   return new Promise((resolve, reject) => {
-
     const cache = this.modelCache;
     if (cache.has(key)) {
       resolve([key, cache.get(key)]);
@@ -51,7 +48,7 @@ ResourceLoader.prototype.loadModel = function (key) {
         },
         () => {},
         (error) => {
-          console.log(error);
+          console.error(error);
           reject(`Failed to load model '${key}'`);
         });
     }

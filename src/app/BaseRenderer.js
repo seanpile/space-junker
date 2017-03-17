@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import {
   AU,
   SHIP_TYPE,
-  PLANET_TYPE,
 } from './Constants';
 
 // rad / second
@@ -11,33 +10,33 @@ const THRUST_STEP = 0.1;
 
 // Textures
 const TEXTURES = {
-  'moon': require('../img/moonmap.jpg'),
-  'earth': require('../img/earthmap.jpg'),
-  'earthspec': require('../img/earthspec.jpg'),
-  'earthbump': require('../img/earthbump.jpg'),
-  'jupiter': require('../img/jupitermap.jpg'),
-  'saturn': require('../img/saturnmap.jpg'),
-  'mercury': require('../img/mercurymap.jpg'),
-  'venus': require('../img/venusmap.jpg'),
-  'mars': require('../img/marsmap.jpg'),
-  'pluto': require('../img/plutomap.jpg'),
-  'neptune': require('../img/neptunemap.jpg'),
-  'uranus': require('../img/uranusmap.jpg'),
-  'lensflare': require('../img/lensflare.png'),
-  'rock1': require('../models/rock1/ArmGra05.jpg'),
-  'apollo 11': require('../models/apollo/OldGlory.jpg'),
-  'navball': require('../img/navball.png'),
+  moon: require('../img/moonmap.jpg'),  // eslint-disable-line global-require
+  earth: require('../img/earthmap.jpg'), // eslint-disable-line global-require
+  earthspec: require('../img/earthspec.jpg'), // eslint-disable-line global-require
+  earthbump: require('../img/earthbump.jpg'), // eslint-disable-line global-require
+  jupiter: require('../img/jupitermap.jpg'), // eslint-disable-line global-require
+  saturn: require('../img/saturnmap.jpg'), // eslint-disable-line global-require
+  mercury: require('../img/mercurymap.jpg'), // eslint-disable-line global-require
+  venus: require('../img/venusmap.jpg'), // eslint-disable-line global-require
+  mars: require('../img/marsmap.jpg'), // eslint-disable-line global-require
+  pluto: require('../img/plutomap.jpg'), // eslint-disable-line global-require
+  neptune: require('../img/neptunemap.jpg'), // eslint-disable-line global-require
+  uranus: require('../img/uranusmap.jpg'), // eslint-disable-line global-require
+  lensflare: require('../img/lensflare.png'), // eslint-disable-line global-require
+  rock1: require('../models/rock1/ArmGra05.jpg'), // eslint-disable-line global-require
+  'apollo 11': require('../models/apollo/OldGlory.jpg'), // eslint-disable-line global-require
+  navball: require('../img/navball.png'), // eslint-disable-line global-require
 };
 
 const MODELS = {
-  'rock1': require('../models/rock1.dae'),
-  'apollo 11': require('../models/apollo.dae'),
-}
+  rock1: require('../models/rock1.dae'), // eslint-disable-line global-require
+  'apollo 11': require('../models/apollo.dae'), // eslint-disable-line global-require
+};
 
 export default function BaseRenderer(resourceLoader, state) {
   this.resourceLoader = resourceLoader;
   this.state = state;
-};
+}
 
 // Allow renderers to act on changes to the user interface
 Object.assign(BaseRenderer.prototype, THREE.EventDispatcher.prototype);
@@ -45,74 +44,71 @@ Object.assign(BaseRenderer.prototype, THREE.EventDispatcher.prototype);
 /**
  *
  */
-BaseRenderer.prototype._onWindowResize = function (cameras, originalHeight, originalFov) {
-  const tanFOV = Math.tan(((Math.PI / 180) * originalFov / 2));
-  return (event) => {
+BaseRenderer.prototype._onWindowResize =
+  function (cameras,
+    originalHeight,
+    originalFov) {
+    const tanFOV = Math.tan((((Math.PI / 180) * originalFov) / 2));
+    return () => {
+      cameras.forEach((camera) => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.fov = (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / originalHeight));
 
-    cameras.forEach((camera) => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.fov = (360 / Math.PI) * Math.atan(tanFOV * (window.innerHeight / originalHeight));
+        camera.updateProjectionMatrix();
+      });
 
-      camera.updateProjectionMatrix();
-    });
-
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-};
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+  };
 
 BaseRenderer.prototype._loadTextures = function () {
-  const all_keys = Object.keys(TEXTURES);
+  const allKeys = Object.keys(TEXTURES);
 
-  return Promise.all(all_keys
-      .map((key) => this.resourceLoader.loadTexture(TEXTURES[key]))
+  return Promise.all(allKeys
+      .map(key => this.resourceLoader.loadTexture(TEXTURES[key])),
     )
-    .then(values => {
-      return Promise.resolve(new Map(values.map(([url, texture], idx) => [all_keys[idx], texture])));
-    });
+    .then(values => Promise.resolve(
+      new Map(values.map(([url, texture], idx) => [allKeys[idx], texture]))));
 };
 
 BaseRenderer.prototype._loadModels = function () {
-  const all_keys = Object.keys(MODELS);
+  const allKeys = Object.keys(MODELS);
 
-  return Promise.all(all_keys
-      .map((key) => this.resourceLoader.loadModel(MODELS[key]))
+  return Promise.all(allKeys
+      .map(key => this.resourceLoader.loadModel(MODELS[key])),
     )
-    .then(values => {
-      return Promise.resolve(new Map(values.map(([url, model], idx) => [all_keys[idx], model])));
-    });
+    .then(values => Promise.resolve(
+      new Map(values.map(([url, model], idx) => [allKeys[idx], model]))));
 };
 
 BaseRenderer.prototype._createSkyBox = function () {
-
-  //This will add a starfield to the background of a scene
+  // This will add a starfield to the background of a scene
   const stars = [{
-      color: 'blue',
-      number: 500,
-    },
-    {
-      color: 'red',
-      number: 500,
-    },
-    {
-      color: 0x888888,
-      number: 10000,
-    },
-    {
-      color: 0xdddddd,
-      number: 10000
-    }
-  ]
+    color: 'blue',
+    number: 500,
+  },
+  {
+    color: 'red',
+    number: 500,
+  },
+  {
+    color: 0x888888,
+    number: 10000,
+  },
+  {
+    color: 0xdddddd,
+    number: 10000,
+  },
+  ];
 
   const skyBox = new THREE.Group();
 
   stars.forEach(({
     color,
-    number
+    number,
   }) => {
-
     const vertices = [];
-    for (let i = 0; i < number; i++) {
-
+    for (let i = 0; i < number; i += 1) {
       let r;
 
       // Generate stars that are a minimum distance away
@@ -120,23 +116,23 @@ BaseRenderer.prototype._createSkyBox = function () {
         r = new THREE.Vector3(
           THREE.Math.randFloatSpread(3000),
           THREE.Math.randFloatSpread(3000),
-          THREE.Math.randFloatSpread(3000))
-      } while (r.lengthSq() < 500)
+          THREE.Math.randFloatSpread(3000));
+      } while (r.lengthSq() < 500);
 
       vertices.push(r.x, r.y, r.z);
     }
 
-    let starsGeometry = new THREE.BufferGeometry();
+    const starsGeometry = new THREE.BufferGeometry();
     starsGeometry.addAttribute('position',
-      new THREE.BufferAttribute(Float32Array.from(vertices), 3));
+                               new THREE.BufferAttribute(Float32Array.from(vertices), 3));
 
-    let starsMaterial = new THREE.PointsMaterial({
-      color: color,
-      size: Math.random() * 0.8 + 0.2,
+    const starsMaterial = new THREE.PointsMaterial({
+      color,
+      size: (Math.random() * 0.8) + 0.2,
       depthWrite: false,
     });
 
-    let field = new THREE.Points(starsGeometry, starsMaterial);
+    const field = new THREE.Points(starsGeometry, starsMaterial);
     field.matrixAutoUpdate = false;
     skyBox.add(field);
   });
@@ -149,32 +145,31 @@ BaseRenderer.prototype._createSkyBox = function () {
  * Recenter the coordinate system on the focus being the 'center'.
  */
 BaseRenderer.prototype._adjustCoordinates = function (focus, position) {
-
-  if (!focus)
+  if (!focus) {
     return position.clone();
+  }
 
-  let coordinates = position.clone()
+  const coordinates = position.clone()
     .sub(focus.derived.position);
 
   return coordinates;
 };
 
 BaseRenderer.prototype._loadPlanet = function (body, textures) {
-
   let material;
   if (body.name === 'sun') {
     material = new THREE.MeshBasicMaterial({
-      color: 'yellow'
+      color: 'yellow',
     });
   } else {
     material = new THREE.MeshPhongMaterial();
-    if (textures.has(body.name + 'bump')) {
-      material.bumpMap = textures.get(body.name + 'bump');
+    if (textures.has(`${body.name}bump`)) {
+      material.bumpMap = textures.get(`${body.name}bump`);
       material.bumpScale = 100000 / AU;
     }
 
-    if (textures.has(body.name + 'spec')) {
-      material.specularMap = textures.get(body.name + 'spec');
+    if (textures.has(`${body.name}spec`)) {
+      material.specularMap = textures.get(`${body.name}spec`);
       material.specular = new THREE.Color('grey');
     }
 
@@ -196,7 +191,6 @@ BaseRenderer.prototype._loadPlanet = function (body, textures) {
 };
 
 BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
-
   const derived = body.derived;
 
   planet.rotation.set(0, 0, 0);
@@ -204,20 +198,22 @@ BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
   planet.rotateX(derived.I);
   planet.rotateZ(derived.argumentPerihelion);
   planet.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-  planet.rotateOnAxis(new THREE.Vector3(1, 0, 0), -(body.constants.axial_tilt || 0) * Math.PI / 180);
+  planet.rotateOnAxis(
+    new THREE.Vector3(1, 0, 0),
+    -((body.constants.axial_tilt || 0) * Math.PI) / 180);
   planet.rotateY(derived.rotation);
 };
 
 BaseRenderer.prototype.loadNavball = function (textures) {
-
   const navballScene = new THREE.Scene();
-  const navballCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+  const navballCamera = new THREE.PerspectiveCamera(
+    45, window.innerWidth / window.innerHeight, 0.1, 100);
 
   const navball = new THREE.Mesh(
     new THREE.SphereGeometry(0.4, 128, 128),
     new THREE.MeshPhongMaterial({
       map: textures.get('navball'),
-      shininess: 1
+      shininess: 1,
     }));
 
   const border = new THREE.Mesh(
@@ -225,24 +221,23 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     new THREE.MeshPhongMaterial({
       color: 'gray',
       depthFunc: THREE.AlwaysDepth,
-      shininess: 10
+      shininess: 10,
     }));
 
   const prograde = (() => {
-
-    let shapes = [
+    const shapes = [
       // Circle
       (() => {
-        let shape = new THREE.Shape();
+        const shape = new THREE.Shape();
         shape.moveTo(0, 0);
         shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        let innerHole = new THREE.Path();
+        const innerHole = new THREE.Path();
         innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
         shape.holes.push(innerHole);
         return shape;
       })(),
       (() => {
-        let lineShape = new THREE.Shape();
+        const lineShape = new THREE.Shape();
         lineShape.moveTo(-1, 8);
         lineShape.lineTo(-1, 13);
         lineShape.lineTo(1, 13);
@@ -250,7 +245,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
         return lineShape;
       })(),
       (() => {
-        let lineShape = new THREE.Shape();
+        const lineShape = new THREE.Shape();
         lineShape.moveTo(8, 1);
         lineShape.lineTo(13, 1);
         lineShape.lineTo(13, -1);
@@ -258,7 +253,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
         return lineShape;
       })(),
       (() => {
-        let lineShape = new THREE.Shape();
+        const lineShape = new THREE.Shape();
         lineShape.moveTo(-8, 1);
         lineShape.lineTo(-13, 1);
         lineShape.lineTo(-13, -1);
@@ -266,7 +261,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
         return lineShape;
       })(),
       (() => {
-        let dotShape = new THREE.Shape();
+        const dotShape = new THREE.Shape();
         dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
         return dotShape;
       })(),
@@ -276,27 +271,25 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       new THREE.ShapeGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'yellow',
-      })
+      }),
     );
-
   })();
 
   const retrograde = (() => {
-
-    let shapes = [
+    const shapes = [
       // Circle
       (() => {
-        let shape = new THREE.Shape();
+        const shape = new THREE.Shape();
         shape.moveTo(0, 0);
         shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        let innerHole = new THREE.Path();
+        const innerHole = new THREE.Path();
         innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
         shape.holes.push(innerHole);
         return shape;
       })(),
       (() => {
         // Up line
-        let lineShape = new THREE.Shape();
+        const lineShape = new THREE.Shape();
         lineShape.moveTo(-1, 8);
         lineShape.lineTo(-1, 13);
         lineShape.lineTo(1, 13);
@@ -305,48 +298,65 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       })(),
       (() => {
         // Cross X
-        let lineShape = new THREE.Shape();
-        let e = 3 / 180 * Math.PI;
-        lineShape.moveTo(7 * Math.cos(Math.PI / 4 - e), 7 * Math.sin(Math.PI / 4 - e));
-        lineShape.lineTo(7 * Math.cos(Math.PI / 4 + e), 7 * Math.sin(Math.PI / 4 + e));
-        lineShape.lineTo(7 * Math.cos(5 / 4 * Math.PI - e), 7 * Math.sin(5 / 4 * Math.PI - e));
-        lineShape.lineTo(7 * Math.cos(5 / 4 * Math.PI + e), 7 * Math.sin(5 / 4 * Math.PI + e));
+        const lineShape = new THREE.Shape();
+        const e = (3 / 180) * Math.PI;
+        lineShape.moveTo(7 * Math.cos((Math.PI / 4) - e), 7 * Math.sin((Math.PI / 4) - e));
+        lineShape.lineTo(7 * Math.cos((Math.PI / 4) + e), 7 * Math.sin((Math.PI / 4) + e));
+        lineShape.lineTo(7 * Math.cos(
+          ((5 / 4) * Math.PI) - e),
+          7 * Math.sin(((5 / 4) * Math.PI) - e));
+        lineShape.lineTo(
+          7 * Math.cos(((5 / 4) * Math.PI) + e),
+          7 * Math.sin(((5 / 4) * Math.PI) + e));
+
         return lineShape;
       })(),
       (() => {
         // Cross X
-        let lineShape = new THREE.Shape();
-        let e = 3 / 180 * Math.PI;
-        lineShape.moveTo(7 * Math.cos(3 * Math.PI / 4 - e), 7 * Math.sin(3 * Math.PI / 4 - e));
-        lineShape.lineTo(7 * Math.cos(3 * Math.PI / 4 + e), 7 * Math.sin(3 * Math.PI / 4 + e));
-        lineShape.lineTo(7 * Math.cos(-Math.PI / 4 - e), 7 * Math.sin(-Math.PI / 4 - e));
-        lineShape.lineTo(7 * Math.cos(-Math.PI / 4 + e), 7 * Math.sin(-Math.PI / 4 + e));
+        const lineShape = new THREE.Shape();
+        const e = 3 / (180 * Math.PI);
+        lineShape.moveTo(
+          7 * Math.cos(((3 / 4) * Math.PI) - e),
+          7 * Math.sin(((3 / 4) * Math.PI) - e));
+        lineShape.lineTo(
+          7 * Math.cos(((3 / 4) * Math.PI) + e),
+          7 * Math.sin(((3 / 4) * Math.PI) + e));
+        lineShape.lineTo(7 * Math.cos(-(Math.PI / 4) - e), 7 * Math.sin(-(Math.PI / 4) - e));
+        lineShape.lineTo(7 * Math.cos(-(Math.PI / 4) + e), 7 * Math.sin(-(Math.PI / 4) + e));
         return lineShape;
       })(),
       (() => {
         // Cross X
-        let lineShape = new THREE.Shape();
-        let e = 5 / 180 * Math.PI;
-        let angle = -30 / 180 * Math.PI;
-        let baseRadius = 7;
-        let length = 6;
+        const lineShape = new THREE.Shape();
+        const e = 5 / (180 * Math.PI);
+        const angle = -30 / (180 * Math.PI);
+        const baseRadius = 7;
+        const length = 6;
         lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
         lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-        lineShape.lineTo((baseRadius + length) * Math.cos(angle + e), (baseRadius + length) * Math.sin(angle + e));
-        lineShape.lineTo((baseRadius + length) * Math.cos(angle - e), (baseRadius + length) * Math.sin(angle - e));
+        lineShape.lineTo(
+          (baseRadius + length) * Math.cos(angle + e),
+          (baseRadius + length) * Math.sin(angle + e));
+        lineShape.lineTo(
+          (baseRadius + length) * Math.cos(angle - e),
+          (baseRadius + length) * Math.sin(angle - e));
         return lineShape;
       })(),
       (() => {
         // Cross X
-        let lineShape = new THREE.Shape();
-        let e = 5 / 180 * Math.PI;
-        let angle = -150 / 180 * Math.PI;
-        let baseRadius = 7;
-        let length = 6;
+        const lineShape = new THREE.Shape();
+        const e = 5 / (180 * Math.PI);
+        const angle = -150 / (180 * Math.PI);
+        const baseRadius = 7;
+        const length = 6;
         lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
         lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-        lineShape.lineTo((baseRadius + length) * Math.cos(angle + e), (baseRadius + length) * Math.sin(angle + e));
-        lineShape.lineTo((baseRadius + length) * Math.cos(angle - e), (baseRadius + length) * Math.sin(angle - e));
+        lineShape.lineTo(
+          (baseRadius + length) * Math.cos(angle + e),
+          (baseRadius + length) * Math.sin(angle + e));
+        lineShape.lineTo(
+          (baseRadius + length) * Math.cos(angle - e),
+          (baseRadius + length) * Math.sin(angle - e));
         return lineShape;
       })(),
     ];
@@ -355,94 +365,98 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       new THREE.ShapeGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'yellow',
-      })
+      }),
     );
-
   })();
 
   const radialIn = (() => {
-
-    let shapes = [
+    const shapes = [
       // Circle
       (() => {
-        let shape = new THREE.Shape();
+        const shape = new THREE.Shape();
         shape.moveTo(0, 0);
         shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        let innerHole = new THREE.Path();
+        const innerHole = new THREE.Path();
         innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
         shape.holes.push(innerHole);
         return shape;
       })(),
     ];
 
-    [Math.PI / 4, 3 * Math.PI / 4, 5 / 4 * Math.PI, 7 / 4 * Math.PI].forEach((angle) => {
-      let lineShape = new THREE.Shape();
-      let e = 5 / 180 * Math.PI;
-      let baseRadius = 7;
-      let length = 4;
-      lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
-      lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-      lineShape.lineTo((baseRadius - length) * Math.cos(angle + e), (baseRadius - length) * Math.sin(angle + e));
-      lineShape.lineTo((baseRadius - length) * Math.cos(angle - e), (baseRadius - length) * Math.sin(angle - e));
-      shapes.push(lineShape);
-    });
+    [(1 / 4) * Math.PI, (3 / 4) * Math.PI, (5 / 4) * Math.PI, (7 / 4) * Math.PI].forEach(
+      (angle) => {
+        const lineShape = new THREE.Shape();
+        const e = 5 / (180 * Math.PI);
+        const baseRadius = 7;
+        const length = 4;
+        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+        lineShape.lineTo(
+        (baseRadius - length) * Math.cos(angle + e),
+        (baseRadius - length) * Math.sin(angle + e));
+        lineShape.lineTo(
+        (baseRadius - length) * Math.cos(angle - e),
+        (baseRadius - length) * Math.sin(angle - e));
+        shapes.push(lineShape);
+      });
 
     return new THREE.Mesh(
       new THREE.ShapeGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'aqua',
-      })
+      }),
     );
-
   })();
 
   const radialOut = (() => {
-
-    let shapes = [
+    const shapes = [
       // Circle
       (() => {
-        let shape = new THREE.Shape();
+        const shape = new THREE.Shape();
         shape.moveTo(0, 0);
         shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        let innerHole = new THREE.Path();
+        const innerHole = new THREE.Path();
         innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
         shape.holes.push(innerHole);
         return shape;
       })(),
       (() => {
-        let dotShape = new THREE.Shape();
+        const dotShape = new THREE.Shape();
         dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
         return dotShape;
       })(),
     ];
 
-    [Math.PI / 4, 3 * Math.PI / 4, 5 / 4 * Math.PI, 7 / 4 * Math.PI].forEach((angle) => {
-      let lineShape = new THREE.Shape();
-      let e = 5 / 180 * Math.PI;
-      let baseRadius = 7;
-      let length = 4;
-      lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
-      lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-      lineShape.lineTo((baseRadius + length) * Math.cos(angle + e), (baseRadius + length) * Math.sin(angle + e));
-      lineShape.lineTo((baseRadius + length) * Math.cos(angle - e), (baseRadius + length) * Math.sin(angle - e));
-      shapes.push(lineShape);
-    });
+    [(1 / 4) * Math.PI, (3 / 4) * Math.PI, (5 / 4) * Math.PI, (7 / 4) * Math.PI].forEach(
+      (angle) => {
+        const lineShape = new THREE.Shape();
+        const e = (5 / 180) * Math.PI;
+        const baseRadius = 7;
+        const length = 4;
+        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+        lineShape.lineTo(
+        (baseRadius + length) * Math.cos(angle + e),
+        (baseRadius + length) * Math.sin(angle + e));
+        lineShape.lineTo(
+        (baseRadius + length) * Math.cos(angle - e),
+        (baseRadius + length) * Math.sin(angle - e));
+        shapes.push(lineShape);
+      });
 
     return new THREE.Mesh(
       new THREE.ShapeGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'aqua',
-      })
+      }),
     );
-
   })();
 
   const level = (() => {
-
-    let shapes = [
+    const shapes = [
       // Circle
       (() => {
-        let shape = new THREE.Shape();
+        const shape = new THREE.Shape();
         shape.moveTo(-1.5, 0);
         shape.lineTo(0, 1.5);
         shape.lineTo(1.5, 0);
@@ -450,7 +464,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
         return shape;
       })(),
       (() => {
-        let shape = new THREE.Shape();
+        const shape = new THREE.Shape();
         shape.moveTo(-13, 1);
         shape.lineTo(-5, 1);
         shape.lineTo(0, -4);
@@ -466,21 +480,20 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     ];
 
     return new THREE.Mesh(
-      //new THREE.ShapeGeometry(shapes, 64),
+      // new THREE.ShapeGeometry(shapes, 64),
       new THREE.ExtrudeGeometry(shapes, {
         steps: 2,
         amount: 8,
         bevelEnabled: true,
         bevelThickness: 0.75,
         bevelSize: 0.75,
-        bevelSegments: 4
+        bevelSegments: 4,
       }),
       new THREE.MeshPhongMaterial({
         color: '#e8a739',
-        shininess: 20
-      })
+        shininess: 20,
+      }),
     );
-
   })();
 
   prograde.scale.set(0.008, 0.008, 0.008);
@@ -514,22 +527,21 @@ BaseRenderer.prototype.loadNavball = function (textures) {
 
   return {
     light: lightSource,
-    border: border,
+    border,
     camera: navballCamera,
     scene: navballScene,
     gyroscope: navball,
     markers: {
-      radialIn: radialIn,
-      radialOut: radialOut,
-      prograde: prograde,
-      retrograde: retrograde,
-      level: level,
-    }
-  }
+      radialIn,
+      radialOut,
+      prograde,
+      retrograde,
+      level,
+    },
+  };
 };
 
-BaseRenderer.prototype.setNavballOrientation = function () {
-
+BaseRenderer.prototype.setNavballOrientation = (function () {
   const orientation = new THREE.Vector3();
   const primaryOrientation = new THREE.Vector3();
   const offset = new THREE.Vector3();
@@ -538,12 +550,11 @@ BaseRenderer.prototype.setNavballOrientation = function () {
   const up0 = new THREE.Vector3(0, 0, 1);
 
   return function (focus, navball) {
-
-    let derived = focus.derived;
-    let primary = focus.primary;
-    let motion = focus.motion;
-    let velocity = derived.velocity.clone();
-    let primaryPosition = this._adjustCoordinates(focus, primary.derived.position);
+    const derived = focus.derived;
+    const primary = focus.primary;
+    const motion = focus.motion;
+    const velocity = derived.velocity.clone();
+    const primaryPosition = this._adjustCoordinates(focus, primary.derived.position);
 
     orientation.copy(motion.heading0);
     orientation.applyQuaternion(motion.rotation);
@@ -597,8 +608,8 @@ BaseRenderer.prototype.setNavballOrientation = function () {
     navballBorder.setRotationFromQuaternion(motion.rotation);
     navballBorder.rotateX(Math.PI / 2);
 
-    let radial = primaryPosition;
-    let angle = radial.angleTo(motion.heading0);
+    const radial = primaryPosition;
+    const angle = radial.angleTo(motion.heading0);
     offset.crossVectors(radial, motion.heading0)
       .normalize();
 
@@ -607,7 +618,7 @@ BaseRenderer.prototype.setNavballOrientation = function () {
     gyroscope.rotation.set(0, 0, 0);
     gyroscope.rotateOnAxis(offset, -angle);
 
-    let verticalAngle = -(primary.constants.axial_tilt || 0) * Math.PI / 180;
+    const verticalAngle = -(primary.constants.axial_tilt || 0) * (Math.PI / 180);
     gyroscope.rotateY(Math.PI / 2);
     gyroscope.rotateY(-verticalAngle);
 
@@ -615,29 +626,29 @@ BaseRenderer.prototype.setNavballOrientation = function () {
      * Adjust Navball Markers (Prograde, Retrograde, etc...)
      */
 
-    let markers = [
+    const markers = [
       [navball.markers.prograde, velocity.clone()
         .normalize()
         .negate()
-        .multiplyScalar(0.41)
+        .multiplyScalar(0.41),
       ],
       [navball.markers.retrograde, velocity.clone()
         .normalize()
-        .multiplyScalar(0.41)
+        .multiplyScalar(0.41),
       ],
       [navball.markers.radialIn,
         primaryOrientation.clone()
         .negate()
-        .multiplyScalar(0.41)
+        .multiplyScalar(0.41),
       ],
       [navball.markers.radialOut,
         primaryOrientation.clone()
-        .multiplyScalar(0.41)
+        .multiplyScalar(0.41),
       ],
       [navball.markers.level,
         this.navball.camera.position.clone()
         .normalize()
-        .multiplyScalar(0.45)
+        .multiplyScalar(0.45),
       ],
     ];
 
@@ -649,12 +660,10 @@ BaseRenderer.prototype.setNavballOrientation = function () {
       marker.rotateX(Math.PI);
       marker.rotateZ(Math.PI);
     });
-  }
-
-}();
+  };
+}());
 
 BaseRenderer.prototype._defaultKeyPressHandler = function (solarSystem, additionalKeys) {
-
   const keyHandlers = {
     // -  (Decrease Throttle)
     45: (body) => {
@@ -701,10 +710,9 @@ BaseRenderer.prototype._defaultKeyPressHandler = function (solarSystem, addition
       if (body.type !== SHIP_TYPE) return;
       body.motion.yaw += MOTION_STEP;
     },
-  }
+  };
 
   return ((key) => {
-
     const body = solarSystem.find(this.state.focus);
     if (key in keyHandlers) {
       keyHandlers[key](body);
@@ -713,12 +721,11 @@ BaseRenderer.prototype._defaultKeyPressHandler = function (solarSystem, addition
 };
 
 BaseRenderer.prototype._lookupNearbyBodies = function (focus, bodies, nearbyThreshold) {
-
   const partitioned = bodies.map((body) => {
-      const distance = new THREE.Vector3()
+    const distance = new THREE.Vector3()
         .subVectors(focus.derived.position, body.derived.position);
-      return [body, distance.lengthSq()];
-    })
+    return [body, distance.lengthSq()];
+  })
     .reduce((acc, [body, distance]) => {
       if (distance < nearbyThreshold || body.name === 'sun' || (focus.primary && focus.primary.name === body.name)) {
         acc[0].push(body);
@@ -728,7 +735,7 @@ BaseRenderer.prototype._lookupNearbyBodies = function (focus, bodies, nearbyThre
       return acc;
     }, [
       [],
-      []
+      [],
     ]);
 
   const neighbours = partitioned[0];

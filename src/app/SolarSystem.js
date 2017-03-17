@@ -1,100 +1,96 @@
 import moment from 'moment';
-import Bodies from './Bodies';
-import { SHIP_TYPE } from './Constants';
-
 import {
   Vector3,
   Quaternion,
-  Matrix3,
-  Euler,
 } from 'three';
 
-const J2000_date = moment('2000-01-01T12:00:00Z');
-const J2000_epoch = 2451545.0;
+import Bodies from './Bodies';
+import { AU, SHIP_TYPE } from './Constants';
+
+const J2000Date = moment('2000-01-01T12:00:00Z');
+const J2000Epoch = 2451545.0;
 
 function SolarSystem() {
   this.bodies = Array.from(Bodies);
   this.initialized = false;
+}
+
+SolarSystem.prototype.find = function find(bodyId) {
+  return this.bodies.find(body => body.name === bodyId);
 };
 
-SolarSystem.prototype.find = function (bodyId) {
-  return this.bodies.find((body) => body.name == bodyId);
-};
-
-SolarSystem.prototype.update = function (t, dt) {
-
-  let currentDate = moment(t + dt);
+SolarSystem.prototype.update = function update(t, dt) {
+  const currentDate = moment(t + dt);
 
   if (!this.initialized) {
     /**
      * Generate a starting position/velocity from the initial kepler
      * elements
      */
-    let T = this._calculateJulianDate(currentDate);
+    const T = this._calculateJulianDate(currentDate);
     this.bodies.forEach((body) => {
-      let kepler_elements = this._calculateInitialKeplerElements(body, T);
-      body.derived = kepler_elements;
+      const keplerElements = this._calculateInitialKeplerElements(body, T);
+      body.derived = keplerElements;
     });
 
     this.initialized = true;
   }
 
   this.bodies.forEach((body) => {
+    const keplerElements = this._calculateKeplerElementsAtTime(body, t + dt);
+    const coords = this._toCartesianCoordinates(body.primary, keplerElements);
+    const position = coords.position;
+    const velocity = coords.velocity;
 
-    let kepler_elements = this._calculateKeplerElementsAtTime(body, t + dt);
-    let coords = this._toCartesianCoordinates(body.primary, kepler_elements);
-    let position = coords.position;
-    let velocity = coords.velocity;
-
-    let body_constants = body.constants;
-    let primary = body.primary;
-    let derived = body.derived;
-    let u = body.primary ? primary.constants.u : 0;
-    let offset = body.primary ? primary.derived.position : new Vector3(0, 0, 0);
-    let {
+    const bodyConstants = body.constants;
+    const primary = body.primary;
+    const derived = body.derived;
+    const u = body.primary ? primary.constants.u : 0;
+    const offset = body.primary ? primary.derived.position : new Vector3(0, 0, 0);
+    const {
       a,
       e,
       I,
       argumentPerihelion,
       omega,
       M,
-    } = kepler_elements;
+    } = keplerElements;
 
     // Semi-minor axis
-    let b = a * Math.sqrt(1 - Math.pow(e, 2));
+    const b = a * Math.sqrt(1 - (e ** 2));
 
     // Trajectory Elements
-    let periapsis = new Vector3(a * (1 - e), 0, 0);
-    let apoapsis = new Vector3(-a * (1 + e), 0, 0);
-    let center = new Vector3(periapsis.x - a, 0, 0);
+    const periapsis = new Vector3(a * (1 - e), 0, 0);
+    const apoapsis = new Vector3(-a * (1 + e), 0, 0);
+    const center = new Vector3(periapsis.x - a, 0, 0);
 
     // Orbital Period and Rotational Period
-    let orbital_period = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) /
-      (u + (body_constants.u || 0)));
+    const orbitalPeriod = 2 * Math.PI * Math.sqrt((a ** 3) /
+      (u + (bodyConstants.u || 0)));
 
-    let rotation = (derived.rotation || 0) +
-      2 * Math.PI * dt /
-      ((body_constants.rotation_period || 1) * 86400e3);
+    const rotation = (derived.rotation || 0) +
+      ((2 * Math.PI * dt) /
+      ((bodyConstants.rotation_period || 1) * 86400e3));
 
     body.derived = {
-      a: a,
-      e: e,
-      I: I,
-      omega: omega,
-      argumentPerihelion: argumentPerihelion,
-      M: M,
-      position: position,
+      a,
+      e,
+      I,
+      omega,
+      argumentPerihelion,
+      M,
+      position,
       position_in_plane: coords.position_in_plane,
-      velocity: velocity,
+      velocity,
       semiMajorAxis: a,
       semiMinorAxis: b,
-      orbital_period: orbital_period,
-      rotation: rotation,
+      orbitalPeriod,
+      rotation,
       center_in_plane: center,
       center: this._transformToEcliptic(offset, center, argumentPerihelion, omega, I),
       periapsis: this._transformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
       apoapsis: this._transformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
-    }
+    };
 
     if (body.type === SHIP_TYPE) {
       this._applyRotation(body, dt);
@@ -105,8 +101,7 @@ SolarSystem.prototype.update = function (t, dt) {
   this.lastTime = t + dt;
 };
 
-SolarSystem.prototype._applyRotation = function () {
-
+SolarSystem.prototype._applyRotation = (function () {
   // Initialize objects once to avoid frequent object creation
   const adjustment = new Quaternion();
   const axisX = new Vector3(1, 0, 0);
@@ -114,25 +109,25 @@ SolarSystem.prototype._applyRotation = function () {
   const axisZ = new Vector3(0, 0, 1);
 
   // rad / second
-  const DAMPING_STEP = Math.PI / Math.pow(2, 3);
+  const DAMPING_STEP = Math.PI / (2 ** 3);
 
   const dampenMotion = (val, dt) => {
-    val -= Math.sign(val) * DAMPING_STEP * dt / 1000;
-    if (Math.abs(val) < 10e-10)
-      val = 0;
+    let adjusted = val - ((Math.sign(val) * DAMPING_STEP * dt) / 1000);
+    if (Math.abs(adjusted) < 10e-10) {
+      adjusted = 0;
+    }
 
-    return val;
+    return adjusted;
   };
 
-  return function (body, dt) {
-
+  return function applyRotation(body, dt) {
     const rotation = body.motion.rotation;
 
-    adjustment.setFromAxisAngle(axisX, (body.motion.pitch || 0) * dt / 1000);
+    adjustment.setFromAxisAngle(axisX, ((body.motion.pitch || 0) * dt) / 1000);
     rotation.multiply(adjustment);
-    adjustment.setFromAxisAngle(axisY, (body.motion.roll || 0) * dt / 1000);
+    adjustment.setFromAxisAngle(axisY, ((body.motion.roll || 0) * dt) / 1000);
     rotation.multiply(adjustment);
-    adjustment.setFromAxisAngle(axisZ, (body.motion.yaw || 0) * dt / 1000);
+    adjustment.setFromAxisAngle(axisZ, ((body.motion.yaw || 0) * dt) / 1000);
     rotation.multiply(adjustment);
 
     if (body.motion.sas) {
@@ -140,20 +135,19 @@ SolarSystem.prototype._applyRotation = function () {
       body.motion.roll = dampenMotion(body.motion.roll, dt);
       body.motion.yaw = dampenMotion(body.motion.yaw, dt);
     }
-  }
-}();
+  };
+}());
 
-SolarSystem.prototype._applyThrust = function () {
-
+SolarSystem.prototype._applyThrust = (function () {
   const orientation = new Vector3();
 
-  return function (body, dt) {
-
+  return function applyThrust(body, dt) {
     const motion = body.motion;
 
     // No thrust to apply
-    if (motion.thrust <= 0)
+    if (motion.thrust <= 0) {
       return;
+    }
 
     orientation.copy(motion.heading0);
     orientation.applyQuaternion(motion.rotation);
@@ -162,16 +156,15 @@ SolarSystem.prototype._applyThrust = function () {
     const stage = body.stages[0];
     const thrust = stage.thrust * motion.thrust;
     const isp = stage.isp;
-    const g0 = body.primary.constants.u / Math.pow(body.primary.constants.radius, 2);
+    const g0 = body.primary.constants.u / (body.primary.constants.radius ** 2);
     const deltaM = thrust / (g0 * isp * AU);
 
     const m0 = stage.mass + stage.propellant;
-    stage.propellant -= deltaM * dt / 1000;
+    stage.propellant -= (deltaM * dt) / 1000;
     const m1 = stage.mass + stage.propellant;
 
-    const deltaV_scalar = isp * g0 * Math.log(m0 / m1);
     const deltaV = orientation.clone()
-      .multiplyScalar(deltaV_scalar);
+      .multiplyScalar(isp * g0 * Math.log(m0 / m1));
 
     body.derived.velocity.add(deltaV);
     body.derived.position.add(body.derived.velocity.clone()
@@ -184,168 +177,173 @@ SolarSystem.prototype._applyThrust = function () {
     body.derived.omega = updated.omega;
     body.derived.argumentPerihelion = updated.argumentPerihelion;
     body.derived.M = updated.M;
-  }
-
-}();
+  };
+}());
 
 SolarSystem.prototype._calculateInitialKeplerElements = function (body, T) {
-
   // Planets are fixed on rails; we simply a
-  let kepler_elements = body.kepler_elements;
-  let a = kepler_elements.a[0] + kepler_elements.a[1] * T;
-  let e = kepler_elements.e[0] + kepler_elements.e[1] * T;
-  let I = kepler_elements.I[0] + kepler_elements.I[1] * T;
-  let L = kepler_elements.L[0] + kepler_elements.L[1] * T;
-  let w = kepler_elements.w[0] + kepler_elements.w[1] * T;
-  let omega = kepler_elements.omega[0] + kepler_elements.omega[1] * T;
-  let perturbations = kepler_elements.perturbations;
-  let M = this._calculateMeanAnomaly(L, w, perturbations, T);
-  let argumentPerihelion = w - omega;
+  const keplerElements = body.kepler_elements;
+  const a = keplerElements.a[0] + (keplerElements.a[1] * T);
+  const e = keplerElements.e[0] + (keplerElements.e[1] * T);
+  const I = keplerElements.I[0] + (keplerElements.I[1] * T);
+  const L = keplerElements.L[0] + (keplerElements.L[1] * T);
+  const w = keplerElements.w[0] + (keplerElements.w[1] * T);
+  const omega = keplerElements.omega[0] + (keplerElements.omega[1] * T);
+  const perturbations = keplerElements.perturbations;
+  const M = this._calculateMeanAnomaly(L, w, perturbations, T);
+  const argumentPerihelion = w - omega;
 
   return {
-    a: a,
-    e: e,
-    I: I * Math.PI / 180,
-    omega: omega * Math.PI / 180,
-    argumentPerihelion: argumentPerihelion * Math.PI / 180,
-    M: M * Math.PI / 180,
+    a,
+    e,
+    I: I * (Math.PI / 180),
+    omega: omega * (Math.PI / 180),
+    argumentPerihelion: argumentPerihelion * (Math.PI / 180),
+    M: M * (Math.PI / 180),
   };
 };
 
 SolarSystem.prototype._calculateKeplerElementsAtTime = function (body, t) {
-
-  let {
+  const {
     a,
     e,
     I,
     omega,
     argumentPerihelion,
-    M
+    M,
   } = body.derived;
 
   /**
    * For elliptical orbits, M - M0 = n(t - t0)
    */
 
-  let lastTime = this.lastTime || t;
-  let delta = (t - lastTime) / 1000;
-  let u = body.primary ? body.primary.constants.u : 0;
-  let n = Math.sqrt(u / Math.pow(a, 3));
-  M = n * delta + M;
+  const lastTime = this.lastTime || t;
+  const delta = (t - lastTime) / 1000;
+  const u = body.primary ? body.primary.constants.u : 0;
+  const n = Math.sqrt(u / (a ** 3));
+  const updatedM = (n * delta) + M;
 
-  return {
+  return Object.assign({
     a,
     e,
     I,
     omega,
     argumentPerihelion,
-    M
-  };
+  }, {
+    M: updatedM,
+  });
 };
 
 SolarSystem.prototype._calculateKeplerElementsFromCartesian = function (body) {
+  const primary = body.primary;
+  const position = body.derived.position;
+  const velocity = body.derived.velocity;
 
-  let primary = body.primary;
-  let position = body.derived.position;
-  let velocity = body.derived.velocity;
-
-  let r = new Vector3()
+  const r = new Vector3()
     .subVectors(position, primary.derived.position);
-  let v = velocity.clone();
-  let u = primary.constants.u;
+  const v = velocity.clone();
+  const u = primary.constants.u;
 
   const h = new Vector3()
     .crossVectors(r, v);
 
   if (h.length() <= 0) {
-    console.error("angular momentum is zero!");
+    console.error('angular momentum is zero!');
   }
 
   // Semi-Major Axis
-  const specificEnergy = v.lengthSq() / 2 - u / r.length();
+  const specificEnergy = (v.lengthSq() / 2) - (u / r.length());
   const a = -u / (2 * specificEnergy);
 
   // Eccentricity
-  const e_sub = h.lengthSq() / (u * a);
-  const e = e_sub > 1 ? 0 : Math.sqrt(1 - e_sub);
+  const esub = h.lengthSq() / (u * a);
+  const e = esub > 1 ? 0 : Math.sqrt(1 - esub);
 
   // Inclination, Longitude of the ascending node
   const I = -Math.acos(h.z / h.length());
   const omega = Math.atan2(h.x, h.y);
 
-  let E, argumentPerihelion;
+  let E;
+  let argumentPerihelion;
   if (e === 0 && I === 0) {
     // Circular Orbits with zero inclincation
 
-    let trueLongitude = Math.acos(r.x / r.length());
-    if (v.x > 0) {
-      trueLongitude = 2 * Math.PI - trueLongitude;
-    }
-
+    // let trueLongitude = Math.acos(r.x / r.length());
+    // if (v.x > 0) {
+    //   trueLongitude = 2 * Math.PI - trueLongitude;
+    // }
   } else if (e === 0) {
     // Circular orbits with a +/- inclincation
     // True anomaly is undefined for a circular orbit because circular orbits
     // do not have a uniquely-determined periapsis; Instead, the argument of
     // latitude is used:
-    const argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
+    const argumentLatitude = Math.atan2(
+      r.z / Math.sin(I),
+      (r.x * Math.cos(omega)) + (r.y * Math.sin(omega)));
+
     E = 2 * Math.atan(Math.tan(argumentLatitude / 2));
     argumentPerihelion = 0;
   } else {
-    let v_eccentricity = new Vector3()
+    const eccentricityVector = new Vector3()
       .crossVectors(v, h)
       .multiplyScalar(1 / u)
       .sub(r.clone()
-        .multiplyScalar(1 / r.length()))
+        .multiplyScalar(1 / r.length()));
 
-    let trueAnomaly = Math.acos(v_eccentricity.dot(r) / (v_eccentricity.length() * r.length()));
-    if (r.dot(v) < 0)
-      trueAnomaly = 2 * Math.PI - trueAnomaly;
+    let trueAnomaly = Math.acos(
+      eccentricityVector.dot(r) / (eccentricityVector.length() * r.length()));
 
-    const argumentLatitude = Math.atan2(r.z / Math.sin(I), r.x * Math.cos(omega) + r.y * Math.sin(omega));
+    if (r.dot(v) < 0) {
+      trueAnomaly = (2 * Math.PI) - trueAnomaly;
+    }
+
+    const argumentLatitude = Math.atan2(
+      r.z / Math.sin(I),
+      (r.x * Math.cos(omega)) + (r.y * Math.sin(omega)));
+
     E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
     argumentPerihelion = argumentLatitude - trueAnomaly;
   }
 
-  const M = E - e * Math.sin(E);
+  const M = E - (e * Math.sin(E));
 
-  const calculated_kepler_elements = {
+  const calculatedKeplerElements = {
     a,
     e,
     I,
     omega,
     argumentPerihelion,
-    M
+    M,
   };
 
-  return calculated_kepler_elements;
+  return calculatedKeplerElements;
 };
 
-SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elements) {
-
-  let {
+SolarSystem.prototype._toCartesianCoordinates = function (primary, keplerElements) {
+  const {
     a,
     e,
     I,
     argumentPerihelion,
     omega,
     M,
-  } = kepler_elements;
+  } = keplerElements;
 
-  let u = primary ? primary.constants.u : 0;
-  let offset = primary ? primary.derived.position : new Vector3(0, 0, 0);
-  let E = this._calculateEccentricAnomaly(e, M * 180 / Math.PI) * Math.PI / 180;
+  const u = primary ? primary.constants.u : 0;
+  const offset = primary ? primary.derived.position : new Vector3(0, 0, 0);
+  const E = this._calculateEccentricAnomaly(e, M * (180 / Math.PI)) * (Math.PI / 180);
 
-  let trueAnomaly = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2),
+  const trueAnomaly = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2),
     Math.sqrt(1 - e) * Math.cos(E / 2));
 
   // Calculate heliocentric coordinates in the planets orbital plane
-  let helioCentricPosition = new Vector3(
+  const helioCentricPosition = new Vector3(
     a * (Math.cos(E) - e),
-    a * Math.sqrt(1 - Math.pow(e, 2)) * Math.sin(E),
+    a * Math.sqrt(1 - (e ** 2)) * Math.sin(E),
     0);
 
   // Convert to the ecliptic plane
-  let eclipticPosition = this._transformToEcliptic(
+  const eclipticPosition = this._transformToEcliptic(
     offset,
     helioCentricPosition,
     argumentPerihelion,
@@ -353,13 +351,13 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
     I);
 
   // Calculate the velocity in the planets orbital planet
-  let helioCentricVelocity = new Vector3(-Math.sin(trueAnomaly),
+  const helioCentricVelocity = new Vector3(-Math.sin(trueAnomaly),
       e + Math.cos(trueAnomaly),
       0)
-    .multiplyScalar((Math.sqrt(u / Math.pow(a, 3)) * a) / Math.sqrt(1 - Math.pow(e, 2)));
+    .multiplyScalar((Math.sqrt(u / (a ** 3)) * a) / Math.sqrt(1 - (e ** 2)));
 
   // Convert to the ecliptic plane
-  let eclipticVelocity = this._transformToEcliptic(
+  const eclipticVelocity = this._transformToEcliptic(
     new Vector3(0, 0, 0),
     helioCentricVelocity,
     argumentPerihelion,
@@ -369,7 +367,7 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
   return {
     meanAnomaly: M,
     eccentricAnomaly: E,
-    trueAnomaly: trueAnomaly,
+    trueAnomaly,
     position: eclipticPosition,
     position_in_plane: helioCentricPosition,
     velocity: eclipticVelocity,
@@ -377,45 +375,46 @@ SolarSystem.prototype._toCartesianCoordinates = function (primary, kepler_elemen
   };
 };
 
-SolarSystem.prototype._calculateJulianDate = function (date) {
-  let Teph = J2000_epoch + date.diff(J2000_date, 'days', true);
-  let T = (Teph - J2000_epoch) / 36525;
+SolarSystem.prototype._calculateJulianDate = function calculateJulianDate(date) {
+  const Teph = J2000Epoch + date.diff(J2000Date, 'days', true);
+  const T = (Teph - J2000Epoch) / 36525;
   return T;
 };
 
-SolarSystem.prototype._calculateMeanAnomaly = function (L, w, perturbations, T) {
+SolarSystem.prototype._calculateMeanAnomaly =
+  function calculateMeanAnomaly(L, w, perturbations, T) {
+    let M = L - w;
+    if (perturbations) {
+      M += (perturbations.b * (T ** 2)) +
+      (perturbations.c * Math.cos(perturbations.f * T)) +
+      (perturbations.s * Math.sin(perturbations.f * T));
+    }
 
-  let M = L - w;
-  if (perturbations) {
-    M += perturbations.b * Math.pow(T, 2) +
-      perturbations.c * Math.cos(perturbations.f * T) +
-      perturbations.s * Math.sin(perturbations.f * T);
-  }
+    M %= 360;
+    if (M > 180) {
+      M -= 360;
+    } else if (M < -180) {
+      M = 360 + M;
+    }
 
-  M = M % 360;
-  if (M > 180) {
-    M = M - 360;
-  } else if (M < -180) {
-    M = 360 + M;
-  }
+    return M;
+  };
 
-  return M;
-};
-
-SolarSystem.prototype._calculateEccentricAnomaly = function (e, M) {
+SolarSystem.prototype._calculateEccentricAnomaly = function calculateEccentricAnomaly(e, M) {
   // Calculate eccentric anomaly, E
   // e_star = degrees
   // e = radians
-  let tol = 10e-6;
-  let e_star = 57.29578 * e;
-  let E = M + e_star * Math.sin((Math.PI / 180) * M);
-  let deltaE, deltaM;
+  const tol = 10e-6;
+  const eStar = 57.29578 * e;
+  let E = M + (eStar * Math.sin((Math.PI / 180) * M));
+  let deltaE;
+  let deltaM;
   let numTimes = 0;
   do {
-    deltaM = M - (E - e_star * Math.sin((Math.PI / 180) * E));
-    deltaE = deltaM / (1 - e * Math.cos((Math.PI / 180) * E));
-    E = E + deltaE;
-    numTimes++;
+    deltaM = M - (E - (eStar * Math.sin((Math.PI / 180) * E)));
+    deltaE = deltaM / (1 - (e * Math.cos((Math.PI / 180) * E)));
+    E += deltaE;
+    numTimes += 1;
   } while (Math.abs(deltaE) > tol && numTimes <= 10);
 
   if (numTimes === 10) {
@@ -425,18 +424,16 @@ SolarSystem.prototype._calculateEccentricAnomaly = function (e, M) {
   return E;
 };
 
-SolarSystem.prototype._transformToEcliptic = function () {
-
+SolarSystem.prototype._transformToEcliptic = (function () {
   const axisZ = new Vector3(0, 0, 1);
   const axisX = new Vector3(1, 0, 0);
 
   return function (offset, position, w, omega, I) {
-
-    let Q1 = new Quaternion()
+    const Q1 = new Quaternion()
       .setFromAxisAngle(axisZ, w);
-    let Q2 = new Quaternion()
+    const Q2 = new Quaternion()
       .setFromAxisAngle(axisX, I);
-    let Q3 = new Quaternion()
+    const Q3 = new Quaternion()
       .setFromAxisAngle(axisZ, omega);
 
     const rotation = new Vector3()
@@ -446,7 +443,7 @@ SolarSystem.prototype._transformToEcliptic = function () {
       .applyQuaternion(Q3);
 
     return rotation.add(offset);
-  }
-}();
+  };
+}());
 
 export default SolarSystem;

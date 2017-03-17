@@ -32,7 +32,7 @@ Object.assign(CameraViewRenderer.prototype, BaseRenderer.prototype);
  * Use this lifeycle method to add event listeners
  */
 CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     Promise.all([
       this._loadTextures(),
       this._loadModels(),
@@ -85,11 +85,11 @@ CameraViewRenderer.prototype.viewDidLoad = function (solarSystem) {
           onFocus(focus);
         });
 
-        this.addEventListener('recenter', (event) => {
+        this.addEventListener('recenter', () => {
           onRecenter();
         });
 
-        this.addEventListener('resize', (event) => {
+        this.addEventListener('resize', () => {
           onWindowResize();
         });
 
@@ -137,7 +137,9 @@ CameraViewRenderer.prototype.render = function render(solarSystem) {
   // Make objects outside of our current sphere invisible (to save resources)
   outliers.forEach((body) => {
     const cached = this.bodyCache.get(body.name);
-    if (cached) { cached.visible = false; }
+    if (cached) {
+      cached.visible = false;
+    }
   });
 
   // Update the positions of all of our bodies
@@ -231,7 +233,9 @@ CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
 
 CameraViewRenderer.prototype._loadModelBody = (function () {
   const childrenOf = (threeObj) => {
-    if (!threeObj.children || threeObj.children.length === 0) { return []; }
+    if (!threeObj.children || threeObj.children.length === 0) {
+      return [];
+    }
 
     const descendants = [];
     threeObj.children.forEach((obj) => {

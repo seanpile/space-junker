@@ -1,14 +1,10 @@
+import * as THREE from 'three';
 import BaseRenderer from './BaseRenderer';
 import {
-  AU
+  AU,
 } from './Bodies';
-import * as THREE from 'three';
-const OrbitControls = require('three-orbit-controls')(THREE);
-
-const POINTS = 8;
 
 function TestingRenderer(container) {
-
   this.width = window.innerWidth;
   this.height = window.innerHeight;
   this.renderer = new THREE.WebGLRenderer();
@@ -18,12 +14,11 @@ function TestingRenderer(container) {
   container.appendChild(this.renderer.domElement);
 
   this.scene = new THREE.Scene();
-};
+}
 
 TestingRenderer.prototype.recenter = function () {};
 
-TestingRenderer.prototype.viewDidLoad = function (solarSystem) {
-
+TestingRenderer.prototype.viewDidLoad = function () {
   // initialize camera and scene
   this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 0.5, AU * 100);
   this.camera.position.z = 10;
@@ -64,30 +59,25 @@ TestingRenderer.prototype.viewDidLoad = function (solarSystem) {
 TestingRenderer.prototype.viewWillAppear = function () {};
 TestingRenderer.prototype.viewWillDisappear = function () {};
 
-TestingRenderer.prototype.render = function (solarSystem) {
-
+TestingRenderer.prototype.render = function () {
   this.camera.position.set(0, 0, 100);
   this.camera.lookAt(this.scene.position);
   this.camera.updateMatrixWorld();
   this.camera.updateProjectionMatrix();
 
   if (this.mouse) {
-
     let raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(this.mouse, this.camera);
     raycaster.params.Points.threshold = 5;
 
-    let target = new THREE.Vector3(this.mouse.x, this.mouse.y, 0.5);
+    const target = new THREE.Vector3(this.mouse.x, this.mouse.y, 0.5);
     target.unproject(this.camera);
-
-    console.log(target);
 
     target.sub(this.camera.position);
     target.normalize();
-    console.log(target);
 
     raycaster = new THREE.Raycaster(this.camera.position.clone(),
-      target
+      target,
     );
 
     this.arrowHelper && this.scene.remove(this.arrowHelper);
@@ -95,7 +85,7 @@ TestingRenderer.prototype.render = function (solarSystem) {
       .normalize(), raycaster.ray.origin.clone(), 1);
     this.scene.add(this.arrowHelper);
 
-    let intersection = raycaster.intersectObjects(this.scene.children, false);
+    const intersection = raycaster.intersectObjects(this.scene.children, false);
     if (intersection.length > 0) {
       console.log(intersection[0].object.name);
     }
