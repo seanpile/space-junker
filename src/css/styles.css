@@ -9,6 +9,10 @@ html, body {
     background-color: black;
 }
 
+.three-canvas {
+    display: block;
+}
+
 #loading {
     position: absolute;
     color: white;
@@ -16,68 +20,29 @@ html, body {
     left: 0;
     width: 100%;
     text-align: center;
+    filter: none;
 }
 
-.help-button {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    -webkit-border-radius: 60;
-    -moz-border-radius: 60;
-    border-radius: 60px;
-    border-style: double;
+.paused {
+    -webkit-filter: blur(20px);
+    -moz-filter: blur(20px);
+    -o-filter: blur(20px);
+    -ms-filter: blur(20px);
+    filter: blur(20px);
     opacity: 0.8;
-    font-family: Arial;
-    color: #ffffff;
-    font-size: 30px;
-    background: #3498db;
-    padding: 8px 15px 8px 15px;
-    text-decoration: none;
-    outline: none;
 }
 
-.help-overlay {
-  position: absolute;
-  width: 30%;
-  top: 25%;
-  left: 35%;
-  display: flex;
-  flex-direction: column;
-  border-radius: 10px;
-  border-style: ridge;
-  background-color: lightgray;
-  opacity: 0.9;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-left: 10px;
-  padding-right: 10px;
+#paused-overlay {
+    position: absolute;
+    top: 30%;
+    width: 30%;
+    left: 35%;
+    opacity: 0.6;
 }
 
-.help-overlay .close-button {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  padding-left: 3px;
-  padding-right: 3px;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  border-radius: 5px;
-  border-style: double;
-  outline: none;
-}
-
-
-.help-overlay .title {
-    flex: 1 1 auto;
+#paused-overlay p {
+    width: 100%;
     text-align: center;
-}
-
-#camera-view canvas {
-    display: block;
-}
-
-#map-view canvas {
-    display: block;
 }
 
 #map-mouse-overlay {
@@ -202,6 +167,59 @@ html, body {
 
 .hud-overlay-entry .value {
     flex: 0 1 auto;
+}
+
+.help-button {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    -webkit-border-radius: 60;
+    -moz-border-radius: 60;
+    border-radius: 60px;
+    border-style: double;
+    opacity: 0.8;
+    font-family: Arial;
+    color: #ffffff;
+    font-size: 30px;
+    background: #3498db;
+    padding: 8px 15px 8px 15px;
+    text-decoration: none;
+    outline: none;
+}
+
+#help-overlay {
+    position: absolute;
+    width: 30%;
+    top: 25%;
+    left: 35%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    border-style: ridge;
+    background-color: lightgray;
+    opacity: 0.9;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+#help-overlay .close-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 5px;
+    border-style: double;
+    outline: none;
+}
+
+#help-overlay .title {
+    flex: 1 1 auto;
+    text-align: center;
 }
 
 .key-entry {
