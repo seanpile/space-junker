@@ -24,7 +24,6 @@ class SpaceJunker extends React.Component {
 
     const now = Date.now();
     const solarSystem = new SolarSystem();
-    solarSystem.update(now, 0);
 
     const resourceLoader = new ResourceLoader();
     const stats = new Stats();
@@ -47,6 +46,9 @@ class SpaceJunker extends React.Component {
       10e6,
     ];
 
+    this.time = now;
+    this.startingTime = now;
+
     const orbitalMapRenderer = new OrbitalMapRenderer(solarSystem, resourceLoader, commonState);
     const cameraViewRenderer = new CameraViewRenderer(solarSystem, resourceLoader, commonState);
 
@@ -54,8 +56,6 @@ class SpaceJunker extends React.Component {
     this.views = [OrbitalMapView, CameraView];
 
     this.state = {
-      time: now,
-      startingTime: now,
       paused: false,
       initialized: false,
       viewIdx: 0,
@@ -64,6 +64,9 @@ class SpaceJunker extends React.Component {
   }
 
   componentDidMount() {
+
+    // Initial Seeding
+    this.solarSystem.update(this.time, 0);
 
     // Initialize Renderers
     Promise.all(this.renderers.map(renderer => renderer.viewDidLoad())).then(() => {
@@ -95,6 +98,12 @@ class SpaceJunker extends React.Component {
       } else {
         this.run();
       }
+    });
+
+    Mousetrap.bind('c', () => {
+      this.activeRenderer().dispatchEvent({
+        type: 'recenter',
+      });
     });
 
     // Toggle Focus backwards between bodies
@@ -152,7 +161,6 @@ class SpaceJunker extends React.Component {
         });
       }
     }, false);
-
 
     const hammer = new Hammer.Manager(window);
     const singleTap = new Hammer.Tap({
@@ -225,18 +233,18 @@ class SpaceJunker extends React.Component {
       accumulator += frameTime;
 
       while (accumulator >= dt) {
-        const t = this.state.time;
+        const t = this.time;
         const scaledDt = this.timeWarpValues[this.state.timeWarpIdx] * dt;
 
         // Update physics
         solarSystem.update(t, scaledDt);
 
         accumulator -= dt;
-
-        this.setState(prevState => ({
-          time: prevState.time + scaledDt,
-        }));
+        this.time += scaledDt;
       }
+
+      this.forceUpdate();
+
     });
   }
 
@@ -289,7 +297,7 @@ class SpaceJunker extends React.Component {
           <HudOverlay
             timeWarpValues={this.timeWarpValues}
             timeWarpIdx={this.state.timeWarpIdx}
-            elapsed={moment.duration(this.state.time - this.state.startingTime)}
+            elapsed={moment.duration(this.time - this.startingTime)}
             stats={this.stats}
             focus={focus}
           />

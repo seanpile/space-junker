@@ -42,11 +42,11 @@ class HelpOverlay extends React.Component {
         description: 'Pause',
       },
       {
-        keys: ['-'],
+        keys: ['ctrl'],
         description: 'Decrease Thrust',
       },
       {
-        keys: ['+'],
+        keys: ['shift'],
         description: 'Increase Thrust',
       },
       {
