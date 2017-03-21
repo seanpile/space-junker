@@ -39,15 +39,15 @@ class OrbitalMapView extends React.Component {
       >
 
         {this.state.mouseOverTarget &&
-        (<div
-          id="map-mouse-overlay"
-          style={{
-            bottom: this.state.mouseOverTarget.bottom,
-            left: this.state.mouseOverTarget.left,
-          }}
-        >
-          <h5 className="body-name">{this.state.mouseOverTarget.name}</h5>
-        </div>)}
+          (<div
+            id="map-mouse-overlay"
+            style={{
+              bottom: this.state.mouseOverTarget.bottom,
+              left: this.state.mouseOverTarget.left,
+            }}
+          >
+            <h5 className="body-name">{this.state.mouseOverTarget.name}</h5>
+          </div>)}
       </div>
 
     );

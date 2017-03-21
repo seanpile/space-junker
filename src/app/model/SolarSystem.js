@@ -149,18 +149,22 @@ SolarSystem.prototype._applyThrust = (function () {
       return;
     }
 
+    const stage = body.stages[0];
+    if (stage.propellant <= 0) {
+      return;
+    }
+
     orientation.copy(motion.heading0);
     orientation.applyQuaternion(motion.rotation);
     orientation.normalize();
 
-    const stage = body.stages[0];
     const thrust = stage.thrust * motion.thrust;
     const isp = stage.isp;
     const g0 = body.primary.constants.u / (body.primary.constants.radius ** 2);
     const deltaM = thrust / (g0 * isp * AU);
 
     const m0 = stage.mass + stage.propellant;
-    stage.propellant -= (deltaM * dt) / 1000;
+    stage.propellant = Math.max(0, stage.propellant - (deltaM * (dt / 1000)));
     const m1 = stage.mass + stage.propellant;
 
     const deltaV = orientation.clone()
