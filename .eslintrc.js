@@ -56,6 +56,10 @@ module.exports = {
       minProperties: 1,
     }],
     'one-var-declaration-per-line': ['error', 'initializations'],
+    'one-var': ['error', {
+      initialized: 'never',
+    }],
+
     'padded-blocks': ['error', {
       classes: 'always',
     }],

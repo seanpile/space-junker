@@ -3,7 +3,10 @@ import BaseRenderer from './BaseRenderer';
 import {
   SHIP_TYPE,
   PLANET_TYPE,
+  ELLIPTICAL_TRAJECTORY,
+  HYPERBOLIC_TRAJECTORY,
 } from '../Constants';
+import HyperbolicCurve from './curves/HyperbolicCurve';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
 
@@ -134,11 +137,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
               color: 'aqua',
             }));
 
-          const trajectory = new THREE.Line(
-            this._createTrajectoryGeometry(),
-            new THREE.LineBasicMaterial({
-              color: PLANET_COLOURS[body.name] || 'white',
-            }));
+          const trajectory = this.createTrajectory(body);
 
           this.scene.add(threeBody);
           this.scene.add(trajectory);
@@ -158,7 +157,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
         resolve();
       })
       .catch((error) => {
-        console.log(error);
+        console.error(error);
         reject(error);
       });
   });
@@ -201,30 +200,21 @@ OrbitalMapRenderer.prototype.render = function () {
 
     const threeBody = bodyMap.body;
     const threePeriapsis = bodyMap.periapsis;
-    const threeApoapsis = bodyMap.apoapsis;
     const derived = body.derived;
 
     // Adjust position to re-center the coordinate system on the focus
     const position = this._adjustCoordinates(focus, derived.position);
-    const apoapsis = this._adjustCoordinates(focus, derived.apoapsis);
     const periapsis = this._adjustCoordinates(focus, derived.periapsis);
 
     threeBody.position.set(position.x, position.y, position.z);
     threePeriapsis.position.set(periapsis.x, periapsis.y, periapsis.z);
-    threeApoapsis.position.set(apoapsis.x, apoapsis.y, apoapsis.z);
 
     if (body.type === PLANET_TYPE) {
       this._applyPlanetaryRotation(threeBody, body);
     }
 
     this._scaleBody(body);
-
-    if (body.derived.e < 1) {
-      bodyMap.trajectory.visible = true;
-      this._updateTrajectory(focus, body);
-    } else {
-      bodyMap.trajectory.visible = false;
-    }
+    this._updateTrajectory(focus, body);
   });
 
   this._updateCamera(focus);
@@ -241,7 +231,6 @@ OrbitalMapRenderer.prototype.render = function () {
 };
 
 OrbitalMapRenderer.prototype._setupLightSources = function (textures) {
-  // const ambientLight = new THREE.AmbientLight(0x202020);
   const ambientLight = new THREE.AmbientLight(0x606060);
   const pointLight = new THREE.PointLight(0xffffff, 1);
   const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 150, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffffff));
@@ -292,7 +281,19 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   // Redraw the trajectory for this body
   const bodyMap = this.bodyMap.get(body.name);
   const threeBody = bodyMap.body;
-  const trajectory = bodyMap.trajectory;
+  const orbit = body.derived.orbit;
+
+  let trajectory = bodyMap.trajectory;
+  const refreshTrajectory =
+    (orbit.e <= 1 && trajectory.name !== ELLIPTICAL_TRAJECTORY) ||
+    (orbit.e >= 1 && trajectory.name !== HYPERBOLIC_TRAJECTORY);
+
+  if (refreshTrajectory) {
+    this.scene.remove(trajectory);
+    trajectory = this.createTrajectory(body);
+    this.scene.add(trajectory);
+    bodyMap.trajectory = trajectory;
+  }
 
   const showTrajectoryTheshold = 0.05;
   let visible = true;
@@ -331,27 +332,45 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   trajectory.translateX(center.x);
   trajectory.translateY(center.y);
   trajectory.translateZ(center.z);
-  trajectory.rotateZ(derived.omega);
-  trajectory.rotateX(derived.I);
-  trajectory.rotateZ(derived.argumentPerihelion);
+  trajectory.rotateZ(derived.orbit.omega);
+  trajectory.rotateX(derived.orbit.I);
+  trajectory.rotateZ(derived.orbit.argumentPerihelion);
   trajectory.scale.set(semiMajorAxis, semiMinorAxis, 1);
 };
 
-OrbitalMapRenderer.prototype._createTrajectoryGeometry = function () {
-  const NUM_POINTS = 256;
+OrbitalMapRenderer.prototype.createTrajectory = function (body) {
 
-  // Create the trajectory using a strandard ellipse curve that will
-  // eventually scale/rotate/translate into the correct orbit path during
-  // the render loop.
-  const pointsGeometry = new THREE.Path(new THREE.EllipseCurve(
+  const e = body.derived.orbit.e;
+  let curve;
+  let name;
+  if (e >= 0 && e < 1) {
+    // Ellipse
+    curve = new THREE.EllipseCurve(
         0, 0, // ax, aY
         1, 1, // xRadius, yRadius
         0, 2 * Math.PI, // aStartAngle, aEndAngle
         false, // aClockwise
         0, // aRotation
-      )
-      .getPoints(NUM_POINTS))
-    .createPointsGeometry(NUM_POINTS);
+      );
+    name = ELLIPTICAL_TRAJECTORY;
+
+  } else if (e >= 1) {
+    // Hyperbola
+    curve = new HyperbolicCurve(
+        0, 0, // ax, aY
+        1, 1, // xRadius, yRadius
+        -Math.PI, Math.PI,
+      );
+    name = HYPERBOLIC_TRAJECTORY;
+  }
+
+  const NUM_POINTS = 256;
+
+  // Create the trajectory using a strandard ellipse curve that will
+  // eventually scale/rotate/translate into the correct orbit path during
+  // the render loop.
+  const pointsGeometry =
+    new THREE.Path(curve.getPoints(NUM_POINTS)).createPointsGeometry(NUM_POINTS);
   const bufferGeometry = new THREE.BufferGeometry();
   const vertices = [];
   for (let i = 0; i < pointsGeometry.vertices.length; i += 1) {
@@ -365,7 +384,14 @@ OrbitalMapRenderer.prototype._createTrajectoryGeometry = function () {
   bufferGeometry.addAttribute('position',
     new THREE.BufferAttribute(new Float32Array(vertices), 3));
 
-  return bufferGeometry;
+  const trajectory = new THREE.Line(
+    bufferGeometry,
+    new THREE.LineBasicMaterial({
+      color: PLANET_COLOURS[body.name] || 'white',
+    }));
+
+  trajectory.name = name;
+  return trajectory;
 };
 
 OrbitalMapRenderer.prototype._onMouseover = (function () {
@@ -373,38 +399,38 @@ OrbitalMapRenderer.prototype._onMouseover = (function () {
 
   return function onMouseOver(location) {
 
-    if (this.mouseOverTimeout === null) {
+    // If we've already fired off an event, cancel it and start a new one
+    if (this.mouseOverTimeout !== null) {
+      clearInterval(this.mouseOverTimeout);
+    }
 
-      this.mouseOverTimeout = setTimeout(() => {
-
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+    this.mouseOverTimeout = setTimeout(() => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
         // Convert to normalized device coordinates
-        const target = new THREE.Vector2(
+      const target = new THREE.Vector2(
           ((location.x / width) * 2) - 1,
           -((location.y / height) * 2) + 1);
 
-        raycaster.setFromCamera(target, this.camera);
+      raycaster.setFromCamera(target, this.camera);
 
-        const bodiesToTest = Array.from(this.bodyMap.entries())
+      const bodiesToTest = Array.from(this.bodyMap.entries())
           .map(entry => entry[1].body)
           .filter(body => body.visible);
 
-        const intersection = raycaster.intersectObjects(bodiesToTest);
-        if (intersection.length > 0) {
-          this.mouseOverCallback({
-            name: intersection[0].object.name,
-            left: location.x,
-            bottom: (height - location.y),
-          });
-        } else {
-          this.mouseOverCallback(null);
-        }
+      const intersection = raycaster.intersectObjects(bodiesToTest);
+      if (intersection.length > 0) {
+        this.mouseOverCallback({
+          name: intersection[0].object.name,
+          left: location.x,
+          bottom: (height - location.y),
+        });
+      } else {
+        this.mouseOverCallback(null);
+      }
 
-        this.mouseOverTimeout = null;
-      }, 300);
-    }
+    }, 300);
   };
 }());
 

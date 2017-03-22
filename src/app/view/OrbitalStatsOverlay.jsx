@@ -4,7 +4,7 @@ import { AU, PLANET_TYPE } from '../Constants';
 function OrbitalStatsOverlay(props) {
   const focus = props.focus;
   const velocity = focus.derived.velocity.length() * AU;
-  const eccentricity = focus.derived.e || 0;
+  const eccentricity = focus.derived.orbit.e || 0;
   const semiMajorAxis = (focus.derived.semiMajorAxis * AU) / 1000;
   const semiMinorAxis = (focus.derived.semiMinorAxis * AU) / 1000;
   const rotationPeriod = focus.constants.rotation_period || 0;
@@ -19,8 +19,13 @@ function OrbitalStatsOverlay(props) {
     distance = ((r.length() - focus.primary.constants.radius) * AU) / 1000;
     periapsis = ((focus.derived.periapsis.clone().sub(focus.primary.derived.position).length() -
       focus.primary.constants.radius) * AU) / 1000;
-    apoapsis = ((focus.derived.apoapsis.clone().sub(focus.primary.derived.position).length() -
-      focus.primary.constants.radius) * AU) / 1000;
+
+    if (focus.derived.apoapsis) {
+      apoapsis = ((focus.derived.apoapsis.clone().sub(focus.primary.derived.position).length() -
+        focus.primary.constants.radius) * AU) / 1000;
+    } else {
+      apoapsis = NaN;
+    }
   }
 
   const stats = [
@@ -42,7 +47,7 @@ function OrbitalStatsOverlay(props) {
       'Periapsis', `${periapsis.toFixed(2)} km`,
     ],
     [
-      'Apoapsis', `${apoapsis.toFixed(2)} km`,
+      'Apoapsis', `${isNaN(apoapsis) ? 'Undefined' : `${apoapsis.toFixed(2)} km`}`,
     ],
     [
       'Eccentricity', `${eccentricity.toFixed(4)}`,
@@ -53,7 +58,7 @@ function OrbitalStatsOverlay(props) {
     [
       'Semi-Minor Axis', `${semiMinorAxis.toFixed(2)} km`,
     ],
-    ['Orbital Period', `${orbitalPeriod.toFixed(4)} days`],
+    ['Orbital Period', `${orbitalPeriod === Infinity ? `${orbitalPeriod}` : `${orbitalPeriod.toFixed(4)} days`}`],
   ];
 
   if (focus.type === PLANET_TYPE) {

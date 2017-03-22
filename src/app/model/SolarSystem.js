@@ -39,85 +39,17 @@ SolarSystem.prototype.update = function update(t, dt) {
   this.bodies.forEach((body) => {
     const orbit = this._advanceOrbit(body, t + dt);
     const coords = this._toCartesianCoordinates(body);
-
-    if (body.name === 'apollo 11') {
-
-      // We calculate heliocentric position coordinates oriented from the ecliptic plane
-      // When reversing, we need to first convert these coordinates to ECI based coordinates
-      //
-      // body.derived.position = coords.position;
-      // body.derived.velocity = coords.velocity;
-      // const inverseOrbit = this._calculateOrbitFromCartesian(body);
-      //
-      // body.derived.orbit = inverseOrbit;
-      // const inverseCoords = this._toCartesianCoordinates(body);
-
-      // console.log(coords.position);
-      // console.log(inverseCoords.position);
-
-      //
-      //
-      // console.log(orbit.M);
-      // console.log(inverseOrbit.M);
-      // console.log(orbit.I);
-      // console.log(inverseOrbit.I);
-      // console.log(orbit.omega);
-      // console.log(inverseOrbit.omega);
-      // console.log(orbit.argumentPerihelion);
-      // console.log(inverseOrbit.argumentPerihelion);
-    }
-
     const position = coords.position;
     const velocity = coords.velocity;
+    const derived = this._calculateDerivedStats(body, dt);
 
-    const bodyConstants = body.constants;
-    const primary = body.primary;
-    const derived = body.derived;
-    const u = body.primary ? primary.constants.u : 0;
-    const offset = body.primary ? primary.derived.position : new Vector3(0, 0, 0);
-    const {
-      a,
-      e,
-      I,
-      argumentPerihelion,
-      omega,
-      M,
-    } = orbit;
-
-    // Semi-minor axis
-    const b = a * Math.sqrt(1 - (e ** 2));
-
-    // Trajectory Elements
-    const periapsis = new Vector3(a * (1 - e), 0, 0);
-    const apoapsis = new Vector3(-a * (1 + e), 0, 0);
-    const center = new Vector3(periapsis.x - a, 0, 0);
-
-    // Orbital Period and Rotational Period
-    const orbitalPeriod = 2 * Math.PI * Math.sqrt((a ** 3) /
-      (u + (bodyConstants.u || 0)));
-
-    const rotation = (derived.rotation || 0) +
-      ((2 * Math.PI * dt) /
-      ((bodyConstants.rotation_period || 1) * 86400e3));
-
-    body.derived = {
+    Object.assign(derived, {
       orbit,
-      a,
-      e,
-      I,
-      omega,
-      argumentPerihelion,
-      M,
       position,
       velocity,
-      semiMajorAxis: a,
-      semiMinorAxis: b,
-      orbitalPeriod,
-      rotation,
-      center: this._transformToEcliptic(offset, center, argumentPerihelion, omega, I),
-      periapsis: this._transformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
-      apoapsis: this._transformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
-    };
+    });
+
+    body.derived = derived;
 
     if (body.type === SHIP_TYPE) {
       this._applyRotation(body, dt);
@@ -126,6 +58,60 @@ SolarSystem.prototype.update = function update(t, dt) {
   });
 
   this.lastTime = t + dt;
+};
+
+SolarSystem.prototype._calculateDerivedStats = function (body, dt) {
+
+  const orbit = body.derived.orbit;
+  const e = orbit.e;
+  const a = orbit.a;
+  const argumentPerihelion = orbit.argumentPerihelion;
+  const omega = orbit.omega;
+  const I = orbit.I;
+  const u = body.primary ? body.primary.constants.u : 0;
+  const offset = body.primary ? body.primary.derived.position : new Vector3(0, 0, 0);
+
+  // Semi-minor axis
+  let b, periapsis, apoapsis, center, orbitalPeriod;
+  if (e >= 0 && e < 1) {
+    // Ellipse
+    b = a * Math.sqrt(1 - (e ** 2));
+    periapsis = new Vector3(a * (1 - e), 0, 0);
+    apoapsis = new Vector3(-a * (1 + e), 0, 0);
+    center = new Vector3(periapsis.x - a, 0, 0);
+    orbitalPeriod = 2 * Math.PI * Math.sqrt((a ** 3) /
+      (u + (body.constants.u || 0)));
+
+  } else if (e === 1) {
+    // Parabola
+    b = a / 2;
+    periapsis = new Vector3(a / 2, 0, 0);
+    apoapsis = undefined;
+    center = new Vector3(periapsis.x - (a / 2), 0, 0);
+    orbitalPeriod = Infinity;
+
+  } else if (e > 1) {
+    // Hyperbola
+    b = a * Math.sqrt((e ** 2) - 1);
+    periapsis = new Vector3(a * (1 - e), 0, 0);
+    apoapsis = undefined;
+    center = new Vector3(periapsis.x - a, 0, 0);
+    orbitalPeriod = Infinity;
+  }
+
+  const rotation = (body.derived.rotation || 0) +
+    ((2 * Math.PI * dt) /
+    ((body.constants.rotation_period || 1) * 86400e3));
+
+  return {
+    orbitalPeriod,
+    rotation,
+    semiMajorAxis: a,
+    semiMinorAxis: b,
+    center: this._transformToEcliptic(offset, center, argumentPerihelion, omega, I),
+    periapsis: this._transformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
+    apoapsis: this._transformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
+  };
 };
 
 SolarSystem.prototype._applyRotation = (function () {
@@ -308,8 +294,7 @@ SolarSystem.prototype._calculateOrbitFromCartesian = (function () {
       omega = (2 * Math.PI) - omega;
     }
 
-    let E;
-    let argumentPerihelion;
+    let M, argumentPerihelion;
     if (e === 0 && I === 0) {
       // Circular Orbits with zero inclincation
 
@@ -318,8 +303,9 @@ SolarSystem.prototype._calculateOrbitFromCartesian = (function () {
         trueLongitude = (2 * Math.PI) - trueLongitude;
       }
 
-      E = trueLongitude;
+      const E = trueLongitude;
       argumentPerihelion = 0;
+      M = E - (e * Math.sin(E));
 
     } else if (e === 0) {
       // Circular orbits with a +/- inclincation
@@ -330,9 +316,11 @@ SolarSystem.prototype._calculateOrbitFromCartesian = (function () {
       r.z / Math.sin(I),
       (r.x * Math.cos(omega)) + (r.y * Math.sin(omega)));
 
-      E = 2 * Math.atan(Math.tan(argumentLatitude / 2));
+      const E = 2 * Math.atan(Math.tan(argumentLatitude / 2));
       argumentPerihelion = 0;
-    } else {
+      M = E - (e * Math.sin(E));
+
+    } else if (e < 1) {
 
       let trueAnomaly = Math.acos(
       r.dot(ecc) / (ecc.length() * r.length()));
@@ -341,8 +329,7 @@ SolarSystem.prototype._calculateOrbitFromCartesian = (function () {
         trueAnomaly = (2 * Math.PI) - trueAnomaly;
       }
 
-      E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
-
+      const E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
 
       if (n.length() <= 0 || ecc.length() <= 0) {
         argumentPerihelion = 0;
@@ -353,9 +340,30 @@ SolarSystem.prototype._calculateOrbitFromCartesian = (function () {
       if (ecc.z < 0) {
         argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
       }
-    }
 
-    const M = E - (e * Math.sin(E));
+      M = E - (e * Math.sin(E));
+    } else if (e >= 1) {
+
+      let trueAnomaly = Math.acos(
+        r.dot(ecc) / (ecc.length() * r.length()));
+
+      if (r.dot(v) < 0) {
+        trueAnomaly = (2 * Math.PI) - trueAnomaly;
+      }
+
+      if (n.length() <= 0) {
+        argumentPerihelion = 0;
+      } else {
+        argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+      }
+
+      if (ecc.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
+
+      const F = 2 * Math.atanh(Math.sqrt((e - 1) / (e + 1)) * Math.tan(trueAnomaly / 2));
+      M = (e * Math.sinh(F)) - F;
+    }
 
     return {
       a,
@@ -372,11 +380,13 @@ SolarSystem.prototype._toCartesianCoordinates = function (body) {
   const e = body.derived.orbit.e;
   if (e === 0 || e < 1) {
     return this._toCartesianElliptical(body);
+  } else if (e === 1) {
+    return this._toCartesianParabolic(body);
   } else if (e >= 1) {
     return this._toCartesianHyperbolic(body);
   }
 
-  console.error(`unexpected e:  ${e}`);
+  throw new Error(`unexpected e:  ${e}`);
 };
 
 SolarSystem.prototype._toCartesianElliptical = function (body) {
@@ -416,6 +426,54 @@ SolarSystem.prototype._toCartesianElliptical = function (body) {
   const eclipticVelocity = this._transformToEcliptic(
     null,
     helioCentricVelocity,
+    argumentPerihelion,
+    omega,
+    I);
+
+  return {
+    position: eclipticPosition,
+    velocity: eclipticVelocity,
+  };
+};
+
+SolarSystem.prototype._toCartesianParabolic = function (body) {
+  // TODO: Implement
+  const {
+      a, e, I, argumentPerihelion, omega, M,
+    } = body.derived.orbit;
+
+  const primary = body.primary;
+  const u = primary ? primary.constants.u : 0;
+  const offset = primary ? primary.derived.position : new Vector3(0, 0, 0);
+
+  const r =
+    (a * (1 - (e ** 2))) /
+    (1 + (e * Math.cos(trueAnomaly)));
+
+  // Calculate heliocentric coordinates in the planets orbital plane
+  const perifocalPosition = new Vector3(
+      r * Math.cos(trueAnomaly),
+      r * Math.sin(trueAnomaly),
+      0);
+
+  // Convert to the ecliptic plane
+  const eclipticPosition = this._transformToEcliptic(
+    offset,
+    perifocalPosition,
+    argumentPerihelion,
+    omega,
+    I);
+
+    // Calculate the velocity in the planets orbital planet
+  const perifocalVelocity = new Vector3(
+    -Math.sin(trueAnomaly),
+    e + Math.cos(trueAnomaly),
+    0).normalize().multiplyScalar(Math.sqrt(u * ((2 / r) - (1 / a))));
+
+    // Convert to the ecliptic plane
+  const eclipticVelocity = this._transformToEcliptic(
+    null,
+    perifocalVelocity,
     argumentPerihelion,
     omega,
     I);
@@ -509,11 +567,7 @@ SolarSystem.prototype._calculateEccentricAnomaly = function calculateEccentricAn
   const tol = 10e-8;
   const maxTimes = 10;
 
-  // let E = (M <= Math.PI ?
-  //   M + (Math.PI / 2) :
-  //   M - (Math.PI / 2));
   let E = M;
-
   let numTimes = 0;
   do {
     const f0 = E - ((e * Math.sin(E)) + M);
@@ -538,10 +592,11 @@ SolarSystem.prototype._calculateEccentricAnomaly = function calculateEccentricAn
 SolarSystem.prototype._calculateHyperbolicEccentricity = function (e, M) {
 
   const tol = 10e-8;
-  let numTimes = 0;
   const maxTimes = 10;
+
   let deltaH;
   let H0 = M;
+  let numTimes = 0;
   do {
     const f0 = ((e * Math.sinh(H0)) - H0) - M;
     const f1 = (e * Math.cosh(H0)) - 1;
@@ -568,6 +623,11 @@ SolarSystem.prototype._transformToEcliptic = (function () {
   const axisX = new Vector3(1, 0, 0);
 
   return function (offset, position, w, omega, I) {
+
+    if (!position) {
+      return position;
+    }
+
     const Q1 = new Quaternion()
       .setFromAxisAngle(axisZ, w);
     const Q2 = new Quaternion()

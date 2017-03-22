@@ -118,13 +118,18 @@ const bodyData = {
       },
     ],
     kepler_elements: {
-      a: [(400e3 + 6.3781e6) / AU, 0],
-      e: [0, 0],
-      // a: [-1e8 / AU, 0],
-      // e: [1.2, 0],
+      // Elliptical Orbit
+      // a: [(400e3 + 6.3781e6) / AU, 0],
+      // e: [0, 0],
+      // Parabolic Orbit
+      // a: [(400e3 + 6.3781e6)  / AU, 0],
+      // e: [1, 0],
+      // Hyperbolic Orbit
+      a: [-1e8 / AU, 0],
+      e: [1.2, 0],
       I: [0, 0],
       L: [0, 0],
-      w: [0, 0],
+      w: [180, 0],
       omega: [0, 0],
     },
   },

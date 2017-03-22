@@ -1,6 +1,6 @@
 import React from 'react';
 
-class CameraView extends React.Component {
+class TestingView extends React.Component {
 
   /**
    * Use this lifeycle method to add event listeners
@@ -19,7 +19,7 @@ class CameraView extends React.Component {
 
     return (
       <div
-        id="camera-view"
+        id="testing-view"
         ref={(ref) => {
           if (ref) {
             domElement.className = 'three-canvas';
@@ -32,4 +32,4 @@ class CameraView extends React.Component {
 
 }
 
-export default CameraView;
+export default TestingView;

@@ -147,6 +147,11 @@ BaseRenderer.prototype._createSkyBox = function () {
  * Recenter the coordinate system on the focus being the 'center'.
  */
 BaseRenderer.prototype._adjustCoordinates = function (focus, position) {
+
+  if (!position) {
+    return position;
+  }
+
   if (!focus) {
     return position.clone();
   }
@@ -196,9 +201,9 @@ BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
   const derived = body.derived;
 
   planet.rotation.set(0, 0, 0);
-  planet.rotateZ(derived.omega);
-  planet.rotateX(derived.I);
-  planet.rotateZ(derived.argumentPerihelion);
+  planet.rotateZ(derived.orbit.omega);
+  planet.rotateX(derived.orbit.I);
+  planet.rotateZ(derived.orbit.argumentPerihelion);
   planet.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
   planet.rotateOnAxis(
    new THREE.Vector3(0, 0, 1),
@@ -302,10 +307,14 @@ BaseRenderer.prototype.loadNavball = function (textures) {
         // Cross X
         const lineShape = new THREE.Shape();
         const e = (3 / 180) * Math.PI;
-        lineShape.moveTo(7 * Math.cos((Math.PI / 4) - e), 7 * Math.sin((Math.PI / 4) - e));
-        lineShape.lineTo(7 * Math.cos((Math.PI / 4) + e), 7 * Math.sin((Math.PI / 4) + e));
-        lineShape.lineTo(7 * Math.cos(
-          ((5 / 4) * Math.PI) - e),
+        lineShape.moveTo(
+          7 * Math.cos((Math.PI / 4) - e),
+          7 * Math.sin((Math.PI / 4) - e));
+        lineShape.lineTo(
+          7 * Math.cos((Math.PI / 4) + e),
+          7 * Math.sin((Math.PI / 4) + e));
+        lineShape.lineTo(
+          7 * Math.cos(((5 / 4) * Math.PI) - e),
           7 * Math.sin(((5 / 4) * Math.PI) - e));
         lineShape.lineTo(
           7 * Math.cos(((5 / 4) * Math.PI) + e),
@@ -316,22 +325,26 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       (() => {
         // Cross X
         const lineShape = new THREE.Shape();
-        const e = 3 / (180 * Math.PI);
+        const e = (3 / 180) * Math.PI;
         lineShape.moveTo(
           7 * Math.cos(((3 / 4) * Math.PI) - e),
           7 * Math.sin(((3 / 4) * Math.PI) - e));
         lineShape.lineTo(
           7 * Math.cos(((3 / 4) * Math.PI) + e),
           7 * Math.sin(((3 / 4) * Math.PI) + e));
-        lineShape.lineTo(7 * Math.cos(-(Math.PI / 4) - e), 7 * Math.sin(-(Math.PI / 4) - e));
-        lineShape.lineTo(7 * Math.cos(-(Math.PI / 4) + e), 7 * Math.sin(-(Math.PI / 4) + e));
+        lineShape.lineTo(
+          7 * Math.cos(-(Math.PI / 4) - e),
+          7 * Math.sin(-(Math.PI / 4) - e));
+        lineShape.lineTo(
+          7 * Math.cos(-(Math.PI / 4) + e),
+          7 * Math.sin(-(Math.PI / 4) + e));
         return lineShape;
       })(),
       (() => {
         // Cross X
         const lineShape = new THREE.Shape();
-        const e = 5 / (180 * Math.PI);
-        const angle = -30 / (180 * Math.PI);
+        const e = (5 / 180) * Math.PI;
+        const angle = -(30 / 180) * Math.PI;
         const baseRadius = 7;
         const length = 6;
         lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
@@ -347,8 +360,8 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       (() => {
         // Cross X
         const lineShape = new THREE.Shape();
-        const e = 5 / (180 * Math.PI);
-        const angle = -150 / (180 * Math.PI);
+        const e = (5 / 180) * Math.PI;
+        const angle = (-150 / 180) * Math.PI;
         const baseRadius = 7;
         const length = 6;
         lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
@@ -388,7 +401,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     [(1 / 4) * Math.PI, (3 / 4) * Math.PI, (5 / 4) * Math.PI, (7 / 4) * Math.PI].forEach(
       (angle) => {
         const lineShape = new THREE.Shape();
-        const e = 5 / (180 * Math.PI);
+        const e = (5 / 180) * Math.PI;
         const baseRadius = 7;
         const length = 4;
         lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
