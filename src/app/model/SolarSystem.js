@@ -387,7 +387,7 @@ SolarSystem.prototype._toCartesianElliptical = function (body) {
   const primary = body.primary;
   const u = primary ? primary.constants.u : 0;
   const offset = primary ? primary.derived.position : new Vector3(0, 0, 0);
-  const E = this._calculateEccentricAnomaly(e, M * (180 / Math.PI)) * (Math.PI / 180);
+  const E = this._calculateEccentricAnomaly(e, M);
 
   const trueAnomaly = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2),
     Math.sqrt(1 - e) * Math.cos(E / 2));
@@ -506,64 +506,61 @@ SolarSystem.prototype._calculateEccentricAnomaly = function calculateEccentricAn
   // M = degrees
   // E = degrees
 
-  const tol = 10e-6;
-  const eStar = 57.29578 * e;
-  let E = M + (eStar * Math.sin((Math.PI / 180) * M));
-  let deltaE;
-  let deltaM;
+  const tol = 10e-8;
+  const maxTimes = 10;
+
+  // let E = (M <= Math.PI ?
+  //   M + (Math.PI / 2) :
+  //   M - (Math.PI / 2));
+  let E = M;
+
   let numTimes = 0;
   do {
-    deltaM = M - (E - (eStar * Math.sin((Math.PI / 180) * E)));
-    deltaE = deltaM / (1 - (e * Math.cos((Math.PI / 180) * E)));
-    E += deltaE;
-    numTimes += 1;
-  } while (Math.abs(deltaE) > tol && numTimes <= 10);
+    const f0 = E - ((e * Math.sin(E)) + M);
+    const f1 = 1 - (e * Math.cos(E));
+    const ratio = f0 / f1;
 
-  if (numTimes > 10) {
+    if (Math.abs(ratio) <= tol) {
+      return E;
+    }
+
+    E -= ratio;
+    numTimes += 1;
+  } while (numTimes < maxTimes);
+
+  if (numTimes > maxTimes) {
     console.error("Didn't iterate on a solution!");
   }
 
   return E;
 };
 
-SolarSystem.prototype._calculateHyperbolicEccentricity = (function () {
+SolarSystem.prototype._calculateHyperbolicEccentricity = function (e, M) {
 
-  function f(H, M, e) {
-    return ((e * Math.sinh(H)) - H) - M;
-  }
+  const tol = 10e-8;
+  let numTimes = 0;
+  const maxTimes = 10;
+  let deltaH;
+  let H0 = M;
+  do {
+    const f0 = ((e * Math.sinh(H0)) - H0) - M;
+    const f1 = (e * Math.cosh(H0)) - 1;
+    deltaH = f0 / f1;
 
-  function f1(H, M, e) {
-    return (e * Math.cosh(H)) - 1;
-  }
-
-  return function calculateHyperbolicEccentricity(e, M) {
-    // Calculate eccentric anomaly, E
-    // e_star = degrees
-    // e = radians
-
-    const tol = 10e-8;
-    let numTimes = 0;
-    const maxTimes = 10;
-    let deltaH;
-    let H0 = M;
-    do {
-      deltaH = f(H0, M, e) / f1(H0, M, e);
-
-      if (Math.abs(deltaH) < tol) {
-        return H0;
-      }
-
-      H0 -= deltaH;
-      numTimes += 1;
-    } while (numTimes <= maxTimes);
-
-    if (numTimes > maxTimes) {
-      console.log("Didn't iterate on a solution!");
+    if (Math.abs(deltaH) < tol) {
+      return H0;
     }
 
-    return H0;
-  };
-}());
+    H0 -= deltaH;
+    numTimes += 1;
+  } while (numTimes <= maxTimes);
+
+  if (numTimes > maxTimes) {
+    console.log("Didn't iterate on a solution!");
+  }
+
+  return H0;
+};
 
 
 SolarSystem.prototype._transformToEcliptic = (function () {

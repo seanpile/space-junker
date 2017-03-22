@@ -33,6 +33,8 @@ function OrbitalMapRenderer(solarSystem, resourceLoader, commonState) {
 
   this.scene = new THREE.Scene();
   this.bodyMap = new Map();
+
+  this.mouseOverTimeout = null;
 }
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);
@@ -370,29 +372,38 @@ OrbitalMapRenderer.prototype._onMouseover = (function () {
   const raycaster = new THREE.Raycaster();
 
   return function onMouseOver(location) {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
 
-    // Convert to normalized device coordinates
-    const target = new THREE.Vector2(
-      ((location.x / width) * 2) - 1,
-      -((location.y / height) * 2) + 1);
+    if (this.mouseOverTimeout === null) {
 
-    raycaster.setFromCamera(target, this.camera);
+      this.mouseOverTimeout = setTimeout(() => {
 
-    const bodiesToTest = Array.from(this.bodyMap.entries())
-      .map(entry => entry[1].body)
-      .filter(body => body.visible);
+        const width = window.innerWidth;
+        const height = window.innerHeight;
 
-    const intersection = raycaster.intersectObjects(bodiesToTest);
-    if (intersection.length > 0) {
-      this.mouseOverCallback({
-        name: intersection[0].object.name,
-        left: location.x,
-        bottom: (height - location.y),
-      });
-    } else {
-      this.mouseOverCallback(null);
+        // Convert to normalized device coordinates
+        const target = new THREE.Vector2(
+          ((location.x / width) * 2) - 1,
+          -((location.y / height) * 2) + 1);
+
+        raycaster.setFromCamera(target, this.camera);
+
+        const bodiesToTest = Array.from(this.bodyMap.entries())
+          .map(entry => entry[1].body)
+          .filter(body => body.visible);
+
+        const intersection = raycaster.intersectObjects(bodiesToTest);
+        if (intersection.length > 0) {
+          this.mouseOverCallback({
+            name: intersection[0].object.name,
+            left: location.x,
+            bottom: (height - location.y),
+          });
+        } else {
+          this.mouseOverCallback(null);
+        }
+
+        this.mouseOverTimeout = null;
+      }, 300);
     }
   };
 }());

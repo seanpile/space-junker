@@ -243,8 +243,9 @@ class SpaceJunker extends React.Component {
         this.time += scaledDt;
       }
 
-      this.forceUpdate();
-
+      this.setState({
+        time: this.time,
+      });
     });
   }
 
