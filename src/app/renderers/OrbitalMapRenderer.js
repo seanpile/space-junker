@@ -216,7 +216,13 @@ OrbitalMapRenderer.prototype.render = function () {
     }
 
     this._scaleBody(body);
-    this._updateTrajectory(focus, body);
+
+    if (body.derived.e < 1) {
+      bodyMap.trajectory.visible = true;
+      this._updateTrajectory(focus, body);
+    } else {
+      bodyMap.trajectory.visible = false;
+    }
   });
 
   this._updateCamera(focus);
@@ -233,7 +239,8 @@ OrbitalMapRenderer.prototype.render = function () {
 };
 
 OrbitalMapRenderer.prototype._setupLightSources = function (textures) {
-  const ambientLight = new THREE.AmbientLight(0x202020);
+  // const ambientLight = new THREE.AmbientLight(0x202020);
+  const ambientLight = new THREE.AmbientLight(0x606060);
   const pointLight = new THREE.PointLight(0xffffff, 1);
   const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 150, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffffff));
 

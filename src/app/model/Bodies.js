@@ -113,14 +113,16 @@ const bodyData = {
         // Data taken from https://en.wikipedia.org/wiki/Apollo_Command/Service_Module
         mass: 11900, // kg
         isp: 314, // seconds
-        thrust: 91e3, // N   (Newtons)
+        thrust: 91e5, // N   (Newtons)
         propellant: 18410, // kg
       },
     ],
     kepler_elements: {
-      a: [(4000e3 + 6.3781e6) / AU, 0],
-      e: [0.2, 0],
-      I: [-23.4392811, 0],
+      // a: [(400e3 + 6.3781e6) / AU, 0],
+      // e: [0, 0],
+      a: [-1e8 / AU, 0],
+      e: [1.2, 0],
+      I: [0, 0],
       L: [0, 0],
       w: [0, 0],
       omega: [0, 0],

@@ -201,8 +201,8 @@ BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
   planet.rotateZ(derived.argumentPerihelion);
   planet.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
   planet.rotateOnAxis(
-    new THREE.Vector3(1, 0, 0),
-    -((body.constants.axial_tilt || 0) * Math.PI) / 180);
+   new THREE.Vector3(0, 0, 1),
+   -((body.constants.axial_tilt || 0) * Math.PI) / 180);
   planet.rotateY(derived.rotation);
 };
 
