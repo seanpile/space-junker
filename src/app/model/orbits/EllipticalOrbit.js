@@ -15,6 +15,10 @@ class EllipticalOrbit {
     this.M = M;
   }
 
+  static supports(e) {
+    return e >= 0 && e < 1;
+  }
+
   setFromKeplerElements(keplerElements, t) {
 
     const T = JulianDate(t);
@@ -60,14 +64,14 @@ class EllipticalOrbit {
         .sub(r.clone()
           .multiplyScalar(1 / r.length()));
 
-      // Semi-Major Axis
+    // Semi-Major Axis
     const specificEnergy = (v.lengthSq() / 2) - (u / r.length());
     const a = -u / (2 * specificEnergy);
 
-      // Eccentricity
+    // Eccentricity
     const e = ecc.length();
 
-      // Inclination, Longitude of the ascending node
+    // Inclination, Longitude of the ascending node
     const I = Math.acos(h.z / h.length());
     let omega = Math.acos(n.x / n.length());
 
@@ -79,8 +83,7 @@ class EllipticalOrbit {
 
     let M, argumentPerihelion;
     if (e === 0 && I === 0) {
-        // Circular Orbits with zero inclincation
-
+      // Circular Orbits with zero inclincation
       let trueLongitude = Math.acos(r.x / r.length());
       if (v.x > 0) {
         trueLongitude = (2 * Math.PI) - trueLongitude;
@@ -91,10 +94,10 @@ class EllipticalOrbit {
       M = E - (e * Math.sin(E));
 
     } else if (e === 0) {
-        // Circular orbits with a +/- inclincation
-        // True anomaly is undefined for a circular orbit because circular orbits
-        // do not have a uniquely-determined periapsis; Instead, the argument of
-        // latitude is used:
+      // Circular orbits with a +/- inclincation
+      // True anomaly is undefined for a circular orbit because circular orbits
+      // do not have a uniquely-determined periapsis; Instead, the argument of
+      // latitude is used:
       const argumentLatitude = Math.atan2(
         r.z / Math.sin(I),
         (r.x * Math.cos(omega)) + (r.y * Math.sin(omega)));
@@ -142,7 +145,7 @@ class EllipticalOrbit {
      * For elliptical orbits, M - M0 = n(t - t0)
      */
     const n = Math.sqrt(u / (this.a ** 3));
-    this.M = this.M + (n * (dt / 1000));
+    this.M = (this.M + (n * (dt / 1000))) % (2 * Math.PI);
   }
 
   stats(dt) {
@@ -199,25 +202,25 @@ class EllipticalOrbit {
   }
 
   static CalculateEccentricAnomaly(e, M) {
-    const tol = 10e-8;
-    const maxTimes = 10;
 
-    let E = M;
+    const tol = 1e-8;
+    const maxTimes = 30;
+    let ratio = 1;
     let numTimes = 0;
-    do {
-      const f0 = E - ((e * Math.sin(E)) + M);
-      const f1 = 1 - (e * Math.cos(E));
-      const ratio = f0 / f1;
 
-      if (Math.abs(ratio) <= tol) {
-        return E;
-      }
+    const pi2 = Math.PI * 2;
+    let M0 = M / pi2;
+    M0 = pi2 * (M0 - Math.floor(M0));
 
+    let E = e < 0.8 ? M0 : Math.PI;
+
+    while (Math.abs(ratio) > tol && numTimes < maxTimes) {
+      ratio = (E - (e * Math.sin(E)) - M0) / (1 - (e * Math.cos(E)));
       E -= ratio;
       numTimes += 1;
-    } while (numTimes < maxTimes);
+    }
 
-    if (numTimes > maxTimes) {
+    if (numTimes >= maxTimes) {
       console.error("Didn't iterate on a solution!");
     }
 

@@ -5,11 +5,12 @@ import {
 
 import * as OrbitUtils from './orbits/OrbitUtils';
 import EllipticalOrbit from './orbits/EllipticalOrbit';
+import ParabolicOrbit from './orbits/ParabolicOrbit';
+import HyperbolicOrbit from './orbits/HyperbolicOrbit';
 import StationaryOrbit from './orbits/StationaryOrbit';
 
 import Bodies from './Bodies';
 import { AU, SHIP_TYPE } from '../Constants';
-
 
 function SolarSystem() {
   this.bodies = Array.from(Bodies);
@@ -34,10 +35,9 @@ SolarSystem.prototype.update = function update(t, dt) {
       let orbit;
       if (body.name === 'sun') {
         orbit = new StationaryOrbit(body);
-      } else if (e >= 0 && e < 1) {
-        orbit = new EllipticalOrbit(body).setFromKeplerElements(keplerElements, t + dt);
       } else {
-        throw new Error(`Orbit not supported (e = ${e})`, body);
+        const OrbitType = this._orbitType(e);
+        orbit = new OrbitType(body).setFromKeplerElements(keplerElements, t + dt);
       }
 
       body.orbit = orbit;
@@ -57,6 +57,18 @@ SolarSystem.prototype.update = function update(t, dt) {
       this._applyThrust(body, dt);
     }
   });
+};
+
+SolarSystem.prototype._orbitType = function (e) {
+
+  const found = [EllipticalOrbit, ParabolicOrbit, HyperbolicOrbit]
+    .find(orbit => orbit.supports(e));
+
+  if (!found) {
+    throw new Error(`Unexpected value for e: ${e}`);
+  }
+
+  return found;
 };
 
 SolarSystem.prototype._applyRotation = (function () {
@@ -132,6 +144,14 @@ SolarSystem.prototype._applyThrust = (function () {
     const position = body.derived.position.clone().add(
       velocity.clone().multiplyScalar(dt / 1000),
     );
+
+    // Check to see if the modified orbit is still supported by the current Orbit; if not,
+    // instantiate the correct Orbit
+    const eccentricity = OrbitUtils.Eccentricity(body, position, velocity);
+    if (!body.orbit.constructor.supports(eccentricity)) {
+      const OrbitType = this._orbitType(eccentricity);
+      body.orbit = new OrbitType(body);
+    }
 
     body.orbit.setFromCartesian(position, velocity);
   };

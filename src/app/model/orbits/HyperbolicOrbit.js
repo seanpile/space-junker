@@ -15,6 +15,10 @@ class HyperbolicOrbit {
     this.M = M;
   }
 
+  static supports(e) {
+    return e > 1;
+  }
+
   setFromKeplerElements(keplerElements, t) {
 
     const T = JulianDate(t);
@@ -112,8 +116,8 @@ class HyperbolicOrbit {
     /**
      * For elliptical orbits, M - M0 = n(t - t0)
      */
-    const n = Math.sqrt(u / ((-this.a) ** 3));
-    this.M = this.M + (n * (dt / 1000));
+    const n = Math.sqrt(u / (Math.pow(-this.a, 3)));
+    this.M = (this.M + (n * (dt / 1000))) % (Math.PI * 2);
   }
 
   stats(dt) {
@@ -127,7 +131,7 @@ class HyperbolicOrbit {
     const u = this.body.primary.constants.u;
     const offset = this.body.primary.derived.position;
 
-    const H = this._calculateHyperbolicEccentricity(e, M);
+    const H = HyperbolicOrbit.CalculateHyperbolicEccentricity(e, M);
     const trueAnomaly = 2 * Math.atan(Math.sqrt((e + 1) / (e - 1)) * Math.tanh(H / 2));
 
     const r =

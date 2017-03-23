@@ -17,30 +17,58 @@ export function EccentricityAt(keplerElements, t) {
   return e;
 }
 
-const axisZ = new Vector3(0, 0, 1);
-const axisX = new Vector3(1, 0, 0);
-export function TransformToEcliptic(offset, position, w, omega, I) {
+export const Eccentricity = (function () {
 
-  if (!position) {
-    return position;
-  }
+  const r = new Vector3();
+  const v = new Vector3();
+  const h = new Vector3();
+  const ecc = new Vector3();
 
-  const Q1 = new Quaternion()
+  return function _Eccentricity(body, position, velocity) {
+
+    const primary = body.primary;
+    const u = primary.constants.u;
+
+    r.subVectors(position, primary.derived.position);
+    v.copy(velocity);
+    h.crossVectors(r, v);
+    ecc.crossVectors(v, h)
+      .multiplyScalar(1 / u)
+      .sub(r.clone()
+        .multiplyScalar(1 / r.length()));
+
+    return ecc.length();
+  };
+}());
+
+export const TransformToEcliptic = (function () {
+
+  const axisZ = new Vector3(0, 0, 1);
+  const axisX = new Vector3(1, 0, 0);
+
+  return function _TransformToEcliptic(offset, position, w, omega, I) {
+
+    if (!position) {
+      return position;
+    }
+
+    const Q1 = new Quaternion()
       .setFromAxisAngle(axisZ, w);
-  const Q2 = new Quaternion()
+    const Q2 = new Quaternion()
       .setFromAxisAngle(axisX, I);
-  const Q3 = new Quaternion()
+    const Q3 = new Quaternion()
       .setFromAxisAngle(axisZ, omega);
 
-  const rotation = new Vector3()
+    const rotation = new Vector3()
       .copy(position)
       .applyQuaternion(Q1)
       .applyQuaternion(Q2)
       .applyQuaternion(Q3);
 
-  if (offset) {
-    rotation.add(offset);
-  }
+    if (offset) {
+      rotation.add(offset);
+    }
 
-  return rotation;
-}
+    return rotation;
+  };
+}());

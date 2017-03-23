@@ -1,11 +1,71 @@
 import * as THREE from 'three';
 import ColladaLoader from 'three-collada-loader';
 
+const dev = true;
+
+class CanvasTextureLoader {
+
+  constructor() {
+    const blueCanvas = document.createElement('canvas');
+    blueCanvas.width = 32;
+    blueCanvas.height = 32;
+
+    let ctx = blueCanvas.getContext('2d');
+    ctx.fillStyle = 'lightblue';
+    ctx.fillRect(0, 0, 32, 32);
+
+    const grayCanvas = document.createElement('canvas');
+    grayCanvas.width = 32;
+    grayCanvas.height = 32;
+
+    ctx = grayCanvas.getContext('2d');
+    ctx.fillStyle = 'lightgray';
+    ctx.fillRect(0, 0, 32, 32);
+
+    this.blueCanvas = new THREE.CanvasTexture(blueCanvas);
+    this.grayCanvas = new THREE.CanvasTexture(grayCanvas);
+  }
+
+  load(key, callback) {
+    if (key === 'img/navball.png') {
+      callback(this.grayCanvas);
+    } else {
+      callback(this.blueCanvas);
+    }
+  }
+
+}
+
+class MockModelLoader {
+
+  constructor() {
+    this.threeBody = new THREE.Mesh(
+      new THREE.ConeGeometry(50, 200, 32, 32),
+      new THREE.MeshPhongMaterial({
+        color: 'lightgray',
+      }));
+  }
+
+  load(key, callback) {
+    callback({
+      scene: this.threeBody,
+    });
+  }
+
+}
+
 function ResourceLoader() {
-  const textureLoader = new THREE.TextureLoader();
-  const modelLoader = new ColladaLoader();
-  modelLoader.options.convertUpAxis = true;
-  modelLoader.options.upAxis = 'Z';
+  let textureLoader = new THREE.TextureLoader();
+  let modelLoader = new ColladaLoader();
+  if (dev) {
+    textureLoader = new CanvasTextureLoader();
+    modelLoader = new MockModelLoader();
+  } else {
+    textureLoader = new THREE.TextureLoader();
+    modelLoader = new ColladaLoader();
+    modelLoader.options.convertUpAxis = true;
+    modelLoader.options.upAxis = 'Z';
+  }
 
   this.textureLoader = textureLoader;
   this.modelLoader = modelLoader;
@@ -54,5 +114,6 @@ ResourceLoader.prototype.loadModel = function (key) {
     }
   });
 };
+
 
 export default ResourceLoader;

@@ -11,13 +11,11 @@ import HudOverlay from './HudOverlay';
 import HelpOverlay from './HelpOverlay';
 import OrbitalMapView from './OrbitalMapView';
 import CameraView from './CameraView';
-import TestingView from './TestingView';
 import SolarSystem from '../model/SolarSystem';
 
 import ResourceLoader from '../renderers/ResourceLoader';
 import CameraViewRenderer from '../renderers/CameraViewRenderer';
 import OrbitalMapRenderer from '../renderers/OrbitalMapRenderer';
-import TestingRenderer from '../renderers/TestingRenderer';
 
 class SpaceJunker extends React.Component {
 

@@ -11,6 +11,10 @@ class ParabolicOrbit {
     this.M = M;
   }
 
+  static supports(e) {
+    return e === 1;
+  }
+
   advance(dt) {
     const u = this.body.primary.constants.u;
 
