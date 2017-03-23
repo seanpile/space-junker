@@ -198,12 +198,13 @@ BaseRenderer.prototype._loadPlanet = function (body, textures) {
 };
 
 BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
+  const orbit = body.orbit;
   const derived = body.derived;
 
   planet.rotation.set(0, 0, 0);
-  planet.rotateZ(derived.orbit.omega);
-  planet.rotateX(derived.orbit.I);
-  planet.rotateZ(derived.orbit.argumentPerihelion);
+  planet.rotateZ(orbit.omega);
+  planet.rotateX(orbit.I);
+  planet.rotateZ(orbit.argumentPerihelion);
   planet.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
   planet.rotateOnAxis(
    new THREE.Vector3(0, 0, 1),

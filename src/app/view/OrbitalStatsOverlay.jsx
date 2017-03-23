@@ -4,7 +4,7 @@ import { AU, PLANET_TYPE } from '../Constants';
 function OrbitalStatsOverlay(props) {
   const focus = props.focus;
   const velocity = focus.derived.velocity.length() * AU;
-  const eccentricity = focus.derived.orbit.e || 0;
+  const eccentricity = focus.orbit.e || 0;
   const semiMajorAxis = (focus.derived.semiMajorAxis * AU) / 1000;
   const semiMinorAxis = (focus.derived.semiMinorAxis * AU) / 1000;
   const rotationPeriod = focus.constants.rotation_period || 0;
