@@ -8,13 +8,9 @@ class LoadingView extends React.Component {
     Splash.enable('spinner-section-far');
   }
 
-  componentWillUnmount() {
-    Splash.destroy();
-  }
-
   render() {
     return (
-      <div id="loading">Loading textures, this may take a moment.</div>
+      <div id="loading">Loading on warp speed... this may take a moment</div>
     );
   }
 

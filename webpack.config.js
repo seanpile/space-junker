@@ -8,7 +8,9 @@ module.exports = {
     vendor: './src/vendor.js',
   },
   resolve: {
-    alias: { splash: path.resolve(__dirname, 'node_modules/splash-screen/dist/') },
+    alias: {
+      splash: path.resolve(__dirname, 'node_modules/splash-screen/dist/'),
+    },
     extensions: ['.js', '.json', '.jsx'],
   },
   devtool: 'cheap-module-eval-source-map',
@@ -20,7 +22,9 @@ module.exports = {
       },
       {
         test: /img\/.*\.(jpg|png)$/,
-        use: [{ loader: 'file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/' }],
+        use: [{
+          loader: 'file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/',
+        }],
       },
       {
         test: /models\/(.*)\.(jpg|png)$/,
@@ -36,14 +40,20 @@ module.exports = {
       },
       {
         test: /\.(dae)$/,
-        use: [{ loader: 'file-loader?name=[name].[ext]&publicPath=models/&outputPath=models/' }],
+        use: [{
+          loader: 'file-loader?name=[name].[ext]&publicPath=models/&outputPath=models/',
+        }],
       },
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
         use: [{
           loader: 'babel-loader',
-          options: { presets: ['es2015', 'react'] },
+          options: {
+            presets: [['es2015', {
+              modules: false,
+            }], 'react'],
+          },
         }],
       },
     ],
@@ -58,6 +68,8 @@ module.exports = {
       template: 'src/index.template.ejs',
       inject: 'body',
     }),
-    new webpack.optimize.CommonsChunkPlugin({ name: 'vendor' }),
+    new webpack.optimize.CommonsChunkPlugin({
+      name: 'vendor',
+    }),
   ],
 };

@@ -1,9 +1,12 @@
+import 'babel-polyfill';
+
 import * as THREE from 'three';
 import moment from 'moment';
 import Hammer from 'hammerjs';
 import Mousetrap from 'mousetrap';
 import React from 'react';
 import Stats from 'stats.js';
+import { Splash } from 'splash-screen';
 
 import CommonState from './CommonState';
 import LoadingView from './LoadingView';
@@ -73,10 +76,14 @@ class SpaceJunker extends React.Component {
 
     // Initialize Renderers
     Promise.all(this.renderers.map(renderer => renderer.viewDidLoad())).then(() => {
+
       this.setState({
         initialized: true,
+        paused: false,
       });
 
+      this.forceUpdate();
+      Splash.destroy();
       this.run();
     });
 
@@ -272,7 +279,7 @@ class SpaceJunker extends React.Component {
 
   render() {
 
-    const isPaused = !this.isRunning();
+    const isPaused = this.state.paused;
     const isInitialized = this.state.initialized;
     const focus = this.solarSystem.find(this.commonState.focus);
 

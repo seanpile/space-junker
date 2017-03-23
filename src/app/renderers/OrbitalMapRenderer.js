@@ -26,16 +26,6 @@ const PLANET_COLOURS = {
 
 function OrbitalMapRenderer(solarSystem, resourceLoader, commonState) {
   BaseRenderer.call(this, solarSystem, resourceLoader, commonState);
-
-  this.renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-  });
-  this.renderer.setPixelRatio(window.devicePixelRatio);
-  this.renderer.autoClear = false;
-
-  this.bodyMap = new Map();
-  this.mouseOverTimeout = null;
 }
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);
@@ -50,6 +40,17 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
       this._loadModels(),
     ])
       .then(([textures]) => {
+
+        this.renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+        });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.autoClear = false;
+
+        this.bodyMap = new Map();
+        this.mouseOverTimeout = null;
+
         const width = window.innerWidth;
         const height = window.innerHeight;
 

@@ -7,8 +7,14 @@ module.exports = {
       },
     },
   },
+  parser: 'babel-eslint',
+  parserOptions: {
+    sourceType: 'module',
+    allowImportExportEverywhere: true,
+  },
   env: {
     browser: true,
+    es6: true,
   },
   globals: {
     window: true,

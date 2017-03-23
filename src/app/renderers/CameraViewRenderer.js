@@ -10,15 +10,6 @@ const SHOW_HELPERS = false;
 function CameraViewRenderer(solarSystem, resourceLoader, commonState) {
   BaseRenderer.call(this, solarSystem, resourceLoader, commonState);
 
-  this.renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true,
-  });
-  this.renderer.setPixelRatio(window.devicePixelRatio);
-  this.renderer.shadowMap.enabled = true;
-  this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  this.renderer.autoClear = false;
-
   this.bodyCache = new Map();
   this.showHelpers = SHOW_HELPERS;
 }
@@ -40,6 +31,16 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
       this._loadModels(),
     ])
       .then(([textures, models]) => {
+
+        this.renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+        });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.autoClear = false;
+
         const width = window.innerWidth;
         const height = window.innerHeight;
 

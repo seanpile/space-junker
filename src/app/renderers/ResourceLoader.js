@@ -5,33 +5,19 @@ const dev = true;
 
 class CanvasTextureLoader {
 
-  constructor() {
-    const blueCanvas = document.createElement('canvas');
-    blueCanvas.width = 32;
-    blueCanvas.height = 32;
-
-    let ctx = blueCanvas.getContext('2d');
-    ctx.fillStyle = 'lightblue';
-    ctx.fillRect(0, 0, 32, 32);
-
-    const grayCanvas = document.createElement('canvas');
-    grayCanvas.width = 32;
-    grayCanvas.height = 32;
-
-    ctx = grayCanvas.getContext('2d');
-    ctx.fillStyle = 'lightgray';
-    ctx.fillRect(0, 0, 32, 32);
-
-    this.blueCanvas = new THREE.CanvasTexture(blueCanvas);
-    this.grayCanvas = new THREE.CanvasTexture(grayCanvas);
-  }
-
   load(key, callback) {
-    if (key === 'img/navball.png') {
-      callback(this.grayCanvas);
-    } else {
-      callback(this.blueCanvas);
-    }
+
+    const colour = (key === 'img/navball.png' ? 'lightgray' : 'lightblue');
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = colour;
+    ctx.fillRect(0, 0, 32, 32);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    callback(texture);
   }
 
 }
