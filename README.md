@@ -5,12 +5,12 @@ Inspired by Kerbal Space Program, this is an orbital mechanics simulator that bu
 This project leverages several resources:
 
 * Planetary Textures:
- * http://planetpixelemporium.com/sun.html
- * http://www.shadedrelief.com/natural3/pages/textures.html
+  * http://planetpixelemporium.com/sun.html
+  * http://www.shadedrelief.com/natural3/pages/textures.html
 * NASA Craft Models (Sketchup 3D Warehouse):
- * https://3dwarehouse.sketchup.com/model.html?id=cdfbbdbb8503f57c115f0b7032477834
+  * https://3dwarehouse.sketchup.com/model.html?id=cdfbbdbb8503f57c115f0b7032477834
 * Planetary Data for initial plotting care of the NASA Jet Propulsion Laboratory
- * [Keplerian Elements](http://ssd.jpl.nasa.gov/?planet_pos)
+  * [Keplerian Elements](http://ssd.jpl.nasa.gov/?planet_pos)
 
 Technology used:
 
