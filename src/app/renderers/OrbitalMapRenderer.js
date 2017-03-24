@@ -5,8 +5,10 @@ import {
   PLANET_TYPE,
   ELLIPTICAL_TRAJECTORY,
   HYPERBOLIC_TRAJECTORY,
+  PARABOLIC_TRAJECTORY,
 } from '../Constants';
-import HyperbolicCurve from './curves/HyperbolicCurve';
+import HyperbolaCurve from './curves/HyperbolaCurve';
+import ParabolaCurve from './curves/ParabolaCurve';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
 
@@ -273,7 +275,8 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   let trajectory = bodyMap.trajectory;
   const refreshTrajectory =
     (orbit.e <= 1 && trajectory.name !== ELLIPTICAL_TRAJECTORY) ||
-    (orbit.e >= 1 && trajectory.name !== HYPERBOLIC_TRAJECTORY);
+    (orbit.e >= 1 && trajectory.name !== HYPERBOLIC_TRAJECTORY) ||
+    (orbit.e === 1 && trajectory.name !== PARABOLIC_TRAJECTORY);
 
   if (refreshTrajectory) {
     this.scene.remove(trajectory);
@@ -322,7 +325,12 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   trajectory.rotateZ(orbit.omega);
   trajectory.rotateX(orbit.I);
   trajectory.rotateZ(orbit.argumentPerihelion);
-  trajectory.scale.set(semiMajorAxis, semiMinorAxis, 1);
+
+  if (trajectory.name === PARABOLIC_TRAJECTORY) {
+    trajectory.scale.set(orbit.p, orbit.p, 1);
+  } else {
+    trajectory.scale.set(semiMajorAxis, semiMinorAxis, 1);
+  }
 };
 
 OrbitalMapRenderer.prototype.createTrajectory = function (body) {
@@ -341,9 +349,13 @@ OrbitalMapRenderer.prototype.createTrajectory = function (body) {
       );
     name = ELLIPTICAL_TRAJECTORY;
 
+  } else if (e === 1) {
+    // Unit parabola with focus centered on (0, 0)
+    curve = new ParabolaCurve(1 / 2, 0, 1, -Math.PI / 2, Math.PI / 2);
+    name = PARABOLIC_TRAJECTORY;
   } else if (e >= 1) {
     // Hyperbola
-    curve = new HyperbolicCurve(
+    curve = new HyperbolaCurve(
         0, 0, // ax, aY
         1, 1, // xRadius, yRadius
         -Math.PI, Math.PI,

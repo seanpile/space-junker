@@ -1,7 +1,6 @@
-
 import { Curve, Vector2 } from 'three';
 
-function HyperbolicCurve(x, y, a, b, startAngle = -Math.PI, endAngle = Math.PI, useNegativeArm = false) {
+function HyperbolaCurve(x, y, a, b, startAngle = -Math.PI, endAngle = Math.PI, useNegativeArm = false) {
   this.offsetX = x;
   this.offsetY = y;
   this.a = a;
@@ -11,10 +10,10 @@ function HyperbolicCurve(x, y, a, b, startAngle = -Math.PI, endAngle = Math.PI, 
   this.useNegativeArm = useNegativeArm;
 }
 
-HyperbolicCurve.prototype = Object.create(Curve.prototype);
-HyperbolicCurve.prototype.constructor = HyperbolicCurve;
+HyperbolaCurve.prototype = Object.create(Curve.prototype);
+HyperbolaCurve.prototype.constructor = HyperbolaCurve;
 
-HyperbolicCurve.prototype.getPoint = function (t) {
+HyperbolaCurve.prototype.getPoint = function (t) {
 
   // +/- a * cosh(t), b * sinh(t)
 
@@ -29,4 +28,4 @@ HyperbolicCurve.prototype.getPoint = function (t) {
   return point;
 };
 
-export default HyperbolicCurve;
+export default HyperbolaCurve;

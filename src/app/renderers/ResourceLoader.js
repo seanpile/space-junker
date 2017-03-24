@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import ColladaLoader from 'three-collada-loader';
 
-const dev = true;
+const dev = false;
 
 class CanvasTextureLoader {
 

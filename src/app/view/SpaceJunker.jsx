@@ -241,6 +241,7 @@ class SpaceJunker extends React.Component {
     this.animationFrame((frameTime) => {
 
       accumulator += frameTime;
+      this.stats.begin();
 
       while (accumulator >= dt) {
         const t = this.time;
@@ -256,6 +257,8 @@ class SpaceJunker extends React.Component {
       this.setState({
         time: this.time,
       });
+
+      this.stats.end();
     });
   }
 
