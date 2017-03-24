@@ -109,15 +109,15 @@ const bodyData = {
       radius: 100 / AU,
       kepler_elements: {
         // Elliptical Orbit
-        // a: [(4000e3 + 6.3781e6) / AU, 0],
-        // e: [0.2, 0],
+        a: [(4000e3 + 6.3781e6) / AU, 0],
+        e: [0.2, 0],
         // Parabolic Orbit
-        p: [(2 * (400000e3 + 6.3781e6)) / AU, 0],
-        e: [1, 0],
+        // p: [(2 * (400000e3 + 6.3781e6)) / AU, 0],
+        // e: [1, 0],
         // Hyperbolic Orbit
         // a: [-1e8 / AU, 0],
         // e: [1.2, 0],
-        I: [20, 0],
+        I: [0, 0],
         L: [0, 0],
         w: [0, 0],
         omega: [0, 0],

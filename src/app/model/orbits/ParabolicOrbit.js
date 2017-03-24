@@ -1,13 +1,13 @@
 import { Vector3, Math as threeMath } from 'three';
-import { JulianDate, TransformToEcliptic } from './OrbitUtils';
+import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
 
 const degToRad = threeMath.degToRad;
 
 class ParabolicOrbit {
 
-  constructor(body, a, e, I, omega, argumentPerihelion, M) {
+  constructor(body, p, e, I, omega, argumentPerihelion, M) {
     this.body = body;
-    this.a = a;
+    this.p = p;
     this.e = e;
     this.I = I;
     this.omega = omega;
@@ -24,12 +24,11 @@ class ParabolicOrbit {
     const p = keplerElements.p[0] + (keplerElements.p[1] * T);
     const e = keplerElements.e[0] + (keplerElements.e[1] * T);
     const I = keplerElements.I[0] + (keplerElements.I[1] * T);
+    const L = keplerElements.L[0] + (keplerElements.L[1] * T);
     const w = keplerElements.w[0] + (keplerElements.w[1] * T);
     const omega = keplerElements.omega[0] + (keplerElements.omega[1] * T);
     const argumentPerihelion = w - omega;
-
-    // TODO: Fix
-    const M = -30;
+    const M = CalculateMeanAnomaly(L, w);
 
     this.p = p;
     this.e = e;
@@ -37,6 +36,76 @@ class ParabolicOrbit {
     this.omega = degToRad(omega);
     this.argumentPerihelion = degToRad(argumentPerihelion);
     this.M = degToRad(M);
+
+    return this;
+  }
+
+  setFromCartesian(position, velocity) {
+
+    const r = new Vector3();
+    const v = new Vector3();
+    const h = new Vector3();
+    const n = new Vector3();
+    const ecc = new Vector3();
+    const axisZ = new Vector3(0, 0, 1);
+
+    const primary = this.body.primary;
+    const u = primary.constants.u;
+
+    r.subVectors(position, primary.derived.position);
+    v.copy(velocity);
+    h.crossVectors(r, v);
+    n.crossVectors(axisZ, h);
+    ecc.crossVectors(v, h)
+        .multiplyScalar(1 / u)
+        .sub(r.clone()
+          .multiplyScalar(1 / r.length()));
+
+    // Perifocal Distance and Semi-Latus Rectum
+    const q = (h.length() ** 2) / (2 * u);
+    const p = 2 * q;
+
+    // Eccentricity
+    const e = ecc.length();
+
+    // Inclination, Longitude of the ascending node
+    const I = Math.acos(h.z / h.length());
+    let omega = Math.acos(n.x / n.length());
+
+    if (n.length() <= 0) {
+      omega = 0;
+    } else if (n.y < 0) {
+      omega = (2 * Math.PI) - omega;
+    }
+
+    let argumentPerihelion;
+    let trueAnomaly = Math.acos(
+        r.dot(ecc) / (ecc.length() * r.length()));
+
+    if (r.dot(v) < 0) {
+      trueAnomaly = (2 * Math.PI) - trueAnomaly;
+    }
+
+    const D = Math.sqrt(2 * q) * Math.tan(trueAnomaly / 2);
+
+    if (n.length() <= 0 || ecc.length() <= 0) {
+      argumentPerihelion = 0;
+    } else {
+      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+    }
+
+    if (ecc.z < 0) {
+      argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+    }
+
+    const M = (q * D) + ((D ** 3) / 6);
+
+    this.p = p;
+    this.e = e;
+    this.I = I;
+    this.omega = omega;
+    this.argumentPerihelion = argumentPerihelion;
+    this.M = M;
 
     return this;
   }
@@ -82,7 +151,6 @@ class ParabolicOrbit {
       e + Math.cos(trueAnomaly),
       0).normalize().multiplyScalar(Math.sqrt((2 * u) / r));
 
-    const b = q;
     const periapsis = new Vector3(q, 0, 0);
     const apoapsis = undefined;
     const center = new Vector3(0, 0, 0);

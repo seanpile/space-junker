@@ -1,5 +1,5 @@
 import { Vector3, Math as threeMath } from 'three';
-import { JulianDate, TransformToEcliptic } from './OrbitUtils';
+import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
 
 const degToRad = threeMath.degToRad;
 
@@ -25,13 +25,11 @@ class HyperbolicOrbit {
     const a = keplerElements.a[0] + (keplerElements.a[1] * T);
     const e = keplerElements.e[0] + (keplerElements.e[1] * T);
     const I = keplerElements.I[0] + (keplerElements.I[1] * T);
-    // const L = keplerElements.L[0] + (keplerElements.L[1] * T);
+    const L = keplerElements.L[0] + (keplerElements.L[1] * T);
     const w = keplerElements.w[0] + (keplerElements.w[1] * T);
     const omega = keplerElements.omega[0] + (keplerElements.omega[1] * T);
     const argumentPerihelion = w - omega;
-
-    // TODO: Figure out a better way to specify initial position for hyperbolic keplerElements
-    const M = 0;
+    const M = CalculateMeanAnomaly(L, w);
 
     this.a = a;
     this.e = e;

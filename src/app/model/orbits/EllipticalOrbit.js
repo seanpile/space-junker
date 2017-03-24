@@ -1,5 +1,5 @@
 import { Vector3, Math as threeMath } from 'three';
-import { JulianDate, TransformToEcliptic } from './OrbitUtils';
+import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
 
 const degToRad = threeMath.degToRad;
 
@@ -31,7 +31,7 @@ class EllipticalOrbit {
     const argumentPerihelion = w - omega;
 
     const perturbations = keplerElements.perturbations;
-    const M = EllipticalOrbit.CalculateMeanAnomaly(L, w, perturbations, T);
+    const M = CalculateMeanAnomaly(L, w, perturbations, T);
 
     this.a = a;
     this.e = e;
@@ -225,24 +225,6 @@ class EllipticalOrbit {
     }
 
     return E;
-  }
-
-  static CalculateMeanAnomaly(L, w, perturbations, T) {
-    let M = L - w;
-    if (perturbations) {
-      M += (perturbations.b * (T ** 2)) +
-        (perturbations.c * Math.cos(perturbations.f * T)) +
-        (perturbations.s * Math.sin(perturbations.f * T));
-    }
-
-    M %= 360;
-    if (M > 180) {
-      M -= 360;
-    } else if (M < -180) {
-      M = 360 + M;
-    }
-
-    return M;
   }
 
 }

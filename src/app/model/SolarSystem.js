@@ -153,6 +153,7 @@ SolarSystem.prototype._applyThrust = (function () {
       body.orbit = new OrbitType(body);
     }
 
+    // Update orbital elements from the new position, velocity elements
     body.orbit.setFromCartesian(position, velocity);
   };
 }());

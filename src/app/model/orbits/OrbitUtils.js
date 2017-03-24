@@ -17,6 +17,24 @@ export function EccentricityAt(keplerElements, t) {
   return e;
 }
 
+export function CalculateMeanAnomaly(L, w, perturbations, T) {
+  let M = L - w;
+  if (perturbations) {
+    M += (perturbations.b * (T ** 2)) +
+        (perturbations.c * Math.cos(perturbations.f * T)) +
+        (perturbations.s * Math.sin(perturbations.f * T));
+  }
+
+  M %= 360;
+  if (M > 180) {
+    M -= 360;
+  } else if (M < -180) {
+    M = 360 + M;
+  }
+
+  return M;
+}
+
 export const Eccentricity = (function () {
 
   const r = new Vector3();

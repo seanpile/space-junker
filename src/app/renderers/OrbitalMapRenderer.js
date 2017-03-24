@@ -350,9 +350,10 @@ OrbitalMapRenderer.prototype.createTrajectory = function (body) {
     name = ELLIPTICAL_TRAJECTORY;
 
   } else if (e === 1) {
-    // Unit parabola with focus centered on (0, 0)
-    curve = new ParabolaCurve(1 / 2, 0, 1, -Math.PI / 2, Math.PI / 2);
+    // Unit parabola with focus centered on (0, 0), p = 1, q = 1 / 2
+    curve = new ParabolaCurve(1 / 2, 0, 1, -10, 10);
     name = PARABOLIC_TRAJECTORY;
+
   } else if (e >= 1) {
     // Hyperbola
     curve = new HyperbolaCurve(
