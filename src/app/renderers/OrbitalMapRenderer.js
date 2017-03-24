@@ -272,6 +272,8 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   const threeBody = bodyMap.body;
   const orbit = body.orbit;
 
+  // Check to see if the trajectory type has changed in the model;
+  // If so, we need to reinstantiate a new trajectory
   let trajectory = bodyMap.trajectory;
   const refreshTrajectory =
     (orbit.e <= 1 && trajectory.name !== ELLIPTICAL_TRAJECTORY) ||

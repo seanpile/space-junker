@@ -1,12 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import AsyncComponent from './AsyncComponent';
-import LoadingView from './app/view/LoadingView';
+import { AppContainer } from 'react-hot-loader';
+import SpaceJunker from './app/view/SpaceJunker';
 import './css/styles.css';
 
-ReactDOM.render(
-  React.createElement(AsyncComponent, {
-    loader: () => import('./app/view/SpaceJunker'),
-    Placeholder: React.createElement(LoadingView),
-  }),
-  document.getElementsByTagName('main')[0]);
+const render = (Component) => {
+  ReactDOM.render(
+    <AppContainer>
+      <Component />
+    </AppContainer>,
+    document.getElementsByTagName('main')[0]);
+};
+
+render(SpaceJunker);
+
+/* Hot Module Support */
+if (module.hot) {
+  module.hot.accept('./app/view/SpaceJunker', () => {
+    render(SpaceJunker);
+  });
+}

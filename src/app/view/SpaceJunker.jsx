@@ -204,6 +204,13 @@ class SpaceJunker extends React.Component {
     });
   }
 
+  componentWillUnmount() {
+    if (this.frameId) {
+      window.cancelAnimationFrame(this.frameId);
+      this.frameId = null;
+    }
+  }
+
   activeRenderer() {
     return this.renderers[this.state.viewIdx];
   }
