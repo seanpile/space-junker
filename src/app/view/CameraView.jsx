@@ -19,6 +19,7 @@ class CameraView extends React.Component {
       return;
     }
 
+    // Initialize new renderer
     const currentRenderer = this.props.renderer;
     const nextRenderer = nextProps.renderer;
 

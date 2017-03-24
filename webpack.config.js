@@ -5,7 +5,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = function (env) {
   const config = {
     entry: {
-      main: [
+      main: env.prod ? './src/index.js' :
+      [
         'react-hot-loader/patch',
         'webpack/hot/only-dev-server',
         'webpack-dev-server/client?http://localhost:8080',
@@ -60,7 +61,7 @@ module.exports = function (env) {
           use: [{
             loader: 'babel-loader',
             options: {
-              plugins: ['react-hot-loader/babel'],
+              plugins: env.prod ? [] : ['react-hot-loader/babel'],
               presets: [['es2015', {
                 modules: false,
               }], 'stage-2', 'react'],
@@ -82,10 +83,13 @@ module.exports = function (env) {
       new webpack.optimize.CommonsChunkPlugin({
         name: 'vendor',
       }),
-      new webpack.HotModuleReplacementPlugin(),
       new webpack.NamedModulesPlugin(),
     ],
   };
+
+  if (env.dev) {
+    config.plugins.push(new webpack.HotModuleReplacementPlugin());
+  }
 
   return config;
 };
