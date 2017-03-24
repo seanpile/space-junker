@@ -54,18 +54,50 @@ class SpaceJunker extends React.Component {
 
     const orbitalMapRenderer = new OrbitalMapRenderer(solarSystem, resourceLoader, commonState);
     const cameraViewRenderer = new CameraViewRenderer(solarSystem, resourceLoader, commonState);
+    const views = [OrbitalMapView, CameraView];
+    let rendererId = 0;
 
-    this.renderers = [orbitalMapRenderer, cameraViewRenderer];
-    this.views = [OrbitalMapView, CameraView];
-    // const testingRenderer = new TestingRenderer(solarSystem, resourceLoader, commonState);
-    // this.renderers = [testingRenderer];
-    // this.views = [TestingView];
+    if (module.hot) {
+
+      // Allow dynamic reloading of OrbitalMapRenderer
+      module.hot.accept('../renderers/OrbitalMapRenderer', () => {
+        const newRenderer = new OrbitalMapRenderer(solarSystem, resourceLoader, commonState);
+        newRenderer.viewDidLoad().then(() => {
+          this.setState(prevState => ({
+            renderers: [{
+              id: rendererId++, renderer: newRenderer,
+            }, prevState.renderers[1]],
+          }));
+        });
+      });
+
+      // Allow dynamic reloading of CameraViewRenderer
+      module.hot.accept('../renderers/CameraViewRenderer', () => {
+        const newRenderer = new CameraViewRenderer(solarSystem, resourceLoader, commonState);
+        newRenderer.viewDidLoad().then(() => {
+          this.setState(prevState => ({
+            renderers: [prevState.renderers[0], {
+              id: rendererId++, renderer: newRenderer,
+            }],
+          }));
+        });
+      });
+    }
 
     this.state = {
       paused: false,
       initialized: false,
-      viewIdx: 0,
       timeWarpIdx: 0,
+      viewIdx: 0,
+      views,
+      renderers: [
+        {
+          id: rendererId++, renderer: orbitalMapRenderer,
+        },
+        {
+          id: rendererId++, renderer: cameraViewRenderer,
+        },
+      ],
     };
   }
 
@@ -75,7 +107,7 @@ class SpaceJunker extends React.Component {
     this.solarSystem.update(this.time, 0);
 
     // Initialize Renderers
-    Promise.all(this.renderers.map(renderer => renderer.viewDidLoad())).then(() => {
+    Promise.all(this.state.renderers.map(entry => entry.renderer.viewDidLoad())).then(() => {
 
       this.setState({
         initialized: true,
@@ -151,7 +183,7 @@ class SpaceJunker extends React.Component {
 
     Mousetrap.bind('m', () => {
       this.setState(prevState => ({
-        viewIdx: (prevState.viewIdx + 1) % this.views.length,
+        viewIdx: (prevState.viewIdx + 1) % this.state.views.length,
       }));
     });
 
@@ -212,7 +244,7 @@ class SpaceJunker extends React.Component {
   }
 
   activeRenderer() {
-    return this.renderers[this.state.viewIdx];
+    return this.state.renderers[this.state.viewIdx].renderer;
   }
 
   isRunning() {
@@ -302,11 +334,8 @@ class SpaceJunker extends React.Component {
 
     const viewIdx = this.state.viewIdx;
     const activeView = React.createElement(
-      this.views[viewIdx],
-      {
-        renderer: this.renderers[viewIdx],
-      });
-
+      this.state.views[viewIdx],
+      this.state.renderers[viewIdx]);
 
     return (
       <div id="space-junker">

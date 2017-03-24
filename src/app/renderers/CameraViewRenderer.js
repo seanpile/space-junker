@@ -107,7 +107,7 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
         this.viewWillDisappear = () => {
           keyBindings.unbind();
 
-          this.orbitControls.dispose();
+          this.orbitControls && this.orbitControls.dispose();
           this.orbitControls = null;
         };
 
@@ -118,6 +118,12 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
         resolve();
       });
   });
+};
+
+CameraViewRenderer.prototype.viewWillUnload = function () {
+  this.scene.remove(...this.bodyCache.values());
+  this.bodyCache.clear();
+  this.renderer.dispose();
 };
 
 /**

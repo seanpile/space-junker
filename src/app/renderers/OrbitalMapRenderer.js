@@ -153,6 +153,14 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
   });
 };
 
+OrbitalMapRenderer.prototype.viewWillUnload = function () {
+  this.scene.remove(...[...this.bodyMap.values()]
+    .map(v => Object.values(v))
+    .reduce((acc, val) => acc.concat(val), []));
+  this.bodyMap.clear();
+  this.renderer.dispose();
+};
+
 OrbitalMapRenderer.prototype.render = function () {
 
   const solarSystem = this.solarSystem;
