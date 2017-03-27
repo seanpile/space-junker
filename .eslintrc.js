@@ -34,30 +34,6 @@ module.exports = {
     'brace-style': ['error', '1tbs', {
       allowSingleLine: false,
     }],
-    // indent: [
-    //   'error',
-    //   2,
-    //   {
-    //     SwitchCase: 1,
-    //     VariableDeclarator: {
-    //       var: 2,
-    //       let: 2,
-    //       const: 3,
-    //     },
-    //     outerIIFEBody: 1,
-    //     FunctionDeclaration: {
-    //       parameters: 'first',
-    //       body: 1,
-    //     },
-    //     FunctionExpression: {
-    //       parameters: 'first',
-    //       body: 1,
-    //     },
-    //     CallExpression: { arguments: 'first' },
-    //     ArrayExpression: 'first',
-    //     ObjectExpression: 'first',
-    //   },
-    // ],
     'object-curly-newline': ['error', {
       minProperties: 1,
     }],
