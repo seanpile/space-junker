@@ -1,5 +1,3 @@
-import 'babel-polyfill';
-
 import * as THREE from 'three';
 import moment from 'moment';
 import Hammer from 'hammerjs';
@@ -106,18 +104,21 @@ class SpaceJunker extends React.Component {
     // Initial Seeding
     this.solarSystem.update(this.time, 0);
 
-    // Initialize Renderers
-    Promise.all(this.state.renderers.map(entry => entry.renderer.viewDidLoad())).then(() => {
+    // Initialize Renderer
+    Promise.all(this.state.renderers.map(entry => entry.renderer.viewDidLoad()))
+      .then(() => {
+        this.setState({
+          initialized: true,
+        });
 
-      this.setState({
-        initialized: true,
-        paused: false,
+        this.forceUpdate();
+        Splash.destroy();
+        this.run();
+      })
+      .catch((error) => {
+        console.error(error);
+        throw error;
       });
-
-      this.forceUpdate();
-      Splash.destroy();
-      this.run();
-    });
 
     // Slow Down
     Mousetrap.bind(',', () => {
@@ -270,33 +271,22 @@ class SpaceJunker extends React.Component {
 
     const solarSystem = this.solarSystem;
 
-    let accumulator = 0.0;
-    const dt = 10;
-
     this.setState({
       paused: false,
     });
 
     this.animationFrame((frameTime) => {
 
-      accumulator += frameTime;
       this.stats.begin();
 
-      while (accumulator >= dt) {
-        const t = this.time;
-        const scaledDt = this.timeWarpValues[this.state.timeWarpIdx] * dt;
+      const t = this.time;
+      const scaledDt = this.timeWarpValues[this.state.timeWarpIdx] * frameTime;
 
-        // Update physics
-        solarSystem.update(t, scaledDt);
+      // Update physics
+      solarSystem.update(t, scaledDt);
+      this.time += scaledDt;
 
-        accumulator -= dt;
-        this.time += scaledDt;
-      }
-
-      this.setState({
-        time: this.time,
-      });
-
+      this.forceUpdate();
       this.stats.end();
     });
   }
@@ -333,16 +323,17 @@ class SpaceJunker extends React.Component {
     }
 
     const viewIdx = this.state.viewIdx;
-    const activeView = React.createElement(
-      this.state.views[viewIdx],
-      this.state.renderers[viewIdx]);
+    const ActiveView = this.state.views[viewIdx];
+    // const activeView = React.createElement(
+    //   this.state.views[viewIdx],
+    //   this.state.renderers[viewIdx]);
 
     return (
       <div id="space-junker">
 
         <div id="content" className={isPaused ? 'paused' : null}>
 
-          {activeView}
+          <ActiveView {...this.state.renderers[viewIdx]} />
 
           <HudOverlay
             timeWarpValues={this.timeWarpValues}

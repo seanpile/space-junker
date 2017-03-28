@@ -154,9 +154,11 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
 };
 
 OrbitalMapRenderer.prototype.viewWillUnload = function () {
-  this.scene.remove(...[...this.bodyMap.values()]
-    .map(v => Object.values(v))
-    .reduce((acc, val) => acc.concat(val), []));
+  const threeObjects = [...this.bodyMap.values()]
+    .map(v => Object.keys(v).map(key => v[key]))
+    .reduce((acc, val) => acc.concat(val), []);
+
+  this.scene.remove(...threeObjects);
   this.bodyMap.clear();
   this.renderer.dispose();
 };
@@ -179,22 +181,23 @@ OrbitalMapRenderer.prototype.render = function () {
 
   hidden.forEach((body) => {
     const bodyMap = this.bodyMap.get(body.name);
-    Object.values(bodyMap)
-      .forEach((threeObj) => {
-        threeObj.visible = false;
-      });
+    let key;
+    for (key of Object.keys(bodyMap)) {
+      bodyMap[key].visible = false;
+    }
   });
 
   visible.forEach((body) => {
     const bodyMap = this.bodyMap.get(body.name);
-    Object.values(bodyMap)
-      .forEach((threeObj) => {
-        if (body.name === 'sun') {
-          threeObj.visible = false;
-        } else {
-          threeObj.visible = true;
-        }
-      });
+    let key;
+    for (key of Object.keys(bodyMap)) {
+      const threeObj = bodyMap[key];
+      if (body.name === 'sun') {
+        threeObj.visible = false;
+      } else {
+        threeObj.visible = true;
+      }
+    }
 
     const threeBody = bodyMap.body;
     const derived = body.derived;
@@ -501,7 +504,7 @@ OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
     this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
     this.orbitControls.minDistance = Math.max(1e-5, focus.constants.radius * 2);
     this.orbitControls.maxDistance = 100;
-    this.orbitControls.dollySpeed = 2.0;
+    this.orbitControls.dollySpeed = 4.0;
   };
 
   return recenter;

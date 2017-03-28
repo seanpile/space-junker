@@ -25,7 +25,7 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
 
   const solarSystem = this.solarSystem;
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     Promise.all([
       this._loadTextures(),
       this._loadModels(),
@@ -116,6 +116,9 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
         });
 
         resolve();
+      }).catch((error) => {
+        console.error(error);
+        reject(error);
       });
   });
 };

@@ -3,15 +3,16 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = function (env) {
+
+  const dev = env && env.dev;
   const config = {
     entry: {
-      main: env.prod ? './src/index.js' :
-      [
+      main: dev ? [
         'react-hot-loader/patch',
         'webpack/hot/only-dev-server',
         'webpack-dev-server/client?http://localhost:8080',
         './src/index.js',
-      ],
+      ] : './src/index.js',
       vendor: './src/vendor.js',
     },
     resolve: {
@@ -20,7 +21,7 @@ module.exports = function (env) {
       },
       extensions: ['.js', '.json', '.jsx'],
     },
-    devtool: env.prod ? 'eval' : 'cheap-module-eval-source-map',
+    devtool: dev ? 'cheap-module-eval-source-map' : 'eval',
     devServer: {
       hot: true,
       inline: true,
@@ -61,7 +62,7 @@ module.exports = function (env) {
           use: [{
             loader: 'babel-loader',
             options: {
-              plugins: env.prod ? [] : ['react-hot-loader/babel'],
+              plugins: dev ? ['react-hot-loader/babel'] : [],
               presets: [['es2015', {
                 modules: false,
               }], 'stage-2', 'react'],
@@ -87,7 +88,7 @@ module.exports = function (env) {
     ],
   };
 
-  if (env.dev) {
+  if (dev) {
     config.plugins.push(new webpack.HotModuleReplacementPlugin());
   }
 

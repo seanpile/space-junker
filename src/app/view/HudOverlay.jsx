@@ -32,7 +32,7 @@ class HudOverlay extends React.Component {
           ref={(ref) => {
             if (ref) {
               stats.dom.id = 'stats';
-              stats.dom.style = '';
+              stats.dom.style.cssText = '';
               ref.appendChild(stats.dom);
             }
           }}

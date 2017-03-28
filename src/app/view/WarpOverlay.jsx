@@ -1,6 +1,15 @@
 import moment from 'moment';
 import React from 'react';
 
+
+const pad = (string, prefix, len) => {
+  let padding = prefix;
+  while (padding.length < len) {
+    padding += padding;
+  }
+  return padding.substr(0, len - string.length) + string;
+};
+
 function WarpOverlay(props) {
 
   const warpIdx = props.idx;
@@ -32,9 +41,9 @@ function WarpOverlay(props) {
     values.push(`${days}d`);
   }
 
-  values.push(hours.toString().padStart(2, '0'));
-  values.push(minutes.toString().padStart(2, '0'));
-  values.push(seconds.toString().padStart(2, '0'));
+  values.push(pad(hours.toString(), '0', 2));
+  values.push(pad(minutes.toString(), '0', 2));
+  values.push(pad(seconds.toString(), '0', 2));
 
   const missionClock = `+T ${values.join(':')}`;
 
