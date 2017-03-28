@@ -377,7 +377,7 @@ OrbitalMapRenderer.prototype.createTrajectory = function (body) {
     name = HYPERBOLIC_TRAJECTORY;
   }
 
-  const NUM_POINTS = 256;
+  const NUM_POINTS = 128;
 
   // Create the trajectory using a strandard ellipse curve that will
   // eventually scale/rotate/translate into the correct orbit path during

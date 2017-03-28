@@ -188,7 +188,7 @@ BaseRenderer.prototype._loadPlanet = function (body, textures) {
   }
 
   const threeBody = new THREE.Mesh(
-    new THREE.SphereGeometry(body.constants.radius, 128, 128),
+    new THREE.SphereBufferGeometry(body.constants.radius, 32, 32),
     material);
 
   threeBody.receiveShadow = true;
@@ -218,14 +218,14 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     45, window.innerWidth / window.innerHeight, 0.1, 100);
 
   const navball = new THREE.Mesh(
-    new THREE.SphereGeometry(0.4, 128, 128),
+    new THREE.SphereBufferGeometry(0.4, 32, 32),
     new THREE.MeshPhongMaterial({
       map: textures.get('navball'),
       shininess: 1,
     }));
 
   const border = new THREE.Mesh(
-    new THREE.TorusGeometry(0.44, 0.05, 80, 60),
+    new THREE.TorusBufferGeometry(0.44, 0.05, 80, 60),
     new THREE.MeshPhongMaterial({
       color: 'gray',
       depthFunc: THREE.AlwaysDepth,
@@ -276,7 +276,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     ];
 
     return new THREE.Mesh(
-      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.ShapeBufferGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'yellow',
       }),
@@ -378,7 +378,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     ];
 
     return new THREE.Mesh(
-      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.ShapeBufferGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'yellow',
       }),
@@ -417,7 +417,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       });
 
     return new THREE.Mesh(
-      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.ShapeBufferGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'aqua',
       }),
@@ -461,7 +461,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       });
 
     return new THREE.Mesh(
-      new THREE.ShapeGeometry(shapes, 64),
+      new THREE.ShapeBufferGeometry(shapes, 64),
       new THREE.MeshBasicMaterial({
         color: 'aqua',
       }),
@@ -681,49 +681,42 @@ BaseRenderer.prototype.setNavballOrientation = (function () {
 
 BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
 
-  const withBody = (fn) => {
+  const ifShip = fn => () => {
     const body = this.solarSystem.find(this.state.focus);
-    return () => fn(body);
+    if (body.type === SHIP_TYPE) {
+      fn(body);
+    }
   };
 
   const keyBindings = {
     // (Decrease Throttle)
-    ctrl: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.thrust = Math.max(0, body.motion.thrust - THRUST_STEP);
+    ctrl: ifShip((ship) => {
+      ship.motion.thrust = Math.max(0, ship.motion.thrust - THRUST_STEP);
     }),
     // (Increase Throttle)
-    shift: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.thrust = Math.min(1, body.motion.thrust + THRUST_STEP);
+    shift: ifShip((ship) => {
+      ship.motion.thrust = Math.min(1, ship.motion.thrust + THRUST_STEP);
     }),
-    t: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.sas = !body.motion.sas;
+    t: ifShip((ship) => {
+      ship.motion.sas = !ship.motion.sas;
     }),
-    q: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.roll += -MOTION_STEP;
+    q: ifShip((ship) => {
+      ship.motion.roll += -MOTION_STEP;
     }),
-    e: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.roll += MOTION_STEP;
+    e: ifShip((ship) => {
+      ship.motion.roll += MOTION_STEP;
     }),
-    w: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.pitch += MOTION_STEP;
+    w: ifShip((ship) => {
+      ship.motion.pitch += MOTION_STEP;
     }),
-    s: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.pitch += -MOTION_STEP;
+    s: ifShip((ship) => {
+      ship.motion.pitch += -MOTION_STEP;
     }),
-    a: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.yaw += -MOTION_STEP;
+    a: ifShip((ship) => {
+      ship.motion.yaw += -MOTION_STEP;
     }),
-    d: withBody((body) => {
-      if (body.type !== SHIP_TYPE) return;
-      body.motion.yaw += MOTION_STEP;
+    d: ifShip((ship) => {
+      ship.motion.yaw += MOTION_STEP;
     }),
   };
 

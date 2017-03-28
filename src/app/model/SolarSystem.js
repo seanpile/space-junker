@@ -79,10 +79,10 @@ SolarSystem.prototype._applyRotation = (function () {
   const axisZ = new Vector3(0, 0, 1);
 
   // rad / second
-  const DAMPING_STEP = Math.PI / (2 ** 3);
+  const DAMPING_STEP = Math.PI / (2 ** 9);
 
-  const dampenMotion = (val, dt) => {
-    let adjusted = val - ((Math.sign(val) * DAMPING_STEP * dt) / 1000);
+  const dampenMotion = (val) => {
+    let adjusted = val - (Math.sign(val) * DAMPING_STEP);
     if (Math.abs(adjusted) < 10e-10) {
       adjusted = 0;
     }
@@ -92,18 +92,33 @@ SolarSystem.prototype._applyRotation = (function () {
 
   return function applyRotation(body, dt) {
     const rotation = body.motion.rotation;
+    const sasEnabled = body.motion.sas;
 
-    adjustment.setFromAxisAngle(axisX, ((body.motion.pitch || 0) * dt) / 1000);
-    rotation.multiply(adjustment);
-    adjustment.setFromAxisAngle(axisY, ((body.motion.roll || 0) * dt) / 1000);
-    rotation.multiply(adjustment);
-    adjustment.setFromAxisAngle(axisZ, ((body.motion.yaw || 0) * dt) / 1000);
-    rotation.multiply(adjustment);
+    if (body.motion.pitch !== 0) {
+      adjustment.setFromAxisAngle(axisX, (body.motion.pitch * dt) / 1000);
+      rotation.multiply(adjustment);
 
-    if (body.motion.sas) {
-      body.motion.pitch = dampenMotion(body.motion.pitch, dt);
-      body.motion.roll = dampenMotion(body.motion.roll, dt);
-      body.motion.yaw = dampenMotion(body.motion.yaw, dt);
+      if (sasEnabled) {
+        body.motion.pitch = dampenMotion(body.motion.pitch);
+      }
+    }
+
+    if (body.motion.roll !== 0) {
+      adjustment.setFromAxisAngle(axisY, (body.motion.roll * dt) / 1000);
+      rotation.multiply(adjustment);
+
+      if (sasEnabled) {
+        body.motion.roll = dampenMotion(body.motion.roll);
+      }
+    }
+
+    if (body.motion.yaw !== 0) {
+      adjustment.setFromAxisAngle(axisZ, (body.motion.yaw * dt) / 1000);
+      rotation.multiply(adjustment);
+
+      if (sasEnabled) {
+        body.motion.yaw = dampenMotion(body.motion.yaw);
+      }
     }
   };
 }());
