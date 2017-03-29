@@ -1,22 +1,20 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { AppContainer } from 'react-hot-loader';
-import SpaceJunker from './app/view/SpaceJunker';
-import './css/styles.css';
+import Vue from 'vue';
+import SpaceJunker from './app/vue/SpaceJunker';
 
 const render = (Component) => {
-  ReactDOM.render(
-    <AppContainer>
-      <Component />
-    </AppContainer>,
-    document.getElementsByTagName('main')[0]);
+  const app = new Vue({
+    el: '#app',
+    components: {
+      'space-junker': Component,
+    },
+  });
 };
 
 render(SpaceJunker);
 
 /* Hot Module Support */
 if (module.hot) {
-  module.hot.accept('./app/view/SpaceJunker', () => {
+  module.hot.accept('./app/vue/SpaceJunker', () => {
     render(SpaceJunker);
   });
 }

@@ -40,6 +40,7 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.autoClear = false;
+        this.dom = this.renderer.domElement;
 
         const width = window.innerWidth;
         const height = window.innerHeight;

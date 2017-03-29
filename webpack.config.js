@@ -8,7 +8,6 @@ module.exports = function (env) {
   const config = {
     entry: {
       main: dev ? [
-        'react-hot-loader/patch',
         'webpack/hot/only-dev-server',
         'webpack-dev-server/client?http://localhost:8080',
         './src/index.js',
@@ -18,8 +17,9 @@ module.exports = function (env) {
     resolve: {
       alias: {
         splash: path.resolve(__dirname, 'node_modules/splash-screen/dist/'),
+        vue$: 'vue/dist/vue.esm.js',
       },
-      extensions: ['.js', '.json', '.jsx'],
+      extensions: ['.js', '.json', '.jsx', '.vue'],
     },
     devtool: dev ? 'cheap-module-eval-source-map' : 'eval',
     devServer: {
@@ -57,15 +57,19 @@ module.exports = function (env) {
           }],
         },
         {
+          test: /\.vue$/,
+          exclude: /node_modules/,
+          loader: 'vue-loader',
+        },
+        {
           test: /\.(js|jsx)$/,
           exclude: /node_modules/,
           use: [{
             loader: 'babel-loader',
             options: {
-              plugins: dev ? ['react-hot-loader/babel'] : [],
               presets: [['es2015', {
                 modules: false,
-              }], 'stage-2', 'react'],
+              }], 'stage-2'],
             },
           }],
         },

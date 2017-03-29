@@ -4,8 +4,7 @@ require('moment');
 require('stats.js');
 require('splash-screen');
 require('hammerjs');
-require('react');
-require('react-dom');
+require('vue');
 require('mousetrap');
 
 const THREE = require('three');

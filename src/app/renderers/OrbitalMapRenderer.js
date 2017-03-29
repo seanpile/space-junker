@@ -49,6 +49,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
         });
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.autoClear = false;
+        this.dom = this.renderer.domElement;
 
         this.bodyMap = new Map();
         this.mouseOverTimeout = null;
