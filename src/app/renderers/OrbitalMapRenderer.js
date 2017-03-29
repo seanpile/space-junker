@@ -26,8 +26,8 @@ const PLANET_COLOURS = {
   pluto: 'silver',
 };
 
-function OrbitalMapRenderer(solarSystem, resourceLoader, commonState) {
-  BaseRenderer.call(this, solarSystem, resourceLoader, commonState);
+function OrbitalMapRenderer(solarSystem, resourceLoader, sharedState) {
+  BaseRenderer.call(this, solarSystem, resourceLoader, sharedState);
 }
 
 Object.assign(OrbitalMapRenderer.prototype, BaseRenderer.prototype);
@@ -169,7 +169,7 @@ OrbitalMapRenderer.prototype.render = function () {
   const solarSystem = this.solarSystem;
 
   // Find the current user focus
-  const focus = solarSystem.find(this.state.focus);
+  const focus = solarSystem.find(this.sharedState.focus);
 
   // Locate primary body, sun
   const sun = solarSystem.find('sun');
@@ -470,8 +470,8 @@ OrbitalMapRenderer.prototype._switchFocus = (function () {
     let focusChanged = false;
     if (intersection.length > 0) {
       const hitId = intersection[0].object.name;
-      focusChanged = this.state.focus !== hitId;
-      this.state.focus = hitId;
+      focusChanged = this.sharedState.focus !== hitId;
+      this.sharedState.focus = hitId;
 
       const newFocus = solarSystem.find(hitId);
       this.orbitControls.minDistance = Math.max(1e-5, newFocus.constants.radius * 2);
@@ -485,7 +485,7 @@ OrbitalMapRenderer.prototype._switchFocus = (function () {
 OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
   const ORIGIN = new THREE.Vector3();
   const recenter = () => {
-    const focus = solarSystem.find(this.state.focus);
+    const focus = solarSystem.find(this.sharedState.focus);
 
     // For all bodies (except sun), use the size of the orbiting radius for
     // the camera position.

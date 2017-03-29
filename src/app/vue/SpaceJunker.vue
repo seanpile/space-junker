@@ -9,7 +9,7 @@
 
       <component :is="views[rendererIdx]" :renderer="renderers[rendererIdx]"></component>
 
-      <hud :elapsed="elapsed" :timeWarpIdx="timeWarpIdx" :timeWarpValues="timeWarpValues"></hud>
+      <hud :elapsed="elapsed" :timeWarpIdx="timeWarpIdx" :timeWarpValues="timeWarpValues" :focus="focus" :stats="stats"></hud>
 
       <help-overlay />
 
@@ -33,7 +33,7 @@ import Hammer from 'hammerjs';
 import Mousetrap from 'mousetrap';
 import Stats from 'stats.js';
 
-import CommonState from '../view/CommonState';
+import SharedState from '../SharedState';
 import ResourceLoader from '../renderers/ResourceLoader';
 import CameraViewRenderer from '../renderers/CameraViewRenderer';
 import OrbitalMapRenderer from '../renderers/OrbitalMapRenderer';
@@ -62,17 +62,18 @@ export default {
     const now = Date.now();
     const solarSystem = new SolarSystem();
     const resourceLoader = new ResourceLoader();
-    const commonState = new CommonState('apollo 11');
+    const sharedState = new SharedState('apollo 11');
 
     return {
       stats,
       solarSystem,
       resourceLoader,
-      commonState,
+      sharedState,
+      focus: solarSystem.find(sharedState.focus),
       rendererIdx: 0,
       renderers: [
-        new OrbitalMapRenderer(solarSystem, resourceLoader, commonState),
-        new CameraViewRenderer(solarSystem, resourceLoader, commonState),
+        new OrbitalMapRenderer(solarSystem, resourceLoader, sharedState),
+        new CameraViewRenderer(solarSystem, resourceLoader, sharedState),
       ],
       views: [
         // Maps to component names
@@ -99,6 +100,15 @@ export default {
         10e5,
         10e6,
       ],
+    }
+  },
+
+  watch: {
+    sharedState: {
+      deep: true,
+      handler: function(val, oldVal) {
+        this.focus = this.solarSystem.find(this.sharedState.focus);
+      }
     }
   },
 
@@ -211,7 +221,7 @@ export default {
         Mousetrap.bind('[', () => {
           const solarSystem = this.solarSystem;
           let focusIdx = solarSystem.bodies.findIndex(p => p.name ===
-            this.commonState.focus);
+            this.sharedState.focus);
 
           focusIdx -= 1;
           if (focusIdx < 0) {
@@ -219,7 +229,7 @@ export default {
           }
 
           const newFocus = solarSystem.bodies[focusIdx].name;
-          this.commonState.focus = newFocus;
+          this.sharedState.focus = newFocus;
 
           this.activeRenderer()
             .dispatchEvent({
@@ -232,12 +242,12 @@ export default {
         Mousetrap.bind(']', () => {
           const solarSystem = this.solarSystem;
           let focusIdx = solarSystem.bodies.findIndex(p => p.name ===
-            this.commonState.focus);
+            this.sharedState.focus);
 
           focusIdx = (focusIdx + 1) % solarSystem.bodies.length;
 
           const newFocus = solarSystem.bodies[focusIdx].name;
-          this.commonState.focus = newFocus;
+          this.sharedState.focus = newFocus;
 
           this.activeRenderer()
             .dispatchEvent({
@@ -387,5 +397,21 @@ body {
 .hud-overlay .title {
     flex: 1 1 auto;
     text-align: center;
+}
+
+.hud-overlay-entry {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.hud-overlay-entry .label {
+    flex: 0 1 auto;
+    padding-right: 10px;
+}
+
+.hud-overlay-entry .value {
+    flex: 0 1 auto;
 }
 </style>

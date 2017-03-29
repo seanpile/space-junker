@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import BaseRenderer from './BaseRenderer';
 
-export default function TestingRenderer(solarSystem, resourceLoader, commonState) {
-  BaseRenderer.call(this, solarSystem, resourceLoader, commonState);
+export default function TestingRenderer(solarSystem, resourceLoader, sharedState) {
+  BaseRenderer.call(this, solarSystem, resourceLoader, sharedState);
 
   const width = window.innerWidth;
   const height = window.innerHeight;

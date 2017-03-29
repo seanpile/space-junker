@@ -7,8 +7,8 @@ const OrbitControls = require('three-orbit-controls')(THREE);
 
 const SHOW_HELPERS = false;
 
-function CameraViewRenderer(solarSystem, resourceLoader, commonState) {
-  BaseRenderer.call(this, solarSystem, resourceLoader, commonState);
+function CameraViewRenderer(solarSystem, resourceLoader, sharedState) {
+  BaseRenderer.call(this, solarSystem, resourceLoader, sharedState);
 
   this.bodyCache = new Map();
   this.showHelpers = SHOW_HELPERS;
@@ -98,7 +98,7 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
          * Setup lifecycle methods for registering/deregistering event listeners
          */
         this.viewWillAppear = () => {
-          const focus = solarSystem.find(this.state.focus);
+          const focus = solarSystem.find(this.sharedState.focus);
           onFocus(focus);
           onWindowResize();
 
@@ -138,7 +138,7 @@ CameraViewRenderer.prototype.render = function render() {
   const solarSystem = this.solarSystem;
 
   // Find the body we are focusing on
-  const focus = solarSystem.find(this.state.focus);
+  const focus = solarSystem.find(this.sharedState.focus);
   const sun = solarSystem.find('sun');
 
   // Track the light source
@@ -195,7 +195,7 @@ CameraViewRenderer.prototype._onCenter = function (solarSystem) {
    * Callback to recenter the camera
    */
   const recenter = () => {
-    const focus = solarSystem.find(this.state.focus);
+    const focus = solarSystem.find(this.sharedState.focus);
 
     if (focus.name === 'sun') {
       this.camera.up = new THREE.Vector3(0, 0, 1);

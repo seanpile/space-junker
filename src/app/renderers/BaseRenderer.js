@@ -37,7 +37,7 @@ const MODELS = {
 export default function BaseRenderer(solarSystem, resourceLoader, state) {
   this.solarSystem = solarSystem;
   this.resourceLoader = resourceLoader;
-  this.state = state;
+  this.sharedState = state;
 }
 
 // Allow renderers to act on changes to the user interface
@@ -682,7 +682,7 @@ BaseRenderer.prototype.setNavballOrientation = (function () {
 BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
 
   const ifShip = fn => () => {
-    const body = this.solarSystem.find(this.state.focus);
+    const body = this.solarSystem.find(this.sharedState.focus);
     if (body.type === SHIP_TYPE) {
       fn(body);
     }

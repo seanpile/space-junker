@@ -62,7 +62,7 @@ module.exports = function (env) {
           loader: 'vue-loader',
         },
         {
-          test: /\.(js|jsx)$/,
+          test: /\.js$/,
           exclude: /node_modules/,
           use: [{
             loader: 'babel-loader',
