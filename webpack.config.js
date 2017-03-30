@@ -1,10 +1,12 @@
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = function (env) {
 
   const dev = env && env.dev;
+
   const config = {
     entry: {
       main: dev ? [
@@ -18,6 +20,10 @@ module.exports = function (env) {
       alias: {
         splash: path.resolve(__dirname, 'node_modules/splash-screen/dist/'),
         vue$: 'vue/dist/vue.esm.js',
+        // three$: 'three/build/three.min.js',
+        // mousetrap$: 'mousetrap/mousetrap.min.js',
+        // hammerjs$: 'hammerjs/hammer.min.js',
+        // moment$: 'moment/min/moment.min.js',
       },
       extensions: ['.js', '.json', '.jsx', '.vue'],
     },
@@ -67,9 +73,12 @@ module.exports = function (env) {
           use: [{
             loader: 'babel-loader',
             options: {
-              presets: [['es2015', {
-                modules: false,
-              }], 'stage-2'],
+              presets: [
+                ['es2015', {
+                  modules: false,
+                }],
+                'stage-2',
+              ],
             },
           }],
         },

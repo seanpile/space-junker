@@ -24,13 +24,11 @@ const TEXTURES = {
   neptune: require('../../img/neptunemap.jpg'), // eslint-disable-line global-require
   uranus: require('../../img/uranusmap.jpg'), // eslint-disable-line global-require
   lensflare: require('../../img/lensflare.png'), // eslint-disable-line global-require
-  rock1: require('../../models/rock1/ArmGra05.jpg'), // eslint-disable-line global-require
   'apollo 11': require('../../models/apollo/OldGlory.jpg'), // eslint-disable-line global-require
   navball: require('../../img/navball.png'), // eslint-disable-line global-require
 };
 
 const MODELS = {
-  rock1: require('../../models/rock1.dae'), // eslint-disable-line global-require
   'apollo 11': require('../../models/apollo.dae'), // eslint-disable-line global-require
 };
 
