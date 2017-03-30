@@ -565,7 +565,7 @@ BaseRenderer.prototype.setNavballOrientation = (function () {
   const up = new THREE.Vector3();
   const up0 = new THREE.Vector3(0, 0, 1);
 
-  return function (focus, navball) {
+  return function setNavballOrientation(focus, navball) {
     const derived = focus.derived;
     const primary = focus.primary;
     const motion = focus.motion;
@@ -736,7 +736,7 @@ BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
   };
 };
 
-BaseRenderer.prototype._lookupNearbyBodies = function (focus, bodies, nearbyThreshold) {
+BaseRenderer.prototype._lookupNearbyBodies = function lookupNearbyBodies(focus, bodies, nearbyThreshold) {
   const partitioned = bodies.map((body) => {
     const distance = new THREE.Vector3()
         .subVectors(focus.derived.position, body.derived.position);

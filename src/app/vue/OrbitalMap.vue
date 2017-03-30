@@ -6,7 +6,7 @@
       left: `${this.mouseOverTarget.left}px`,
     }">
     <h5 class="body-name">{{this.mouseOverTarget.name}}</h5>
-</div>
+  </div>
 </div>
 </template>
 
@@ -29,6 +29,7 @@ export default {
       }
     }
   },
+
   mounted: function() {
     this.renderer.viewWillAppear();
     this.renderer.mouseOverCallback = (mouseOverTarget) => {
