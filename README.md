@@ -16,7 +16,7 @@ Technology used:
 
 * **JavaScript** (self-contained, runs in the browser)
 * **Three.js / WebGL** (provides 3D graphics)
-* **React** (for rendering UI Components)
+* **React / Vue** (experimented with both libraries for rendering UI Components)
 * **Webpack** (provides build / bundling / dev server)
 
 ## Installation
