@@ -103,7 +103,14 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
 
           this.viewWillAppear = function () {
             onWindowResize();
-            recenter();
+
+            const focus = solarSystem.find(this.sharedState.focus);
+            this.orbitControls && this.orbitControls.dispose();
+            this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+            this.orbitControls.minDistance = Math.max(1e-5, focus.constants.radius * 2);
+            this.orbitControls.maxDistance = 100;
+            this.orbitControls.dollySpeed = 4.0;
+
             keyBindings.bind();
           };
 
@@ -141,6 +148,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
             }
           });
 
+          recenter();
           resolve();
         })
         .catch((error) => {
@@ -498,12 +506,6 @@ OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
 
     this.camera.position.set(0, 0, cameraDistance);
     this.camera.lookAt(ORIGIN);
-
-    this.orbitControls && this.orbitControls.dispose();
-    this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.orbitControls.minDistance = Math.max(1e-5, focus.constants.radius * 2);
-    this.orbitControls.maxDistance = 100;
-    this.orbitControls.dollySpeed = 4.0;
   };
 
   return recenter;
