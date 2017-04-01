@@ -81,6 +81,7 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
       this.addEventListener('focus', (event) => {
         const focus = solarSystem.find(event.focus);
         onFocus(focus);
+        onRecenter();
       });
 
       this.addEventListener('recenter', () => {
@@ -115,6 +116,7 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
         this.loadThreeBody(body, textures, models);
       });
 
+      onRecenter();
       resolve();
     }).catch((error) => {
       console.error(error);
@@ -224,8 +226,6 @@ CameraViewRenderer.prototype._onFocus = function (recenter) {
   const onFocus = (focus) => {
     // First dispose of existing orbit controls if they exist.
     this.orbitControls && this.orbitControls.dispose();
-
-    recenter();
 
     this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
     this.orbitControls.minDistance = focus.constants.radius * 1.5;
