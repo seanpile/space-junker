@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import BaseRenderer from './BaseRenderer';
-import { AU, SHIP_TYPE, PLANET_TYPE } from '../Constants';
+import { AU } from '../Constants';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
 
@@ -29,105 +29,108 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
     Promise.all([
       this._loadTextures(),
       this._loadModels(),
-    ])
-      .then(([textures, models]) => {
+    ]).then(([textures, models]) => {
 
-        this.renderer = new THREE.WebGLRenderer({
-          antialias: true,
-          alpha: true,
-        });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        this.renderer.autoClear = false;
-        this.dom = this.renderer.domElement;
-
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        // initialize camera and scene
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color('black');
-        this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
-        this.camera.up = new THREE.Vector3(0, 0, 1);
-
-        this.navball = this.loadNavball(textures);
-
-        // Background stars
-        const skybox = this._createSkyBox();
-        this.scene.add(skybox);
-
-        // Setup light
-        this.lightSources = this._setupLightSources(textures);
-
-        /**
-         * Callback to recenter the camera
-         */
-        const onRecenter = this._onCenter(solarSystem);
-
-        /**
-         * Callback for when we change the body focus
-         */
-        const onFocus = this._onFocus(onRecenter);
-
-        /**
-         * Callback for when the window resizes
-         */
-        const onWindowResize = this._onWindowResize([this.camera, this.navball.camera],
-          height, this.camera.fov);
-
-        /**
-         * Register to listen for events
-         */
-        this.addEventListener('focus', (event) => {
-          const focus = solarSystem.find(event.focus);
-          onFocus(focus);
-        });
-
-        this.addEventListener('recenter', () => {
-          onRecenter();
-        });
-
-        this.addEventListener('resize', () => {
-          onWindowResize();
-        });
-
-        const keyBindings = this.createKeyBindings();
-
-        /**
-         * Setup lifecycle methods for registering/deregistering event listeners
-         */
-        this.viewWillAppear = () => {
-          const focus = solarSystem.find(this.sharedState.focus);
-          onFocus(focus);
-          onWindowResize();
-
-          keyBindings.bind();
-        };
-
-        this.viewWillDisappear = () => {
-          keyBindings.unbind();
-
-          this.orbitControls && this.orbitControls.dispose();
-          this.orbitControls = null;
-        };
-
-        solarSystem.bodies.forEach((body) => {
-          this.loadThreeBody(body, textures, models);
-        });
-
-        resolve();
-      }).catch((error) => {
-        console.error(error);
-        reject(error);
+      this.renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
       });
+      this.renderer.setPixelRatio(window.devicePixelRatio);
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.renderer.autoClear = false;
+      this.dom = this.renderer.domElement;
+
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // initialize camera and scene
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color('black');
+      this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+      this.camera.up = new THREE.Vector3(0, 0, 1);
+
+      this.navball = this.loadNavball(textures);
+
+      // Background stars
+      const skybox = this._createSkyBox();
+      this.scene.add(skybox);
+
+      // Setup light
+      this.lightSources = this._setupLightSources(textures);
+
+      /**
+       * Callback to recenter the camera
+       */
+      const onRecenter = this._onCenter(solarSystem);
+
+      /**
+       * Callback for when we change the body focus
+       */
+      const onFocus = this._onFocus(onRecenter);
+
+      /**
+       * Callback for when the window resizes
+       */
+      const onWindowResize = this._onWindowResize([this.camera, this.navball.camera],
+                                                  height, this.camera.fov);
+
+      /**
+       * Register to listen for events
+       */
+      this.addEventListener('focus', (event) => {
+        const focus = solarSystem.find(event.focus);
+        onFocus(focus);
+      });
+
+      this.addEventListener('recenter', () => {
+        onRecenter();
+      });
+
+      this.addEventListener('resize', () => {
+        onWindowResize();
+      });
+
+      const keyBindings = this.createKeyBindings();
+
+      /**
+       * Setup lifecycle methods for registering/deregistering event listeners
+       */
+      this.viewWillAppear = () => {
+        const focus = solarSystem.find(this.sharedState.focus);
+        onFocus(focus);
+        onWindowResize();
+
+        keyBindings.bind();
+      };
+
+      this.viewWillDisappear = () => {
+        keyBindings.unbind();
+
+        this.orbitControls && this.orbitControls.dispose();
+        this.orbitControls = null;
+      };
+
+      solarSystem.bodies.forEach((body) => {
+        this.loadThreeBody(body, textures, models);
+      });
+
+      resolve();
+    }).catch((error) => {
+      console.error(error);
+      reject(error);
+    });
   });
 };
 
 CameraViewRenderer.prototype.viewWillUnload = function () {
   this.scene.remove(...this.bodyCache.values());
   this.bodyCache.clear();
-  this.renderer.dispose();
+
+  this.renderer.forceContextLoss();
+  this.renderer.context = null;
+  this.renderer.domElement = null;
+  this.renderer = null;
 };
 
 /**
@@ -170,9 +173,9 @@ CameraViewRenderer.prototype.render = function render() {
     // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
     // and the accumulated rotation around the axis ('derived.rotation');
 
-    if (body.type === SHIP_TYPE) {
+    if (body.isShip()) {
       threeBody.setRotationFromQuaternion(body.motion.rotation);
-    } else if (body.type === PLANET_TYPE) {
+    } else if (body.isPlanet()) {
       this._applyPlanetaryRotation(threeBody, body);
     }
   });
@@ -180,7 +183,7 @@ CameraViewRenderer.prototype.render = function render() {
   this.renderer.clear();
   this.renderer.render(this.scene, this.camera);
 
-  if (focus.type === SHIP_TYPE) {
+  if (focus.isShip()) {
     this.setNavballOrientation(focus, this.navball);
 
     this.renderer.clearDepth();
@@ -234,7 +237,7 @@ CameraViewRenderer.prototype._onFocus = function (recenter) {
 
 CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
   let threeBody;
-  if (body.type === SHIP_TYPE) {
+  if (body.isShip()) {
     threeBody = this._loadModelBody(body, models);
   } else {
     threeBody = this._loadPlanet(body, textures);
@@ -270,10 +273,10 @@ CameraViewRenderer.prototype._loadModelBody = (function () {
     threeObj.receiveShadow = true;
     threeObj.castShadow = true;
     childrenOf(threeObj)
-      .forEach((obj) => {
-        obj.receiveShadow = true;
-        obj.castShadow = true;
-      });
+        .forEach((obj) => {
+          obj.receiveShadow = true;
+          obj.castShadow = true;
+        });
 
     if (this.showHelpers) {
       const box = new THREE.BoxHelper(threeObj, 0xffff00);

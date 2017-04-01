@@ -9,20 +9,19 @@
 </template>
 
 <script>
-import { AU, SHIP_TYPE } from '../Constants';
+import { AU, } from '../Constants';
 
 export default {
 
   props: ['focus'],
   computed: {
     isShip: function() {
-      return this.focus.type === SHIP_TYPE;
+      return this.focus.isShip();
     },
     stats: function() {
 
       const focus = this.focus;
-
-      if (focus.type !== SHIP_TYPE) {
+      if (!focus.isShip()) {
         return null;
       }
 

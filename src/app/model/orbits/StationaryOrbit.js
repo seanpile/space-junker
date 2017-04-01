@@ -1,12 +1,13 @@
 import { Vector3 } from 'three';
+import Orbit from './Orbit';
 
-class StationaryOrbit {
+class StationaryOrbit extends Orbit {
 
   advance(dt) {
     // No-op
   }
 
-  stats() {
+  stats(dt) {
     return {
       position: new Vector3(),
       velocity: new Vector3(),

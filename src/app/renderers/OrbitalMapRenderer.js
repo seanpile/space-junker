@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import BaseRenderer from './BaseRenderer';
 import {
-  SHIP_TYPE,
-  PLANET_TYPE,
   ELLIPTICAL_TRAJECTORY,
   HYPERBOLIC_TRAJECTORY,
   PARABOLIC_TRAJECTORY,
@@ -41,116 +39,114 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
       this._loadTextures(),
       this._loadModels(),
     ])
-      .then(([textures]) => {
+        .then(([textures]) => {
 
-        this.renderer = new THREE.WebGLRenderer({
-          antialias: true,
-          alpha: true,
-        });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.autoClear = false;
-        this.dom = this.renderer.domElement;
+          this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+          });
+          this.renderer.setPixelRatio(window.devicePixelRatio);
+          this.renderer.autoClear = false;
+          this.dom = this.renderer.domElement;
 
-        this.bodyMap = new Map();
-        this.mouseOverTimeout = null;
+          this.bodyMap = new Map();
+          this.mouseOverTimeout = null;
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+          const width = window.innerWidth;
+          const height = window.innerHeight;
 
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color('black');
+          this.scene = new THREE.Scene();
+          this.scene.background = new THREE.Color('black');
 
-        this.camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
-        this.camera.up = new THREE.Vector3(0, 0, 1);
+          this.camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
+          this.camera.up = new THREE.Vector3(0, 0, 1);
 
-        const skyBox = this._createSkyBox();
-        this.scene.add(skyBox);
+          const skyBox = this._createSkyBox();
+          this.scene.add(skyBox);
 
-        // Setup light
-        this.lightSources = this._setupLightSources(textures);
+          // Setup light
+          this.lightSources = this._setupLightSources(textures);
 
-        // Setup navball
-        this.navball = this.loadNavball(textures);
+          // Setup navball
+          this.navball = this.loadNavball(textures);
 
-        const recenter = this._onRecenter(solarSystem);
-        const onWindowResize = this._onWindowResize(
+          const recenter = this._onRecenter(solarSystem);
+          const onWindowResize = this._onWindowResize(
           [this.camera, this.navball.camera],
           height,
           this.camera.fov);
 
-        /**
-         * Register to receive events from the simulation
-         */
-        this.addEventListener('doubletap', (event) => {
-          this._switchFocus(event.location, solarSystem);
-        });
+          /**
+           * Register to receive events from the simulation
+           */
+          this.addEventListener('doubletap', (event) => {
+            this._switchFocus(event.location, solarSystem);
+          });
 
-        this.addEventListener('mouseover', (event) => {
-          this._onMouseover(event.location);
-        });
+          this.addEventListener('mouseover', (event) => {
+            this._onMouseover(event.location);
+          });
 
-        this.addEventListener('focus', () => {
-          recenter();
-        });
+          this.addEventListener('focus', () => {
+            recenter();
+          });
 
-        this.addEventListener('recenter', () => {
-          recenter();
-        });
+          this.addEventListener('recenter', () => {
+            recenter();
+          });
 
-        this.addEventListener('resize', () => {
-          onWindowResize();
-        });
+          this.addEventListener('resize', () => {
+            onWindowResize();
+          });
 
-        const keyBindings = this.createKeyBindings();
+          const keyBindings = this.createKeyBindings();
 
-        this.viewWillAppear = function () {
-          onWindowResize();
-          recenter();
-          keyBindings.bind();
-        };
+          this.viewWillAppear = function () {
+            onWindowResize();
+            recenter();
+            keyBindings.bind();
+          };
 
-        this.viewWillDisappear = function () {
-          keyBindings.unbind();
-          this.orbitControls && this.orbitControls.dispose();
-          this.orbitControls = null;
-        };
+          this.viewWillDisappear = function () {
+            keyBindings.unbind();
+            this.orbitControls && this.orbitControls.dispose();
+            this.orbitControls = null;
+          };
 
         // Maintain a mapping from planet -> THREE object representing the planet
         // This will allow us to update the existing THREE object on each iteration
         // of the render loop.
-        solarSystem.bodies.forEach((body) => {
-          this.bodyMap.set(body.name, {});
+          solarSystem.bodies.forEach((body) => {
+            this.bodyMap.set(body.name, {});
 
-          let threeBody;
-          if (body.type === PLANET_TYPE) {
-            threeBody = this._loadPlanet(body, textures);
-          } else {
-            threeBody = new THREE.Mesh(
+            let threeBody;
+            if (body.isPlanet()) {
+              threeBody = this._loadPlanet(body, textures);
+            } else {
+              threeBody = new THREE.Mesh(
               new THREE.SphereBufferGeometry(body.constants.radius, 32, 32),
-              new THREE.MeshBasicMaterial({
-                color: 'gray',
-              }));
-          }
-          threeBody.name = body.name;
+              new THREE.MeshBasicMaterial({ color: 'gray' }));
+            }
+            threeBody.name = body.name;
 
-          this.scene.add(threeBody);
+            this.scene.add(threeBody);
 
-          const bodyMap = this.bodyMap.get(body.name);
-          bodyMap.body = threeBody;
+            const bodyMap = this.bodyMap.get(body.name);
+            bodyMap.body = threeBody;
 
-          if (body.name !== 'sun') {
-            const trajectory = this.createTrajectory(body);
-            this.scene.add(trajectory);
-            bodyMap.trajectory = trajectory;
-          }
+            if (body.name !== 'sun') {
+              const trajectory = this.createTrajectory(body);
+              this.scene.add(trajectory);
+              bodyMap.trajectory = trajectory;
+            }
+          });
+
+          resolve();
+        })
+        .catch((error) => {
+          console.error(error);
+          reject(error);
         });
-
-        resolve();
-      })
-      .catch((error) => {
-        console.error(error);
-        reject(error);
-      });
   });
 };
 
@@ -161,7 +157,11 @@ OrbitalMapRenderer.prototype.viewWillUnload = function () {
 
   this.scene.remove(...threeObjects);
   this.bodyMap.clear();
-  this.renderer.dispose();
+
+  this.renderer.forceContextLoss();
+  this.renderer.context = null;
+  this.renderer.domElement = null;
+  this.renderer = null;
 };
 
 OrbitalMapRenderer.prototype.render = function () {
@@ -208,7 +208,7 @@ OrbitalMapRenderer.prototype.render = function () {
 
     threeBody.position.set(position.x, position.y, position.z);
 
-    if (body.type === PLANET_TYPE) {
+    if (body.isPlanet()) {
       this._applyPlanetaryRotation(threeBody, body);
     }
 
@@ -221,7 +221,7 @@ OrbitalMapRenderer.prototype.render = function () {
   this._updateCamera(focus);
   this.renderer.render(this.scene, this.camera);
 
-  if (focus.type === SHIP_TYPE) {
+  if (focus.isShip()) {
     this.setNavballOrientation(focus, this.navball);
 
     this.renderer.clearDepth();
@@ -307,7 +307,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   } else if (this.camera.position.distanceTo(threeBody.position) < showTrajectoryTheshold) {
     // Don't show the trajectory of our primary body if we are zoomed in, this reduces
     // visual clutter
-    if (focus.type === PLANET_TYPE && body.name === focus.name && focus.primary.name === 'sun') {
+    if (focus.isPlanet() && body.name === focus.name && focus.primary.name === 'sun') {
       visible = false;
     } else if (focus.primary && focus.primary.name === body.name) {
       visible = false;
@@ -396,13 +396,11 @@ OrbitalMapRenderer.prototype.createTrajectory = function (body) {
   }
 
   bufferGeometry.addAttribute('position',
-    new THREE.BufferAttribute(new Float32Array(vertices), 3));
+                              new THREE.BufferAttribute(new Float32Array(vertices), 3));
 
   const trajectory = new THREE.Line(
     bufferGeometry,
-    new THREE.LineBasicMaterial({
-      color: PLANET_COLOURS[body.name] || 'white',
-    }));
+    new THREE.LineBasicMaterial({ color: PLANET_COLOURS[body.name] || 'white' }));
 
   trajectory.name = name;
   return trajectory;

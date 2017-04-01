@@ -1,11 +1,13 @@
 import { Vector3, Math as threeMath } from 'three';
 import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
+import Orbit from './Orbit';
 
 const degToRad = threeMath.degToRad;
 
-class ParabolicOrbit {
+class ParabolicOrbit extends Orbit {
 
   constructor(body, p, e, I, omega, argumentPerihelion, M) {
+    super();
     this.body = body;
     this.p = p;
     this.e = e;
@@ -59,7 +61,7 @@ class ParabolicOrbit {
     ecc.crossVectors(v, h)
         .multiplyScalar(1 / u)
         .sub(r.clone()
-          .multiplyScalar(1 / r.length()));
+            .multiplyScalar(1 / r.length()));
 
     // Perifocal Distance and Semi-Latus Rectum
     const q = (h.length() ** 2) / (2 * u);

@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import Mousetrap from 'mousetrap';
 import {
   AU,
-  SHIP_TYPE,
 } from '../Constants';
 
 // rad / second
@@ -28,9 +27,7 @@ const TEXTURES = {
   navball: require('../../img/navball.png'), // eslint-disable-line global-require
 };
 
-const MODELS = {
-  'apollo 11': require('../../models/apollo.dae'), // eslint-disable-line global-require
-};
+const MODELS = { 'apollo 11': require('../../models/apollo.dae') };
 
 export default function BaseRenderer(solarSystem, resourceLoader, state) {
   this.solarSystem = solarSystem;
@@ -67,7 +64,7 @@ BaseRenderer.prototype._loadTextures = function () {
   return Promise.all(allKeys
       .map(key => this.resourceLoader.loadTexture(TEXTURES[key])),
     )
-    .then(values => Promise.resolve(
+      .then(values => Promise.resolve(
       new Map(values.map(([url, texture], idx) => [allKeys[idx], texture]))));
 };
 
@@ -77,7 +74,7 @@ BaseRenderer.prototype._loadModels = function () {
   return Promise.all(allKeys
       .map(key => this.resourceLoader.loadModel(MODELS[key])),
     )
-    .then(values => Promise.resolve(
+      .then(values => Promise.resolve(
       new Map(values.map(([url, model], idx) => [allKeys[idx], model]))));
 };
 
@@ -163,9 +160,7 @@ BaseRenderer.prototype._adjustCoordinates = function (focus, position) {
 BaseRenderer.prototype._loadPlanet = function (body, textures) {
   let material;
   if (body.name === 'sun') {
-    material = new THREE.MeshBasicMaterial({
-      color: 'yellow',
-    });
+    material = new THREE.MeshBasicMaterial({ color: 'yellow' });
   } else {
     material = new THREE.MeshPhongMaterial();
     if (textures.has(`${body.name}bump`)) {
@@ -275,9 +270,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
 
     return new THREE.Mesh(
       new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({
-        color: 'yellow',
-      }),
+      new THREE.MeshBasicMaterial({ color: 'yellow' }),
     );
   })();
 
@@ -377,9 +370,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
 
     return new THREE.Mesh(
       new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({
-        color: 'yellow',
-      }),
+      new THREE.MeshBasicMaterial({ color: 'yellow' }),
     );
   })();
 
@@ -416,9 +407,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
 
     return new THREE.Mesh(
       new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({
-        color: 'aqua',
-      }),
+      new THREE.MeshBasicMaterial({ color: 'aqua' }),
     );
   })();
 
@@ -460,9 +449,7 @@ BaseRenderer.prototype.loadNavball = function (textures) {
 
     return new THREE.Mesh(
       new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({
-        color: 'aqua',
-      }),
+      new THREE.MeshBasicMaterial({ color: 'aqua' }),
     );
   })();
 
@@ -605,8 +592,8 @@ BaseRenderer.prototype.setNavballOrientation = (function () {
      */
     offset.copy(orientation);
     offset.normalize()
-      .negate()
-      .multiplyScalar(5);
+        .negate()
+        .multiplyScalar(5);
 
     const navballCamera = navball.camera;
     const navballLight = navball.light;
@@ -625,7 +612,7 @@ BaseRenderer.prototype.setNavballOrientation = (function () {
     const radial = primaryPosition;
     const angle = radial.angleTo(motion.heading0);
     offset.crossVectors(radial, motion.heading0)
-      .normalize();
+        .normalize();
 
     const gyroscope = navball.gyroscope;
 
@@ -681,7 +668,7 @@ BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
 
   const ifShip = fn => () => {
     const body = this.solarSystem.find(this.sharedState.focus);
-    if (body.type === SHIP_TYPE) {
+    if (body.isShip()) {
       fn(body);
     }
   };

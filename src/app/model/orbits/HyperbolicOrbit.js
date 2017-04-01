@@ -1,11 +1,18 @@
 import { Vector3, Math as threeMath } from 'three';
-import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
+import Orbit from './Orbit';
+import {
+  JulianDate,
+  TransformToEcliptic,
+  CalculateMeanAnomaly,
+  CalculateEccentricAnomaly,
+} from './OrbitUtils';
 
 const degToRad = threeMath.degToRad;
 
-class HyperbolicOrbit {
+class HyperbolicOrbit extends Orbit {
 
   constructor(body, a, e, I, omega, argumentPerihelion, M) {
+    super();
     this.body = body;
     this.a = a;
     this.e = e;
@@ -60,7 +67,7 @@ class HyperbolicOrbit {
     ecc.crossVectors(v, h)
         .multiplyScalar(1 / u)
         .sub(r.clone()
-          .multiplyScalar(1 / r.length()));
+            .multiplyScalar(1 / r.length()));
 
     // Semi-Major Axis
     const specificEnergy = (v.lengthSq() / 2) - (u / r.length());
@@ -115,7 +122,7 @@ class HyperbolicOrbit {
      * For elliptical orbits, M - M0 = n(t - t0)
      */
     const n = Math.sqrt(u / (Math.pow(-this.a, 3)));
-    this.M = (this.M + (n * (dt / 1000))) % (Math.PI * 2);
+    this.M = this.M + (n * (dt / 1000));
   }
 
   stats(dt) {
@@ -129,7 +136,8 @@ class HyperbolicOrbit {
     const u = this.body.primary.constants.u;
     const offset = this.body.primary.derived.position;
 
-    const H = HyperbolicOrbit.CalculateHyperbolicEccentricity(e, M);
+    const H = CalculateEccentricAnomaly(e, M);
+    // const H = HyperbolicOrbit.CalculateHyperbolicEccentricity(e, M);
     const trueAnomaly = 2 * Math.atan(Math.sqrt((e + 1) / (e - 1)) * Math.tanh(H / 2));
 
     const r =
@@ -169,60 +177,6 @@ class HyperbolicOrbit {
       periapsis: TransformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
       apoapsis: TransformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
     };
-  }
-
-  static CalculateEccentricAnomaly(e, M) {
-    const tol = 10e-8;
-    const maxTimes = 10;
-
-    let E = M;
-    let numTimes = 0;
-    do {
-      const f0 = E - ((e * Math.sin(E)) + M);
-      const f1 = 1 - (e * Math.cos(E));
-      const ratio = f0 / f1;
-
-      if (Math.abs(ratio) <= tol) {
-        return E;
-      }
-
-      E -= ratio;
-      numTimes += 1;
-    } while (numTimes < maxTimes);
-
-    if (numTimes > maxTimes) {
-      console.error("Didn't iterate on a solution!");
-    }
-
-    return E;
-  }
-
-  static CalculateHyperbolicEccentricity(e, M) {
-
-    const tol = 10e-8;
-    const maxTimes = 10;
-
-    let deltaH;
-    let H0 = M;
-    let numTimes = 0;
-    do {
-      const f0 = ((e * Math.sinh(H0)) - H0) - M;
-      const f1 = (e * Math.cosh(H0)) - 1;
-      deltaH = f0 / f1;
-
-      if (Math.abs(deltaH) < tol) {
-        return H0;
-      }
-
-      H0 -= deltaH;
-      numTimes += 1;
-    } while (numTimes <= maxTimes);
-
-    if (numTimes > maxTimes) {
-      throw new Error(`Didn't iterate on a solution! (e = ${e}, M = ${M})`);
-    }
-
-    return H0;
   }
 
 }

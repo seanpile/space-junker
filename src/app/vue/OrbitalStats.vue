@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { AU, PLANET_TYPE, SHIP_TYPE } from '../Constants';
+import { AU, } from '../Constants';
 
 export default {
   props: ['focus'],
@@ -87,7 +87,7 @@ export default {
         ],
       ];
 
-      if (focus.type === PLANET_TYPE) {
+      if (focus.isPlanet()) {
         stats.push(['Rotation Period', `${rotationPeriod.toFixed(4)} days`]);
         stats.push(['Axial Tilt', `${axialTilt.toFixed(2)}°`]);
       }

@@ -1,11 +1,18 @@
 import { Vector3, Math as threeMath } from 'three';
-import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
+import Orbit from './Orbit';
+import {
+  JulianDate,
+  TransformToEcliptic,
+  CalculateMeanAnomaly,
+  CalculateEccentricAnomaly,
+} from './OrbitUtils';
 
 const degToRad = threeMath.degToRad;
 
-class EllipticalOrbit {
+class EllipticalOrbit extends Orbit {
 
   constructor(body, a, e, I, omega, argumentPerihelion, M) {
+    super();
     this.body = body;
     this.a = a;
     this.e = e;
@@ -62,7 +69,7 @@ class EllipticalOrbit {
     ecc.crossVectors(v, h)
         .multiplyScalar(1 / u)
         .sub(r.clone()
-          .multiplyScalar(1 / r.length()));
+            .multiplyScalar(1 / r.length()));
 
     // Semi-Major Axis
     const specificEnergy = (v.lengthSq() / 2) - (u / r.length());
@@ -160,9 +167,9 @@ class EllipticalOrbit {
     const offset = this.body.primary.derived.position;
 
     // Calculate true anomaly
-    const E = EllipticalOrbit.CalculateEccentricAnomaly(e, M);
+    const E = CalculateEccentricAnomaly(e, M);
     const trueAnomaly = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2),
-      Math.sqrt(1 - e) * Math.cos(E / 2));
+                                       Math.sqrt(1 - e) * Math.cos(E / 2));
 
     // Calculate perifocal coordinates in the planets orbital plane
     const perifocalPosition = new Vector3(
@@ -170,7 +177,7 @@ class EllipticalOrbit {
         a * Math.sqrt(1 - (e ** 2)) * Math.sin(E),
         0);
 
-    // Calculate the velocity in the planets orbital planet
+    // Calculate the velocity in the planets perifocal plane
     const perifocalVelocity = new Vector3(
       -Math.sin(trueAnomaly),
       e + Math.cos(trueAnomaly),
@@ -199,32 +206,6 @@ class EllipticalOrbit {
       periapsis: TransformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
       apoapsis: TransformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
     };
-  }
-
-  static CalculateEccentricAnomaly(e, M) {
-
-    const tol = 1e-8;
-    const maxTimes = 30;
-    let ratio = 1;
-    let numTimes = 0;
-
-    const pi2 = Math.PI * 2;
-    let M0 = M / pi2;
-    M0 = pi2 * (M0 - Math.floor(M0));
-
-    let E = e < 0.8 ? M0 : Math.PI;
-
-    while (Math.abs(ratio) > tol && numTimes < maxTimes) {
-      ratio = (E - (e * Math.sin(E)) - M0) / (1 - (e * Math.cos(E)));
-      E -= ratio;
-      numTimes += 1;
-    }
-
-    if (numTimes >= maxTimes) {
-      console.error("Didn't iterate on a solution!");
-    }
-
-    return E;
   }
 
 }
