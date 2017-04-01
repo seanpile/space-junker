@@ -105,6 +105,7 @@ SolarSystem.prototype.update = function update(t, dt) {
       }
 
       body.orbit = orbit;
+      body.derived = orbit.stats(0);
       if (body.isPlanet()) {
         body.constants.sphereOfInfluence = OrbitUtils.SphereOfInfluence(body);
       }
@@ -119,6 +120,7 @@ SolarSystem.prototype.update = function update(t, dt) {
     body.derived = body.orbit.stats(dt);
 
     if (body.isShip()) {
+      this._checkSphereOfInfluence(body);
       this._applyRotation(body, dt);
       this._applyThrust(body, dt);
     }
@@ -135,6 +137,40 @@ SolarSystem.prototype._orbitType = function (e) {
   }
 
   return found;
+};
+
+SolarSystem.prototype._checkSphereOfInfluence = function (body) {
+
+  const sun = this.find('sun');
+
+  // Check for Sphere of Influence change; this should be optimized later
+  const spheresOfInfluence =
+    this.bodies
+      .filter(b => b !== body && b !== sun)
+      .map(b => ({ body: b, distance: body.relativePosition(b).length() }))
+      .filter(({ body: b, distance }) => distance < b.constants.sphereOfInfluence)
+      .sort(({ b1, d1 }, { b2, d2 }) => d1 - d2);
+
+  // This body has escaped the influence of a body, it should now orbit the sun!
+  if (spheresOfInfluence.length === 0) {
+    if (body.primary !== sun) {
+      this._switchSphereOfInfluence(body, sun);
+    }
+  } else {
+
+  }
+};
+
+SolarSystem.prototype._switchSphereOfInfluence = function (body, to) {
+  const { position, velocity } = body.derived;
+  body.primary.removeSecondary(body);
+  body.primary = to;
+  body.primary.addSecondary(body);
+
+  const eccentricity = OrbitUtils.Eccentricity(body, position, velocity);
+  const OrbitType = this._orbitType(eccentricity);
+  body.orbit = new OrbitType(body);
+  body.orbit.setFromCartesian(position, velocity);
 };
 
 SolarSystem.prototype._applyRotation = (function () {

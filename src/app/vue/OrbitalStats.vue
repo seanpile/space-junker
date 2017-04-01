@@ -3,7 +3,7 @@
   <h3 class="title">Orbital Statistics</h3>
   <div v-for="stat in stats" class="hud-overlay-entry">
     <div class="label">{{stat[0]}}</div>
-    <div class="value">{{stat[1]}}</div>
+    <div class="value" v-bind:style="stat.length >= 2 && stat[2]">{{stat[1]}}</div>
   </div>
 </div>
 </template>
@@ -51,14 +51,14 @@ export default {
 
       const stats = [
       [
-        'Name', focus.name,
+        'Name', focus.name, {'text-transform': 'capitalize'},
       ],
       [
         'Orbiting', focus.primary
             ?
         focus.primary.name
             :
-        '',
+        '', {'text-transform': 'capitalize'},
       ],
       [
         'Speed', `${velocity.toFixed(2)} m/s`,

@@ -52,16 +52,16 @@ class Body {
     return true;
   }
 
-  relativePosition() {
-    if (!this.primary) {
+  relativePosition(body = this.primary) {
+    if (!body) {
       return this.derived.position;
     }
 
-    if (!this.derived.position || !this.primary.derived.position) {
+    if (!this.derived.position || !body.derived.position) {
       return undefined;
     }
 
-    return new Vector3().subVectors(this.derived.position, this.primary.derived.position);
+    return new Vector3().subVectors(this.derived.position, body.derived.position);
   }
 
 }
