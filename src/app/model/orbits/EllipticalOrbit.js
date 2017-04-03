@@ -12,8 +12,7 @@ const degToRad = threeMath.degToRad;
 class EllipticalOrbit extends Orbit {
 
   constructor(body, a, e, I, omega, argumentPerihelion, M) {
-    super();
-    this.body = body;
+    super(body);
     this.a = a;
     this.e = e;
     this.I = I;
@@ -155,7 +154,7 @@ class EllipticalOrbit extends Orbit {
     this.M = (this.M + (n * (dt / 1000))) % (2 * Math.PI);
   }
 
-  stats(dt) {
+  stats() {
 
     const e = this.e;
     const a = this.a;
@@ -191,13 +190,8 @@ class EllipticalOrbit extends Orbit {
     const orbitalPeriod = 2 * Math.PI * Math.sqrt((a ** 3) /
         (u + (this.body.constants.u || 0)));
 
-    const rotation = (this.body.derived.rotation || 0) +
-        ((2 * Math.PI * dt) /
-        ((this.body.constants.rotation_period || 1) * 86400e3));
-
     return {
       orbitalPeriod,
-      rotation,
       semiMajorAxis: a,
       semiMinorAxis: b,
       position: TransformToEcliptic(offset, perifocalPosition, argumentPerihelion, omega, I),

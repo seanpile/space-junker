@@ -33,6 +33,7 @@ import Hammer from 'hammerjs';
 import Mousetrap from 'mousetrap';
 import Stats from 'stats.js';
 
+import SpaceJunkerAPI from '../api/SpaceJunkerAPI';
 import SharedState from '../SharedState';
 import ResourceLoader from '../renderers/ResourceLoader';
 import CameraViewRenderer from '../renderers/CameraViewRenderer';
@@ -172,13 +173,16 @@ export default {
         // Update physics
         solarSystem.update(t, scaledDt);
 
+        this.api.onUpdate(this);
+
         // Repaint canvas
         this.activeRenderer.render();
 
         this.time += scaledDt;
         this.elapsed.add(scaledDt);
-
         this.stats.end();
+
+        return this.api.onRender(this);
       });
     },
 
@@ -189,11 +193,13 @@ export default {
         let stop = false;
         if (lastTime != null) {
           const timeStep = (time - lastTime);
-          stop = frameFunc(timeStep) === false;
+          stop = frameFunc(timeStep) === true;
         }
         lastTime = time;
         if (!stop) {
           this.frameId = requestAnimationFrame(frame);
+        } else {
+          this.frameId = null;
         }
       };
 
@@ -205,6 +211,10 @@ export default {
 
     // Initial Seeding
     this.solarSystem.update(this.time, 0);
+
+    const api = new SpaceJunkerAPI();
+    window.SpaceJunkerAPI = api;
+    this.api = api;
 
     // Initialize Renderers
     Promise.all(this.views.map(v => this.renderers[v].renderer.viewDidLoad()))

@@ -297,7 +297,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   let trajectory = bodyMap.trajectory;
   const refreshTrajectory =
     (orbit.e <= 1 && trajectory.name !== ELLIPTICAL_TRAJECTORY) ||
-    (orbit.e >= 1 && trajectory.name !== HYPERBOLIC_TRAJECTORY) ||
+    (orbit.e > 1 && trajectory.name !== HYPERBOLIC_TRAJECTORY) ||
     (orbit.e === 1 && trajectory.name !== PARABOLIC_TRAJECTORY);
 
   if (refreshTrajectory) {

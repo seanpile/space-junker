@@ -7,7 +7,7 @@ class StationaryOrbit extends Orbit {
     // No-op
   }
 
-  stats(dt) {
+  stats() {
     return {
       position: new Vector3(),
       velocity: new Vector3(),

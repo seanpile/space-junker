@@ -1,6 +1,10 @@
 
 export default class Orbit {
 
+  constructor(body) {
+    this.body = body;
+  }
+
   static supports(e) {
     throw new Error('unimplemented method');
   }

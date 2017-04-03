@@ -7,8 +7,7 @@ const degToRad = threeMath.degToRad;
 class ParabolicOrbit extends Orbit {
 
   constructor(body, p, e, I, omega, argumentPerihelion, M) {
-    super();
-    this.body = body;
+    super(body);
     this.p = p;
     this.e = e;
     this.I = I;
@@ -122,7 +121,7 @@ class ParabolicOrbit extends Orbit {
     this.M = this.M + (n * (dt / 1000));
   }
 
-  stats(dt) {
+  stats() {
 
     const p = this.p;
     const e = this.e;
@@ -156,15 +155,10 @@ class ParabolicOrbit extends Orbit {
     const periapsis = new Vector3(q, 0, 0);
     const apoapsis = undefined;
     const center = new Vector3(0, 0, 0);
-
     const orbitalPeriod = Infinity;
-    const rotation = (this.body.derived.rotation || 0) +
-        ((2 * Math.PI * dt) /
-        ((this.body.constants.rotation_period || 1) * 86400e3));
 
     return {
       orbitalPeriod,
-      rotation,
       semiMajorAxis: p,
       semiMinorAxis: q,
       position: TransformToEcliptic(offset, perifocalPosition, argumentPerihelion, omega, I),

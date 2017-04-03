@@ -119,7 +119,9 @@ SolarSystem.prototype.update = function update(t, dt) {
     body.orbit.advance(dt);
     body.derived = body.orbit.stats(dt);
 
-    if (body.isShip()) {
+    if (body.isPlanet()) {
+      this._applyPlanetaryRotation(body, dt);
+    } else if (body.isShip()) {
       this._checkSphereOfInfluence(body);
       this._applyRotation(body, dt);
       this._applyThrust(body, dt);
@@ -137,6 +139,15 @@ SolarSystem.prototype._orbitType = function (e) {
   }
 
   return found;
+};
+
+SolarSystem.prototype._applyPlanetaryRotation = function (planet, dt) {
+
+  const rotation = (planet.constants.rotation || 0) +
+    ((2 * Math.PI * dt) /
+      ((planet.constants.rotation_period || 1) * 86400e3));
+
+  planet.constants.rotation = rotation % (2 * Math.PI);
 };
 
 SolarSystem.prototype._checkSphereOfInfluence = function (body) {
@@ -272,6 +283,7 @@ SolarSystem.prototype._applyThrust = (function () {
 
     // Update orbital elements from the new position, velocity elements
     body.orbit.setFromCartesian(position, velocity);
+    body.derived = body.orbit.stats(dt);
   };
 }());
 

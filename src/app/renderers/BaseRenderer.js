@@ -192,7 +192,6 @@ BaseRenderer.prototype._loadPlanet = function (body, textures) {
 
 BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
   const orbit = body.orbit;
-  const derived = body.derived;
 
   planet.rotation.set(0, 0, 0);
   planet.rotateZ(orbit.omega);
@@ -202,7 +201,7 @@ BaseRenderer.prototype._applyPlanetaryRotation = function (planet, body) {
   planet.rotateOnAxis(
    new THREE.Vector3(0, 0, 1),
    -((body.constants.axial_tilt || 0) * Math.PI) / 180);
-  planet.rotateY(derived.rotation);
+  planet.rotateY(body.constants.rotation);
 };
 
 BaseRenderer.prototype.loadNavball = function (textures) {

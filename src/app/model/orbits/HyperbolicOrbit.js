@@ -12,8 +12,7 @@ const degToRad = threeMath.degToRad;
 class HyperbolicOrbit extends Orbit {
 
   constructor(body, a, e, I, omega, argumentPerihelion, M) {
-    super();
-    this.body = body;
+    super(body);
     this.a = a;
     this.e = e;
     this.I = I;
@@ -160,15 +159,10 @@ class HyperbolicOrbit extends Orbit {
     const periapsis = new Vector3(a * (1 - e), 0, 0);
     const apoapsis = undefined;
     const center = new Vector3(periapsis.x - a, 0, 0);
-
     const orbitalPeriod = Infinity;
-    const rotation = (this.body.derived.rotation || 0) +
-        ((2 * Math.PI * dt) /
-        ((this.body.constants.rotation_period || 1) * 86400e3));
 
     return {
       orbitalPeriod,
-      rotation,
       semiMajorAxis: a,
       semiMinorAxis: b,
       position: TransformToEcliptic(offset, perifocalPosition, argumentPerihelion, omega, I),
