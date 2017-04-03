@@ -152,7 +152,7 @@ BaseRenderer.prototype._adjustCoordinates = function (focus, position) {
   }
 
   const coordinates = position.clone()
-    .sub(focus.derived.position);
+    .sub(focus.position);
 
   return coordinates;
 };
@@ -550,11 +550,10 @@ BaseRenderer.prototype.setNavballOrientation = (function () {
   const up0 = new THREE.Vector3(0, 0, 1);
 
   return function setNavballOrientation(focus, navball) {
-    const derived = focus.derived;
     const primary = focus.primary;
     const motion = focus.motion;
-    const velocity = derived.velocity.clone();
-    const primaryPosition = this._adjustCoordinates(focus, primary.derived.position);
+    const velocity = focus.velocity.clone();
+    const primaryPosition = this._adjustCoordinates(focus, primary.position);
 
     orientation.copy(motion.heading0);
     orientation.applyQuaternion(motion.rotation);
@@ -674,11 +673,11 @@ BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
 
   const keyBindings = {
     // (Decrease Throttle)
-    ctrl: ifShip((ship) => {
+    '-': ifShip((ship) => {
       ship.motion.thrust = Math.max(0, ship.motion.thrust - THRUST_STEP);
     }),
     // (Increase Throttle)
-    shift: ifShip((ship) => {
+    '=': ifShip((ship) => {
       ship.motion.thrust = Math.min(1, ship.motion.thrust + THRUST_STEP);
     }),
     t: ifShip((ship) => {
@@ -723,7 +722,7 @@ BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
 BaseRenderer.prototype._lookupNearbyBodies = function lookupNearbyBodies(focus, bodies, nearbyThreshold) {
   const partitioned = bodies.map((body) => {
     const distance = new THREE.Vector3()
-        .subVectors(focus.derived.position, body.derived.position);
+        .subVectors(focus.position, body.position);
     return [body, distance.lengthSq()];
   })
     .reduce((acc, [body, distance]) => {

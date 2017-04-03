@@ -1,8 +1,8 @@
-
 export default class Orbit {
 
   constructor(body) {
     this.body = body;
+    this.stats = {};
   }
 
   static supports(e) {

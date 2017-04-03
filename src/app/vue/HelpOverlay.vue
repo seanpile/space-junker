@@ -40,15 +40,10 @@
     </div>
     <div class="key-entry">
       <div class="keys">
-        <div class="key">shift</div>
+        <div class="key">-</div>
+        <div class="key">=</div>
       </div>
-      <div class="description">Increase Thrust</div>
-    </div>
-    <div class="key-entry">
-      <div class="keys">
-        <div class="key">ctrl</div>
-      </div>
-      <div class="description">Decrease Thrust</div>
+      <div class="description">Decrease / Increase Thrust</div>
     </div>
     <div class="key-entry">
       <div class="keys">

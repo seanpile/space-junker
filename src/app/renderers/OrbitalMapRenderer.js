@@ -209,10 +209,9 @@ OrbitalMapRenderer.prototype.render = function () {
     }
 
     const threeBody = bodyMap.body;
-    const derived = body.derived;
 
     // Adjust position to re-center the coordinate system on the focus
-    const position = this._adjustCoordinates(focus, derived.position);
+    const position = this._adjustCoordinates(focus, body.position);
 
     threeBody.position.set(position.x, position.y, position.z);
 
@@ -255,7 +254,7 @@ OrbitalMapRenderer.prototype._setupLightSources = function (textures) {
 
 OrbitalMapRenderer.prototype._adjustLightSource = function (focus, sun) {
   this.lightSources.forEach((light) => {
-    const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
+    const lightPosition = this._adjustCoordinates(focus, sun.position);
     light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
   });
 };
@@ -329,10 +328,10 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
 
   trajectory.visible = true;
 
-  const derived = body.derived;
-  const semiMajorAxis = derived.semiMajorAxis;
-  const semiMinorAxis = derived.semiMinorAxis;
-  const center = this._adjustCoordinates(focus, derived.center);
+  const stats = body.orbit.stats;
+  const semiMajorAxis = stats.semiMajorAxis;
+  const semiMinorAxis = stats.semiMinorAxis;
+  const center = this._adjustCoordinates(focus, stats.center);
 
   // Finally, apply scale/rotation/translation to the trajectory to place it
   // into the correct orbit
@@ -499,8 +498,8 @@ OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
     if (focus.name === 'sun') {
       cameraDistance = 5;
     } else {
-      const position = focus.derived.position;
-      const primaryPosition = focus.primary.derived.position;
+      const position = focus.position;
+      const primaryPosition = focus.primary.position;
       cameraDistance = primaryPosition.distanceTo(position);
     }
 

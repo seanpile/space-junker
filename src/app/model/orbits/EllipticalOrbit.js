@@ -46,6 +46,7 @@ class EllipticalOrbit extends Orbit {
     this.argumentPerihelion = degToRad(argumentPerihelion);
     this.M = degToRad(M);
 
+    this.updateStats();
     return this;
   }
 
@@ -61,7 +62,7 @@ class EllipticalOrbit extends Orbit {
     const primary = this.body.primary;
     const u = primary.constants.u;
 
-    r.subVectors(position, primary.derived.position);
+    r.subVectors(position, primary.position);
     v.copy(velocity);
     h.crossVectors(r, v);
     n.crossVectors(axisZ, h);
@@ -142,6 +143,9 @@ class EllipticalOrbit extends Orbit {
     this.omega = omega;
     this.argumentPerihelion = argumentPerihelion;
     this.M = M;
+
+    this.updateStats();
+    return this;
   }
 
   advance(dt) {
@@ -152,9 +156,11 @@ class EllipticalOrbit extends Orbit {
      */
     const n = Math.sqrt(u / (this.a ** 3));
     this.M = (this.M + (n * (dt / 1000))) % (2 * Math.PI);
+
+    this.updateStats();
   }
 
-  stats() {
+  updateStats() {
 
     const e = this.e;
     const a = this.a;
@@ -163,7 +169,7 @@ class EllipticalOrbit extends Orbit {
     const I = this.I;
     const M = this.M;
     const u = this.body.primary.constants.u;
-    const offset = this.body.primary.derived.position;
+    const offset = this.body.primary.position;
 
     // Calculate true anomaly
     const E = CalculateEccentricAnomaly(e, M);
@@ -190,7 +196,7 @@ class EllipticalOrbit extends Orbit {
     const orbitalPeriod = 2 * Math.PI * Math.sqrt((a ** 3) /
         (u + (this.body.constants.u || 0)));
 
-    return {
+    this.stats = Object.assign({}, this.stats, {
       orbitalPeriod,
       semiMajorAxis: a,
       semiMinorAxis: b,
@@ -199,7 +205,7 @@ class EllipticalOrbit extends Orbit {
       center: TransformToEcliptic(offset, center, argumentPerihelion, omega, I),
       periapsis: TransformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
       apoapsis: TransformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
-    };
+    });
   }
 
 }

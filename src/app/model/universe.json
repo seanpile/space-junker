@@ -109,7 +109,7 @@
       {
         "mass": 11900,
         "isp": 314,
-        "thrust": 91e3,
+        "thrust": 91e5,
         "propellant": 18410
       }
     ]

@@ -3,18 +3,19 @@ import Orbit from './Orbit';
 
 class StationaryOrbit extends Orbit {
 
-  advance(dt) {
-    // No-op
-  }
-
-  stats() {
-    return {
+  constructor(body) {
+    super(body);
+    Object.assign(this.stats, {
       position: new Vector3(),
       velocity: new Vector3(),
       apoapsis: new Vector3(),
       periapsis: new Vector3(),
       center: new Vector3(),
-    };
+    });
+  }
+
+  advance(dt) {
+    // No-op
   }
 
 }

@@ -105,7 +105,6 @@ SolarSystem.prototype.update = function update(t, dt) {
       }
 
       body.orbit = orbit;
-      body.derived = orbit.stats(0);
       if (body.isPlanet()) {
         body.constants.sphereOfInfluence = OrbitUtils.SphereOfInfluence(body);
       }
@@ -117,7 +116,6 @@ SolarSystem.prototype.update = function update(t, dt) {
   this.bodies.forEach((body) => {
 
     body.orbit.advance(dt);
-    body.derived = body.orbit.stats(dt);
 
     if (body.isPlanet()) {
       this._applyPlanetaryRotation(body, dt);
@@ -173,7 +171,9 @@ SolarSystem.prototype._checkSphereOfInfluence = function (body) {
 };
 
 SolarSystem.prototype._switchSphereOfInfluence = function (body, to) {
-  const { position, velocity } = body.derived;
+  const { position, velocity } = body;
+  console.log(position);
+  console.log(velocity);
   body.primary.removeSecondary(body);
   body.primary = to;
   body.primary.addSecondary(body);
@@ -268,8 +268,8 @@ SolarSystem.prototype._applyThrust = (function () {
     const deltaV = orientation.clone()
       .multiplyScalar(isp * g0 * Math.log(m0 / m1));
 
-    const velocity = body.derived.velocity.clone().add(deltaV);
-    const position = body.derived.position.clone().add(
+    const velocity = body.velocity.clone().add(deltaV);
+    const position = body.position.clone().add(
       velocity.clone().multiplyScalar(dt / 1000),
     );
 
@@ -283,7 +283,6 @@ SolarSystem.prototype._applyThrust = (function () {
 
     // Update orbital elements from the new position, velocity elements
     body.orbit.setFromCartesian(position, velocity);
-    body.derived = body.orbit.stats(dt);
   };
 }());
 

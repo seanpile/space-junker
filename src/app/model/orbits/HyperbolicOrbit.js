@@ -44,6 +44,7 @@ class HyperbolicOrbit extends Orbit {
     this.argumentPerihelion = degToRad(argumentPerihelion);
     this.M = degToRad(M);
 
+    this.updateStats();
     return this;
   }
 
@@ -59,7 +60,7 @@ class HyperbolicOrbit extends Orbit {
     const primary = this.body.primary;
     const u = primary.constants.u;
 
-    r.subVectors(position, primary.derived.position);
+    r.subVectors(position, primary.position);
     v.copy(velocity);
     h.crossVectors(r, v);
     n.crossVectors(axisZ, h);
@@ -112,6 +113,9 @@ class HyperbolicOrbit extends Orbit {
     this.omega = omega;
     this.argumentPerihelion = argumentPerihelion;
     this.M = M;
+
+    this.updateStats();
+    return this;
   }
 
   advance(dt) {
@@ -122,9 +126,10 @@ class HyperbolicOrbit extends Orbit {
      */
     const n = Math.sqrt(u / (Math.pow(-this.a, 3)));
     this.M = this.M + (n * (dt / 1000));
+    this.updateStats();
   }
 
-  stats(dt) {
+  updateStats() {
 
     const e = this.e;
     const a = this.a;
@@ -133,7 +138,7 @@ class HyperbolicOrbit extends Orbit {
     const I = this.I;
     const M = this.M;
     const u = this.body.primary.constants.u;
-    const offset = this.body.primary.derived.position;
+    const offset = this.body.primary.position;
 
     const H = CalculateEccentricAnomaly(e, M);
     // const H = HyperbolicOrbit.CalculateHyperbolicEccentricity(e, M);
@@ -161,7 +166,7 @@ class HyperbolicOrbit extends Orbit {
     const center = new Vector3(periapsis.x - a, 0, 0);
     const orbitalPeriod = Infinity;
 
-    return {
+    this.stats = Object.assign({}, this.stats, {
       orbitalPeriod,
       semiMajorAxis: a,
       semiMinorAxis: b,
@@ -170,7 +175,7 @@ class HyperbolicOrbit extends Orbit {
       center: TransformToEcliptic(offset, center, argumentPerihelion, omega, I),
       periapsis: TransformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
       apoapsis: TransformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
-    };
+    });
   }
 
 }

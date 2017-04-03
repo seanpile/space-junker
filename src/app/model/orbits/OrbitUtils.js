@@ -182,7 +182,7 @@ export const Eccentricity = (function () {
     const primary = body.primary;
     const u = primary.constants.u;
 
-    r.subVectors(position, primary.derived.position);
+    r.subVectors(position, primary.position);
     v.copy(velocity);
     h.crossVectors(r, v);
     ecc.crossVectors(v, h)

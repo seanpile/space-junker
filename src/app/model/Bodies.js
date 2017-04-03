@@ -1,4 +1,5 @@
 import { Vector3 } from 'three';
+import StationaryOrbit from './orbits/StationaryOrbit';
 
 /**
  * Kepler elements taken from http://ssd.jpl.nasa.gov/txt/aprx_pos_planets.pdf
@@ -14,7 +15,7 @@ class Body {
     this.constants = constants;
     this.primary = null;
     this.secondaries = [];
-    this.derived = {};
+    this.orbit = new StationaryOrbit(this);
   }
 
   isPlanet() {
@@ -23,6 +24,14 @@ class Body {
 
   isShip() {
     return false;
+  }
+
+  get position() {
+    return this.orbit.stats.position;
+  }
+
+  get velocity() {
+    return this.orbit.stats.velocity;
   }
 
   get mass() {
@@ -54,14 +63,14 @@ class Body {
 
   relativePosition(body = this.primary) {
     if (!body) {
-      return this.derived.position;
+      return this.position;
     }
 
-    if (!this.derived.position || !body.derived.position) {
+    if (!this.position || !body.position) {
       return undefined;
     }
 
-    return new Vector3().subVectors(this.derived.position, body.derived.position);
+    return new Vector3().subVectors(this.position, body.position);
   }
 
 }

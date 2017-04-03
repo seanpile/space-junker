@@ -38,6 +38,7 @@ class ParabolicOrbit extends Orbit {
     this.argumentPerihelion = degToRad(argumentPerihelion);
     this.M = degToRad(M);
 
+    this.updateStats();
     return this;
   }
 
@@ -53,7 +54,7 @@ class ParabolicOrbit extends Orbit {
     const primary = this.body.primary;
     const u = primary.constants.u;
 
-    r.subVectors(position, primary.derived.position);
+    r.subVectors(position, primary.position);
     v.copy(velocity);
     h.crossVectors(r, v);
     n.crossVectors(axisZ, h);
@@ -108,6 +109,7 @@ class ParabolicOrbit extends Orbit {
     this.argumentPerihelion = argumentPerihelion;
     this.M = M;
 
+    this.updateStats();
     return this;
   }
 
@@ -119,9 +121,11 @@ class ParabolicOrbit extends Orbit {
      */
     const n = Math.sqrt(u / Math.pow(this.p, 3));
     this.M = this.M + (n * (dt / 1000));
+
+    this.updateStats();
   }
 
-  stats() {
+  updateStats() {
 
     const p = this.p;
     const e = this.e;
@@ -130,7 +134,7 @@ class ParabolicOrbit extends Orbit {
     const I = this.I;
     const M = this.M;
     const u = this.body.primary.constants.u;
-    const offset = this.body.primary.derived.position;
+    const offset = this.body.primary.position;
 
     const q = p / 2;
     const B = 3 * M;
@@ -157,7 +161,7 @@ class ParabolicOrbit extends Orbit {
     const center = new Vector3(0, 0, 0);
     const orbitalPeriod = Infinity;
 
-    return {
+    this.stats = Object.assign({}, this.stats, {
       orbitalPeriod,
       semiMajorAxis: p,
       semiMinorAxis: q,
@@ -166,7 +170,7 @@ class ParabolicOrbit extends Orbit {
       center: TransformToEcliptic(offset, center, argumentPerihelion, omega, I),
       periapsis: TransformToEcliptic(offset, periapsis, argumentPerihelion, omega, I),
       apoapsis: TransformToEcliptic(offset, apoapsis, argumentPerihelion, omega, I),
-    };
+    });
   }
 
 }

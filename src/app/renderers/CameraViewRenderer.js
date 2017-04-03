@@ -163,17 +163,15 @@ CameraViewRenderer.prototype.render = function render() {
   // Update the positions of all of our bodies
   neighbours.forEach((body) => {
     const threeBody = this.bodyCache.get(body.name);
-    const derived = body.derived;
-
     threeBody.visible = body.name !== 'sun';
 
     // Adjust position to re-center the coordinate system on the focus
-    const position = this._adjustCoordinates(focus, derived.position);
+    const position = this._adjustCoordinates(focus, body.position);
     threeBody.position.set(position.x, position.y, position.z);
 
     // Adjust orbital tilt and rotation.  First, rotate the body using the same
     // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
-    // and the accumulated rotation around the axis ('derived.rotation');
+    // and the accumulated rotation around the axis
 
     if (body.isShip()) {
       threeBody.setRotationFromQuaternion(body.motion.rotation);
@@ -210,7 +208,7 @@ CameraViewRenderer.prototype._onCenter = function (solarSystem) {
     }
 
     // Set camera behind in the opposite direction of the velocity vector
-    const cameraPosition = focus.derived.velocity.clone()
+    const cameraPosition = focus.velocity.clone()
       .normalize()
       .negate()
       .multiplyScalar(5 * focus.constants.radius);
@@ -306,14 +304,14 @@ CameraViewRenderer.prototype._setupLightSources = function (textures) {
 
 CameraViewRenderer.prototype._adjustLightSource = function (focus, sun) {
   this.lightSources.forEach((light) => {
-    const lightPosition = this._adjustCoordinates(focus, sun.derived.position);
+    const lightPosition = this._adjustCoordinates(focus, sun.position);
     light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
 
     // Frame the shadow box appropriately
     if (light.name === 'primary-light' && focus.primary && focus.primary.name !== 'sun') {
       const lightBoxLength = focus.primary.constants.radius;
-      light.shadow.camera.near = 0.99 * focus.primary.derived.position.length();
-      light.shadow.camera.far = 1.01 * focus.primary.derived.position.length();
+      light.shadow.camera.near = 0.99 * focus.primary.position.length();
+      light.shadow.camera.far = 1.01 * focus.primary.position.length();
       light.shadow.camera.left = -lightBoxLength;
       light.shadow.camera.right = lightBoxLength;
       light.shadow.camera.top = lightBoxLength;
