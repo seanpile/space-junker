@@ -16,6 +16,7 @@ class Body {
     this.primary = null;
     this.secondaries = [];
     this.orbit = new StationaryOrbit(this);
+    this.maneuvers = [];
   }
 
   isPlanet() {
