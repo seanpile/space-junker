@@ -113,15 +113,15 @@ class HyperbolicOrbit extends Orbit {
     return this;
   }
 
-  advance(dt) {
+  meanAngularMotion() {
     const u = this.body.primary.constants.u;
+    return Math.sqrt(u / (Math.pow(-this.a, 3)));
+  }
 
-    /**
-     * For elliptical orbits, M - M0 = n(t - t0)
-     */
-    const n = Math.sqrt(u / (Math.pow(-this.a, 3)));
-    this.M = this.M + (n * (dt / 1000));
-    this.updateStats();
+  toMeanAnomaly(trueAnomaly) {
+    const e = this.e;
+    const F = 2 * Math.atanh((Math.sqrt(e - 1) / Math.sqrt(e + 1)) * Math.tan(trueAnomaly / 2));
+    return (e * Math.sinh(F)) - F;
   }
 
   updateStats() {

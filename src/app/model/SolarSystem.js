@@ -126,6 +126,8 @@ SolarSystem.prototype.update = function update(t, dt) {
       this._applyThrust(body, dt);
     }
   });
+
+  this.time = t + dt;
 };
 
 SolarSystem.prototype._orbitType = function (e) {

@@ -99,7 +99,7 @@
       "radius": 100,
       "kepler_elements": {
         "a": [1e-4, 0],
-        "e": [0.4, 0],
+        "e": [0.2, 0],
         "I": [0, 0],
         "L": [0, 0],
         "w": [0, 0],
@@ -122,8 +122,56 @@
     "constants": {
       "radius": 100,
       "kepler_elements": {
-        "a": [2e-4, 0],
+        "a": [3e-4, 0],
         "e": [0.6, 0],
+        "I": [180, 0],
+        "L": [0, 0],
+        "w": [360, 0],
+        "omega": [0, 0]
+      }
+    },
+    "stages": [
+      {
+        "mass": 11900,
+        "isp": 3140,
+        "thrust": 91e5,
+        "propellant": 18410
+      }
+    ]
+  },
+  "serenity": {
+    "primary": "earth",
+    "type": "ship",
+    "model": "apollo",
+    "constants": {
+      "radius": 100,
+      "kepler_elements": {
+        "p": [3e-4, 0],
+        "e": [1, 0],
+        "I": [0, 0],
+        "L": [0, 0],
+        "w": [0, 0],
+        "omega": [0, 0]
+      }
+    },
+    "stages": [
+      {
+        "mass": 11900,
+        "isp": 3140,
+        "thrust": 91e5,
+        "propellant": 18410
+      }
+    ]
+  },
+  "USS Enterprise": {
+    "primary": "earth",
+    "type": "ship",
+    "model": "apollo",
+    "constants": {
+      "radius": 100,
+      "kepler_elements": {
+        "a": [-10e-4, 0],
+        "e": [1.2, 0],
         "I": [0, 0],
         "L": [0, 0],
         "w": [0, 0],

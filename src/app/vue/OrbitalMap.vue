@@ -1,11 +1,15 @@
 <template>
 <div id="map-view" v-canvas="renderer">
 
-  <div id="map-mouse-overlay" v-if="this.mouseOverTarget" v-bind:style="{
+  <div id="map-mouse-overlay" v-if="mouseOverTarget" v-bind:style="{
       bottom: `${this.mouseOverTarget.bottom}px`,
       left: `${this.mouseOverTarget.left}px`,
     }">
     <h5 class="body-name">{{this.mouseOverTarget.name}}</h5>
+  </div>
+
+  <div id="maneuver-overlay" v-if="maneuver">
+    <h5 class="title">Maneuver</h5>
   </div>
 </div>
 </template>
@@ -16,6 +20,7 @@ export default {
   data: function() {
     return {
       mouseOverTarget: null,
+      maneuver: null,
     }
   },
   props: ['renderer'],
@@ -34,6 +39,9 @@ export default {
     this.renderer.viewWillAppear();
     this.renderer.mouseOverCallback = (mouseOverTarget) => {
       this.mouseOverTarget = mouseOverTarget;
+    }
+    this.renderer.maneuverCallback = (maneuver) => {
+      this.maneuver = maneuver;
     }
   },
 

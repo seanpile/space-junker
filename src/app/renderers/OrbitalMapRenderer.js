@@ -3,6 +3,7 @@ import BaseRenderer from './BaseRenderer';
 import Planet from './three/Planet';
 import Ship from './three/Ship';
 import Trajectory from './three/Trajectory';
+import { hitTest } from './RenderUtils';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
 
@@ -37,6 +38,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
 
           this.mouseOverTimeout = null;
           this.mouseOverCallback = null;
+          this.maneuverCallback = null;
 
           const width = window.innerWidth;
           const height = window.innerHeight;
@@ -56,7 +58,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
           // Setup navball
           this.navball = this.loadNavball(textures);
 
-          const recenter = this._onRecenter(solarSystem);
+          const recenter = this._onRecenter();
           const onWindowResize = this._onWindowResize([this.camera, this.navball.camera],
                                                       height,
                                                       this.camera.fov);
@@ -69,7 +71,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
           });
 
           this.addEventListener('doubletap', (event) => {
-            this._switchFocus(event.location, solarSystem);
+            this._switchFocus(event.location);
           });
 
           this.addEventListener('mouseover', (event) => {
@@ -262,14 +264,11 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
 
   const showTrajectoryTheshold = 0.05;
   let visible = true;
-  if (body.name === 'sun') {
-    // Don't show the sun's (empty) trajectory
-    visible = false;
-  } else if (this.camera.position.distanceTo(threeBody.position) < showTrajectoryTheshold) {
-    // Don't show the trajectory of our primary body if we are zoomed in, this reduces
-    // visual clutter
+  if (this.camera.position.distanceTo(threeBody.position) < showTrajectoryTheshold) {
+    // Don't show the trajectory of our primary body if we are zoomed in
     if (focus.isPlanet() && body.name === focus.name && focus.primary.name === 'sun') {
       visible = false;
+    // Don't show the trajectory of our primary's orbit
     } else if (focus.primary && focus.primary.name === body.name) {
       visible = false;
     }
@@ -304,8 +303,7 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
 
 OrbitalMapRenderer.prototype._onMouseover = (function () {
   const raycaster = new THREE.Raycaster();
-
-  return function onMouseOver(location) {
+  return function (location) {
 
     // If we've already fired off an event, cancel it and start a new one
     if (this.mouseOverTimeout !== null) {
@@ -313,73 +311,64 @@ OrbitalMapRenderer.prototype._onMouseover = (function () {
     }
 
     this.mouseOverTimeout = setTimeout(() => {
-      const width = window.innerWidth;
+
       const height = window.innerHeight;
 
-      // Convert to normalized device coordinates
-      const target = new THREE.Vector2(
-          ((location.x / width) * 2) - 1,
-          -((location.y / height) * 2) + 1);
-
-      raycaster.setFromCamera(target, this.camera);
-
-      const bodiesToTest = Array.from(this.bodyMap.values())
-          .filter(body => body.visible)
-          .map(threeBody => threeBody.sphere);
-
-      const intersection = raycaster.intersectObjects(bodiesToTest);
-      if (intersection.length > 0) {
-        this.mouseOverCallback({
-          name: intersection[0].object.name,
-          left: location.x,
-          bottom: (height - location.y),
+      hitTest(
+        raycaster,
+        this.camera,
+        location,
+        Array.from(this.bodyMap.values())
+            .filter(body => body.visible)
+            .map(threeBody => threeBody.sphere),
+        (intersection) => {
+          if (intersection.length > 0) {
+            this.mouseOverCallback({
+              name: intersection[0].object.name,
+              left: location.x,
+              bottom: (height - location.y),
+            });
+          } else {
+            this.mouseOverCallback(null);
+          }
         });
-      } else {
-        this.mouseOverCallback(null);
-      }
-
     }, 300);
   };
 }());
 
 OrbitalMapRenderer.prototype._switchFocus = (function () {
+
   const raycaster = new THREE.Raycaster();
+  return function (location) {
 
-  return function (location, solarSystem) {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    // Convert to normalized device coordinates
-    const target = new THREE.Vector2(
-      ((location.x / width) * 2) - 1,
-      -((location.y / height) * 2) + 1);
-
-    raycaster.setFromCamera(target, this.camera);
-
-    const bodiesToTest = Array.from(this.bodyMap.values())
-      .filter(body => body.visible)
-      .map(threeBody => threeBody.sphere);
-
-    const intersection = raycaster.intersectObjects(bodiesToTest);
     let focusChanged = false;
-    if (intersection.length > 0) {
-      const hitId = intersection[0].object.name;
-      focusChanged = this.sharedState.focus !== hitId;
-      this.sharedState.focus = hitId;
+    hitTest(
+      raycaster,
+      this.camera,
+      location,
+      Array.from(this.bodyMap.values())
+          .filter(body => body.visible)
+          .map(threeBody => threeBody.sphere),
+      (intersection) => {
+        if (intersection.length > 0) {
+          const hitId = intersection[0].object.name;
+          focusChanged = this.sharedState.focus !== hitId;
+          this.sharedState.focus = hitId;
 
-      const newFocus = solarSystem.find(hitId);
-      this.orbitControls.minDistance = Math.max(1e-5, newFocus.constants.radius * 2);
-      this.orbitControls.update();
-    }
+          const newFocus = this.solarSystem.find(hitId);
+          this.orbitControls.minDistance = Math.max(1e-5, newFocus.constants.radius * 2);
+          this.orbitControls.update();
+        }
+      });
 
     return focusChanged;
   };
 }());
 
-OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
+OrbitalMapRenderer.prototype._onRecenter = function () {
   const ORIGIN = new THREE.Vector3();
   const recenter = () => {
-    const focus = solarSystem.find(this.sharedState.focus);
+    const focus = this.solarSystem.find(this.sharedState.focus);
 
     // For all bodies (except sun), use the size of the orbiting radius for
     // the camera position.
@@ -392,9 +381,10 @@ OrbitalMapRenderer.prototype._onRecenter = function (solarSystem) {
       cameraDistance = primaryPosition.distanceTo(position);
     }
 
+    this.orbitControls && this.orbitControls.reset();
+
     this.camera.position.set(0, 0, cameraDistance);
     this.camera.lookAt(ORIGIN);
-    this.orbitControls && this.orbitControls.reset();
   };
 
   return recenter;
@@ -404,30 +394,29 @@ OrbitalMapRenderer.prototype._adjustManeuver = (function () {
   const raycaster = new THREE.Raycaster();
   raycaster.linePrecision = 1e-4;
 
-  return function adjustManeuver(location) {
-
+  return function (location) {
     const focus = this.solarSystem.find(this.sharedState.focus);
+
     if (!focus.isShip()) {
       return;
     }
 
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    // Convert to normalized device coordinates
-    const target = new THREE.Vector2(
-      ((location.x / width) * 2) - 1,
-      -((location.y / height) * 2) + 1);
-
-    raycaster.setFromCamera(target, this.camera);
-    const trajectory = this.bodyMap.get(focus.name).trajectory;
-    const intersection = raycaster.intersectObject(trajectory);
-
-    if (intersection.length > 0) {
-      const closest = intersection[0];
-      const worldCoordinates = new THREE.Vector3().addVectors(closest.point, focus.position);
-      focus.orbit.project(worldCoordinates);
-    }
+    hitTest(
+      raycaster,
+      this.camera,
+      location,
+      [this.bodyMap.get(focus.name).trajectory.trajectory],
+      (intersection) => {
+        if (intersection.length > 0) {
+          const closest = intersection[0];
+          const worldCoordinates = new THREE.Vector3().addVectors(closest.point, focus.position);
+          const projection = focus.orbit.project(worldCoordinates);
+          console.log(projection);
+        } else {
+          console.log('cancelling maneuver');
+        }
+      },
+    );
   };
 }());
 

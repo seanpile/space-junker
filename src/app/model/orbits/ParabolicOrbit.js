@@ -1,4 +1,6 @@
 import { Vector3, Math as threeMath } from 'three';
+import hash from 'string-hash';
+
 import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
 import Orbit from './Orbit';
 
@@ -16,8 +18,7 @@ class ParabolicOrbit extends Orbit {
    */
   hashCode() {
     const prime = 37;
-    const hash = super.hashCode();
-    return (hash * prime) + hash(`${this.p}`);
+    return (super.hashCode() * prime) + hash(`${this.p}`);
   }
 
   static supports(e) {
@@ -122,16 +123,15 @@ class ParabolicOrbit extends Orbit {
     return this;
   }
 
-  advance(dt) {
+  meanAngularMotion() {
     const u = this.body.primary.constants.u;
+    return Math.sqrt(u / Math.pow(this.p, 3));
+  }
 
-    /**
-     * For elliptical orbits, M - M0 = n(t - t0)
-     */
-    const n = Math.sqrt(u / Math.pow(this.p, 3));
-    this.M = this.M + (n * (dt / 1000));
-
-    this.updateStats();
+  toMeanAnomaly(trueAnomaly) {
+    const q = this.p / 2;
+    const D = Math.sqrt(2 * q) * Math.tan(trueAnomaly / 2);
+    return (q * D) + ((D ** 3) / 6);
   }
 
   updateStats() {

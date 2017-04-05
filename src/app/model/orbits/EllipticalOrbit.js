@@ -145,43 +145,21 @@ class EllipticalOrbit extends Orbit {
     return this;
   }
 
-  advance(dt) {
+  meanAngularMotion() {
     const u = this.body.primary.constants.u;
-
-    /**
-     * For elliptical orbits, M - M0 = n(t - t0)
-     */
-    const n = Math.sqrt(u / (this.a ** 3));
-    this.M = (this.M + (n * (dt / 1000))) % (2 * Math.PI);
-
-    this.updateStats();
+    return Math.sqrt(u / (this.a ** 3));
   }
 
-  /**
-   * Return the projected Mean Anomaly and Time when the body will reach this point
-   * on the orbit.
-   */
-  project(location) {
+  toMeanAnomaly(trueAnomaly) {
+    const E = 2 * Math.atan(
+      (Math.sqrt(1 - this.e) / Math.sqrt(1 + this.e)) * Math.tan(trueAnomaly / 2));
 
-    const position = new Vector3().subVectors(location, this.body.primary.position);
-
-    const Q1 = new Quaternion()
-      .setFromAxisAngle(new Vector3(0, 0, 1), -this.omega);
-    const Q2 = new Quaternion()
-      .setFromAxisAngle(new Vector3(1, 0, 0), -this.I);
-    const Q3 = new Quaternion()
-      .setFromAxisAngle(new Vector3(0, 0, 1), -this.argumentPerihelion);
-
-    const perifocalPosition = new Vector3()
-      .copy(position)
-      .applyQuaternion(Q1)
-      .applyQuaternion(Q2)
-      .applyQuaternion(Q3);
-
-    let angle = Math.atan2(perifocalPosition.y, perifocalPosition.x);
-    if (angle < 0) {
-      angle = (2 * Math.PI) + angle;
+    let M = E - (this.e * Math.sin(E));
+    if (M < 0) {
+      M = (2 * Math.PI) + M;
     }
+
+    return M;
   }
 
   updateStats() {

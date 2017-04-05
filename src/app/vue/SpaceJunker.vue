@@ -296,12 +296,15 @@ export default {
         }, true);
 
         window.addEventListener('mousemove', (event) => {
-          const target = new THREE.Vector2(event.clientX, event.clientY);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
+
+          const location = new THREE.Vector2(event.clientX, event.clientY);
 
           if (this.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'mouseover',
-              location: target,
+              location
             });
           }
         }, false);
@@ -319,25 +322,27 @@ export default {
         singleTap.requireFailure([doubleTap]);
 
         hammer.on('singletap', (event) => {
-          const target = new THREE.Vector2(event.center.x, event.center
-            .y);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
 
+          const location = new THREE.Vector2(event.center.x, event.center.y);
           if (this.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'tap',
-              location: target,
+              location: location,
             });
           }
         });
 
         hammer.on('doubletap', (event) => {
-          const target = new THREE.Vector2(event.center.x, event.center
-            .y);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
 
+          const location = new THREE.Vector2(event.center.x, event.center.y);
           if (this.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'doubletap',
-              location: target,
+              location: location,
             });
           }
         });
