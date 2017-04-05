@@ -1,4 +1,5 @@
-import { Vector3, Math as threeMath } from 'three';
+import { Quaternion, Vector3, Math as threeMath } from 'three';
+import hash from 'string-hash';
 import Orbit from './Orbit';
 import {
   JulianDate,
@@ -10,16 +11,6 @@ import {
 const degToRad = threeMath.degToRad;
 
 class EllipticalOrbit extends Orbit {
-
-  constructor(body, a, e, I, omega, argumentPerihelion, M) {
-    super(body);
-    this.a = a;
-    this.e = e;
-    this.I = I;
-    this.omega = omega;
-    this.argumentPerihelion = argumentPerihelion;
-    this.M = M;
-  }
 
   static supports(e) {
     return e >= 0 && e < 1;
@@ -124,15 +115,21 @@ class EllipticalOrbit extends Orbit {
 
       const E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
 
-      if (n.length() <= 0 || ecc.length() <= 0) {
-        argumentPerihelion = 0;
+      if (n.length() <= 0) {
+        // Zero Inclination
+        argumentPerihelion = Math.atan2(ecc.y, ecc.x);
+        if (h.z < 0) {
+          argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+        }
+
       } else {
+
         argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+        if (ecc.z < 0) {
+          argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+        }
       }
 
-      if (ecc.z < 0) {
-        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
-      }
 
       M = E - (e * Math.sin(E));
     }
@@ -158,6 +155,35 @@ class EllipticalOrbit extends Orbit {
     this.M = (this.M + (n * (dt / 1000))) % (2 * Math.PI);
 
     this.updateStats();
+  }
+
+  /**
+   * Return the projected Mean Anomaly and Time when the body will reach this point
+   * on the orbit.
+   */
+  project(location) {
+
+    const position = new Vector3().subVectors(location, this.body.primary.position);
+
+    const Q1 = new Quaternion()
+      .setFromAxisAngle(new Vector3(0, 0, 1), -this.omega);
+    const Q2 = new Quaternion()
+      .setFromAxisAngle(new Vector3(1, 0, 0), -this.I);
+    const Q3 = new Quaternion()
+      .setFromAxisAngle(new Vector3(0, 0, 1), -this.argumentPerihelion);
+
+    const perifocalPosition = new Vector3()
+      .copy(position)
+      .applyQuaternion(Q1)
+      .applyQuaternion(Q2)
+      .applyQuaternion(Q3);
+
+    let angle = Math.atan2(perifocalPosition.y, perifocalPosition.x);
+    if (angle < 0) {
+      angle = (2 * Math.PI) + angle;
+    }
+
+    console.log(angle);
   }
 
   updateStats() {

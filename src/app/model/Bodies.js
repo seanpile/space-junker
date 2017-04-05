@@ -86,8 +86,9 @@ class Planet extends Body {
 
 class Ship extends Body {
 
-  constructor(name, constants, stages) {
+  constructor(name, constants, model, stages) {
     super(name, constants);
+    this.model = model;
     this.stages = stages;
   }
 

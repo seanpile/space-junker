@@ -263,9 +263,9 @@ CameraViewRenderer.prototype._loadModelBody = (function () {
   };
 
   return function (body, models) {
-    const modelObj = models.get(body.name);
+    const modelObj = models.get(body.model);
     const scale = 1 / AU;
-    const threeObj = modelObj.scene;
+    const threeObj = modelObj.scene.clone(true);
 
     threeObj.scale.set(scale, scale, scale);
     threeObj.receiveShadow = true;

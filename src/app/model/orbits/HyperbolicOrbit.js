@@ -11,16 +11,6 @@ const degToRad = threeMath.degToRad;
 
 class HyperbolicOrbit extends Orbit {
 
-  constructor(body, a, e, I, omega, argumentPerihelion, M) {
-    super(body);
-    this.a = a;
-    this.e = e;
-    this.I = I;
-    this.omega = omega;
-    this.argumentPerihelion = argumentPerihelion;
-    this.M = M;
-  }
-
   static supports(e) {
     return e > 1;
   }
@@ -95,13 +85,18 @@ class HyperbolicOrbit extends Orbit {
 
     let argumentPerihelion;
     if (n.length() <= 0) {
-      argumentPerihelion = 0;
-    } else {
-      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
-    }
+      // Zero Inclination
+      argumentPerihelion = Math.atan2(ecc.y, ecc.x);
+      if (h.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
 
-    if (ecc.z < 0) {
-      argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+    } else {
+
+      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+      if (ecc.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
     }
 
     const F = 2 * Math.atanh(Math.sqrt((e - 1) / (e + 1)) * Math.tan(trueAnomaly / 2));

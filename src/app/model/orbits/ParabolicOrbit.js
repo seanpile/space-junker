@@ -7,13 +7,17 @@ const degToRad = threeMath.degToRad;
 class ParabolicOrbit extends Orbit {
 
   constructor(body, p, e, I, omega, argumentPerihelion, M) {
-    super(body);
+    super(body, 0, e, I, omega, argumentPerihelion, M);
     this.p = p;
-    this.e = e;
-    this.I = I;
-    this.omega = omega;
-    this.argumentPerihelion = argumentPerihelion;
-    this.M = M;
+  }
+
+  /**
+   * Override hashCode to include p
+   */
+  hashCode() {
+    const prime = 37;
+    const hash = super.hashCode();
+    return (hash * prime) + hash(`${this.p}`);
   }
 
   static supports(e) {
@@ -90,14 +94,19 @@ class ParabolicOrbit extends Orbit {
 
     const D = Math.sqrt(2 * q) * Math.tan(trueAnomaly / 2);
 
-    if (n.length() <= 0 || ecc.length() <= 0) {
-      argumentPerihelion = 0;
-    } else {
-      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
-    }
+    if (n.length() <= 0) {
+      // Zero Inclination
+      argumentPerihelion = Math.atan2(ecc.y, ecc.x);
+      if (h.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
 
-    if (ecc.z < 0) {
-      argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+    } else {
+
+      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+      if (ecc.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
     }
 
     const M = (q * D) + ((D ** 3) / 6);

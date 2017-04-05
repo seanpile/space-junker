@@ -23,11 +23,11 @@ const TEXTURES = {
   neptune: require('../../img/neptunemap.jpg'), // eslint-disable-line global-require
   uranus: require('../../img/uranusmap.jpg'), // eslint-disable-line global-require
   lensflare: require('../../img/lensflare.png'), // eslint-disable-line global-require
-  'apollo 11': require('../../models/apollo/OldGlory.jpg'), // eslint-disable-line global-require
+  apollo: require('../../models/apollo/OldGlory.jpg'), // eslint-disable-line global-require
   navball: require('../../img/navball.png'), // eslint-disable-line global-require
 };
 
-const MODELS = { 'apollo 11': require('../../models/apollo.dae') };
+const MODELS = { apollo: require('../../models/apollo.dae') };
 
 const FONTS = { helvetiker: new THREE.Font(require('../../fonts/helvetiker_regular.typeface.json')) };
 

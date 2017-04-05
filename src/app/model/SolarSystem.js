@@ -40,7 +40,7 @@ SolarSystem.prototype.seed = function () {
     if (data.type === PLANET_TYPE) {
       body = new Planet(name, constants);
     } else if (data.type === SHIP_TYPE) {
-      body = new Ship(name, constants, data.stages);
+      body = new Ship(name, constants, data.model, data.stages);
       body.motion = {
         heading0: new Vector3(0, 1, 0),
         rotation: new Quaternion(),
@@ -270,7 +270,7 @@ SolarSystem.prototype._applyThrust = (function () {
 
     const velocity = body.velocity.clone().add(deltaV);
     const position = body.position.clone().add(
-      velocity.clone().multiplyScalar(dt / 1000),
+      deltaV.clone().multiplyScalar(dt / 1000),
     );
 
     // Check to see if the modified orbit is still supported by the current Orbit; if not,
