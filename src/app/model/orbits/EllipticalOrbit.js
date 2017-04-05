@@ -182,8 +182,6 @@ class EllipticalOrbit extends Orbit {
     if (angle < 0) {
       angle = (2 * Math.PI) + angle;
     }
-
-    console.log(angle);
   }
 
   updateStats() {

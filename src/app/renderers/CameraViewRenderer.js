@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 
 import BaseRenderer from './BaseRenderer';
+import Planet from './three/Planet';
+import Ship from './three/Ship';
+
 import { AU } from '../Constants';
 
 const OrbitControls = require('three-orbit-controls')(THREE);
@@ -10,7 +13,7 @@ const SHOW_HELPERS = false;
 function CameraViewRenderer(solarSystem, resourceLoader, sharedState) {
   BaseRenderer.call(this, solarSystem, resourceLoader, sharedState);
 
-  this.bodyCache = new Map();
+  this.bodyMap = new Map();
   this.showHelpers = SHOW_HELPERS;
 }
 
@@ -40,6 +43,7 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       this.renderer.autoClear = false;
       this.dom = this.renderer.domElement;
+      this.resources = { textures, models };
 
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -112,8 +116,18 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
         this.orbitControls = null;
       };
 
+      const isMapView = false;
       solarSystem.bodies.forEach((body) => {
-        this.loadThreeBody(body, textures, models);
+
+        let threeBody;
+        if (body.isPlanet()) {
+          threeBody = Planet.createPlanet(body, this.resources, isMapView);
+        } else if (body.isShip()) {
+          threeBody = Ship.createShip(body, this.resources, isMapView);
+        }
+
+        this.scene.add(threeBody);
+        this.bodyMap.set(body.name, threeBody);
       });
 
       onRecenter();
@@ -126,8 +140,9 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
 };
 
 CameraViewRenderer.prototype.viewWillUnload = function () {
-  this.scene.remove(...this.bodyCache.values());
-  this.bodyCache.clear();
+  this.scene.remove(...this.bodyMap.values());
+  this.bodyMap.clear();
+  this.resources = null;
 
   this.renderer.forceContextLoss();
   this.renderer.context = null;
@@ -154,7 +169,7 @@ CameraViewRenderer.prototype.render = function render() {
 
   // Make objects outside of our current sphere invisible (to save resources)
   outliers.forEach((body) => {
-    const cached = this.bodyCache.get(body.name);
+    const cached = this.bodyMap.get(body.name);
     if (cached) {
       cached.visible = false;
     }
@@ -162,21 +177,19 @@ CameraViewRenderer.prototype.render = function render() {
 
   // Update the positions of all of our bodies
   neighbours.forEach((body) => {
-    const threeBody = this.bodyCache.get(body.name);
-    threeBody.visible = body.name !== 'sun';
+    const threeBody = this.bodyMap.get(body.name);
+    threeBody.visible = true;
 
     // Adjust position to re-center the coordinate system on the focus
-    const position = this._adjustCoordinates(focus, body.position);
-    threeBody.position.set(position.x, position.y, position.z);
+    threeBody.updatePosition(this._adjustCoordinates(focus, body.position));
 
     // Adjust orbital tilt and rotation.  First, rotate the body using the same
     // set of transforms we use to transform to ecliptic.  Then, apply the axial tilt,
     // and the accumulated rotation around the axis
-
     if (body.isShip()) {
-      threeBody.setRotationFromQuaternion(body.motion.rotation);
+      threeBody.applyOrientation();
     } else if (body.isPlanet()) {
-      this._applyPlanetaryRotation(threeBody, body);
+      threeBody.applyPlanetaryRotation();
     }
   });
 
@@ -232,58 +245,6 @@ CameraViewRenderer.prototype._onFocus = function (recenter) {
 
   return onFocus;
 };
-
-CameraViewRenderer.prototype.loadThreeBody = function (body, textures, models) {
-  let threeBody;
-  if (body.isShip()) {
-    threeBody = this._loadModelBody(body, models);
-  } else {
-    threeBody = this._loadPlanet(body, textures);
-  }
-
-  this.scene.add(threeBody);
-  this.bodyCache.set(body.name, threeBody);
-
-  return threeBody;
-};
-
-CameraViewRenderer.prototype._loadModelBody = (function () {
-  const childrenOf = (threeObj) => {
-    if (!threeObj.children || threeObj.children.length === 0) {
-      return [];
-    }
-
-    const descendants = [];
-    threeObj.children.forEach((obj) => {
-      descendants.push(obj);
-      descendants.push(...childrenOf(obj));
-    });
-
-    return descendants;
-  };
-
-  return function (body, models) {
-    const modelObj = models.get(body.model);
-    const scale = 1 / AU;
-    const threeObj = modelObj.scene.clone(true);
-
-    threeObj.scale.set(scale, scale, scale);
-    threeObj.receiveShadow = true;
-    threeObj.castShadow = true;
-    childrenOf(threeObj)
-        .forEach((obj) => {
-          obj.receiveShadow = true;
-          obj.castShadow = true;
-        });
-
-    if (this.showHelpers) {
-      const box = new THREE.BoxHelper(threeObj, 0xffff00);
-      this.scene.add(box);
-    }
-
-    return threeObj;
-  };
-}());
 
 CameraViewRenderer.prototype._setupLightSources = function (textures) {
   const ambientLight = new THREE.AmbientLight(0x202020);

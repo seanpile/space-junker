@@ -173,7 +173,7 @@ class ParabolicOrbit extends Orbit {
     this.stats = Object.assign({}, this.stats, {
       orbitalPeriod,
       semiMajorAxis: p,
-      semiMinorAxis: q,
+      semiMinorAxis: p,
       position: TransformToEcliptic(offset, perifocalPosition, argumentPerihelion, omega, I),
       velocity: TransformToEcliptic(null, perifocalVelocity, argumentPerihelion, omega, I),
       center: TransformToEcliptic(offset, center, argumentPerihelion, omega, I),

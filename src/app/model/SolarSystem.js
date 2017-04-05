@@ -99,12 +99,13 @@ SolarSystem.prototype.update = function update(t, dt) {
       let orbit;
       if (body.name === 'sun') {
         orbit = new StationaryOrbit(body);
+        body.orbit = orbit;
       } else {
         const OrbitType = this._orbitType(e);
         orbit = new OrbitType(body).setFromKeplerElements(keplerElements, t + dt);
+        body.orbit = orbit;
       }
 
-      body.orbit = orbit;
       if (body.isPlanet()) {
         body.constants.sphereOfInfluence = OrbitUtils.SphereOfInfluence(body);
       }

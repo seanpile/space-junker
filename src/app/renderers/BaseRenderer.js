@@ -733,14 +733,15 @@ BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
   };
 };
 
-BaseRenderer.prototype._lookupNearbyBodies = function lookupNearbyBodies(focus, bodies, nearbyThreshold) {
-  const partitioned = bodies.map((body) => {
-    const distance = new THREE.Vector3()
+BaseRenderer.prototype._lookupNearbyBodies =
+  function lookupNearbyBodies(focus, bodies, nearbyThreshold) {
+    const partitioned = bodies.filter(b => b.name !== 'sun').map((body) => {
+      const distance = new THREE.Vector3()
         .subVectors(focus.position, body.position);
-    return [body, distance.lengthSq()];
-  })
+      return [body, distance.lengthSq()];
+    })
     .reduce((acc, [body, distance]) => {
-      if (distance < nearbyThreshold || body.name === 'sun' || (focus.primary && focus.primary.name === body.name)) {
+      if (distance < nearbyThreshold || (focus.primary && focus.primary.name === body.name)) {
         acc[0].push(body);
       } else {
         acc[1].push(body);
@@ -751,7 +752,7 @@ BaseRenderer.prototype._lookupNearbyBodies = function lookupNearbyBodies(focus, 
       [],
     ]);
 
-  const neighbours = partitioned[0];
-  const outliers = partitioned[1];
-  return [neighbours, outliers];
-};
+    const neighbours = partitioned[0];
+    const outliers = partitioned[1];
+    return [neighbours, outliers];
+  };
