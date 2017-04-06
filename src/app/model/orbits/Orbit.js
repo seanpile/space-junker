@@ -63,8 +63,6 @@ export default class Orbit {
       trueAnomaly = (2 * Math.PI) + trueAnomaly;
     }
 
-    // M - M0 = n (t - to)
-
     const M = this.toMeanAnomaly(trueAnomaly);
     const M0 = this.M;
     const delta = (M - M0) / this.meanAngularMotion();

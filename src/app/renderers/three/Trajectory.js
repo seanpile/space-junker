@@ -45,6 +45,30 @@ class Trajectory extends THREE.Group {
     this.trajectory.position.copy(center);
   }
 
+  hideApses() {
+    if (this.periapsis) {
+      this.periapsis.visible = false;
+    }
+
+    if (this.apoapsis) {
+      this.apoapsis.visible = false;
+    }
+  }
+
+  showApses() {
+    if (this.periapsis) {
+      this.periapsis.visible = true;
+    }
+
+    if (this.apoapsis) {
+      this.apoapsis.visible = true;
+    }
+  }
+
+  setColor(color) {
+    this.trajectory.material.color.set(color);
+  }
+
   static createTrajectory(body, fonts) {
 
     const e = body.orbit.e;

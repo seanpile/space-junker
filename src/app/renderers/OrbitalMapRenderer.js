@@ -282,6 +282,14 @@ OrbitalMapRenderer.prototype._updateTrajectory = function (focus, body) {
   trajectory.visible = true;
   trajectory.updateCenter(this._adjustCoordinates(focus, body.orbit.stats.center));
 
+  if (focus === body) {
+    trajectory.setColor('skyblue');
+    trajectory.showApses();
+  } else {
+    trajectory.setColor('white');
+    trajectory.hideApses();
+  }
+
   const maxScale = 2e-4;
   const cameraDistance = this.camera.position.distanceTo(threeBody.position);
   const scale = Math.min(maxScale, 8e-3 * cameraDistance);
