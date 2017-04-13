@@ -86,10 +86,11 @@ class Planet extends Body {
 
 class Ship extends Body {
 
-  constructor(name, constants, model, stages) {
+  constructor(name, constants, model, stages, maneuvers = []) {
     super(name, constants);
     this.model = model;
     this.stages = stages;
+    this.maneuvers = maneuvers;
   }
 
   isShip() {
@@ -98,6 +99,10 @@ class Ship extends Body {
 
   addSecondary(body) {
     throw new Error("Ship's cannot have bodies orbiting them");
+  }
+
+  addManeuver(maneuver) {
+    this.maneuvers.push(maneuver);
   }
 
   get mass() {

@@ -16,6 +16,11 @@ class EllipticalOrbit extends Orbit {
     return e >= 0 && e < 1;
   }
 
+  clone() {
+    return new EllipticalOrbit(
+      this.body, this.a, this.e, this.I, this.omega, this.argumentPerihelion, this.M);
+  }
+
   setFromKeplerElements(keplerElements, t) {
 
     const T = JulianDate(t);

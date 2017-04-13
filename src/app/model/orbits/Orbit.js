@@ -26,6 +26,10 @@ export default class Orbit {
         Mean Anomaly = ${this.M}`;
   }
 
+  /**
+   * Generates a unique hashcode for this orbit; Note, we don't include mean anomaly
+   * because that changes over time.
+   */
   hashCode() {
     const prime = 31;
     let result = 1;
@@ -37,9 +41,32 @@ export default class Orbit {
     return result;
   }
 
+  static supports(e) {
+    throw new Error('unimplemented method');
+  }
+
+  clone() {
+    throw new Error('unimplemented method');
+  }
+
+  toMeanAnomaly(trueAnomaly) {
+    throw new Error('unimplemented method');
+  }
+
+  setFromKeplerElements(keplerElements, t) {
+    throw new Error('unimplemented method');
+  }
+
+  setFromCartesian(position, velocity) {
+    throw new Error('unimplemented method');
+  }
+
+  updateStats() {
+    throw new Error('unimplemented method');
+  }
+
   /**
-   * Return the projected Mean Anomaly and Time when the body will reach this point
-   * on the orbit.
+   * Return the projected orbit for the body at this location on the orbit
    */
   project(location) {
 
@@ -64,14 +91,36 @@ export default class Orbit {
     }
 
     const M = this.toMeanAnomaly(trueAnomaly);
-    const M0 = this.M;
-    const delta = (M - M0) / this.meanAngularMotion();
 
-    return { M, delta };
+    const projectedOrbit = this.clone();
+    projectedOrbit.M = M;
+    projectedOrbit.updateStats();
+
+    return projectedOrbit;
   }
 
   /**
-   * Advance this orbit by dt seconds; modifies this orbit
+   * Returns the time (in seconds) the body will reach the given mean anomaly.
+   */
+  delta(M) {
+    if (this.e < 1) {
+      if (M < this.M) {
+        return (((2 * Math.PI) + M) - this.M) / this.meanAngularMotion();
+      }
+
+      return (M - this.M) / this.meanAngularMotion();
+    }
+
+    // Orbit's do not repeat if e <= 1, point will never be reached
+    if (M < this.M) {
+      return Infinity;
+    }
+
+    return (M - this.M) / this.meanAngularMotion();
+  }
+
+  /**
+   * Modifies this orbit by advancing by time dt (milliseconds)
    */
   advance(dt) {
     const n = this.meanAngularMotion();
@@ -84,26 +133,6 @@ export default class Orbit {
 
     this.M = M;
     this.updateStats();
-  }
-
-  toMeanAnomaly(trueAnomaly) {
-    throw new Error('unimplemented method');
-  }
-
-  static supports(e) {
-    throw new Error('unimplemented method');
-  }
-
-  setFromKeplerElements(keplerElements, t) {
-    throw new Error('unimplemented method');
-  }
-
-  setFromCartesian(position, velocity) {
-    throw new Error('unimplemented method');
-  }
-
-  updateStats() {
-    throw new Error('unimplemented method');
   }
 
 }

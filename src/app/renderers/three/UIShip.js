@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 import { AU } from '../../Constants';
-import Body from './Body';
-import Trajectory from './Trajectory';
+import UIBody from './UIBody';
+import UIOrbit from './UIOrbit';
 
 const childrenOf = (threeObj) => {
   if (!threeObj.children || threeObj.children.length === 0) {
@@ -18,7 +18,7 @@ const childrenOf = (threeObj) => {
   return descendants;
 };
 
-export default class Ship extends Body {
+export default class UIShip extends UIBody {
 
   constructor(body, threeObject, trajectory) {
     super(body, threeObject, trajectory);
@@ -33,12 +33,12 @@ export default class Ship extends Body {
   static createShip(body, { models, fonts }, mapView = false) {
 
     if (mapView) {
-      const trajectory = Trajectory.createTrajectory(body, fonts);
+      const orbit = UIOrbit.createOrbit(body, fonts);
       const mapMarker = new THREE.Mesh(
         new THREE.SphereBufferGeometry(body.constants.radius, 32, 32),
         new THREE.MeshBasicMaterial({ color: 'gray' }));
 
-      return new Ship(body, mapMarker, trajectory);
+      return new UIShip(body, mapMarker, orbit);
     }
 
     const modelObj = models.get(body.model);
@@ -54,7 +54,7 @@ export default class Ship extends Body {
           obj.castShadow = true;
         });
 
-    return new Ship(body, threeObj);
+    return new UIShip(body, threeObj);
   }
 
 }

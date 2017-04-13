@@ -121,6 +121,7 @@ SolarSystem.prototype.update = function update(t, dt) {
     if (body.isPlanet()) {
       this._applyPlanetaryRotation(body, dt);
     } else if (body.isShip()) {
+      this._updateManeuvers(body);
       this._checkSphereOfInfluence(body);
       this._applyRotation(body, dt);
       this._applyThrust(body, dt);
@@ -140,6 +141,14 @@ SolarSystem.prototype._orbitType = function (e) {
   }
 
   return found;
+};
+
+SolarSystem.prototype._updateManeuvers = function (body) {
+  // TODO: Need to ensure that if a body enters a new SOI, it's always placed after
+  // its primary in the 'this.bodies' list.
+  if (body.maneuvers && body.maneuvers.length > 0) {
+    body.maneuvers.forEach(m => m.orbit.updateStats());
+  }
 };
 
 SolarSystem.prototype._applyPlanetaryRotation = function (planet, dt) {

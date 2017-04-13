@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 import BaseRenderer from './BaseRenderer';
-import Planet from './three/Planet';
-import Ship from './three/Ship';
+import UIPlanet from './three/UIPlanet';
+import UIShip from './three/UIShip';
 
 import { AU } from '../Constants';
 
@@ -121,9 +121,9 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
 
         let threeBody;
         if (body.isPlanet()) {
-          threeBody = Planet.createPlanet(body, this.resources, isMapView);
+          threeBody = UIPlanet.createPlanet(body, this.resources, isMapView);
         } else if (body.isShip()) {
-          threeBody = Ship.createShip(body, this.resources, isMapView);
+          threeBody = UIShip.createShip(body, this.resources, isMapView);
         }
 
         this.scene.add(threeBody);

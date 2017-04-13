@@ -1,6 +1,18 @@
 
 import { Vector2 } from 'three';
 
+export function adjustCoordinates(target, focus, position) {
+  if (!position) {
+    return position;
+  }
+
+  if (!focus) {
+    return target.copy(position);
+  }
+
+  return target.subVectors(position, focus.position);
+}
+
 export function toNormalizedDeviceCoordinates(location) {
   return new Vector2(
     ((location.x / window.innerWidth) * 2) - 1,

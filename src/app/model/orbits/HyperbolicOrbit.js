@@ -15,6 +15,11 @@ class HyperbolicOrbit extends Orbit {
     return e > 1;
   }
 
+  clone() {
+    return new HyperbolicOrbit(
+      this.body, this.a, this.e, this.I, this.omega, this.argumentPerihelion, this.M);
+  }
+
   setFromKeplerElements(keplerElements, t) {
 
     const T = JulianDate(t);

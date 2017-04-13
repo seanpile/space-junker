@@ -1,8 +1,9 @@
 
 import * as THREE from 'three';
+import { adjustCoordinates } from '../RenderUtils';
 import ParabolaCurve from '../curves/ParabolaCurve';
 import HyperbolaCurve from '../curves/HyperbolaCurve';
-import Apsis from './Apsis';
+import UIApsis from './UIApsis';
 
 const NUM_POINTS = 128;
 const PLANET_COLOURS = {
@@ -19,15 +20,16 @@ const PLANET_COLOURS = {
   pluto: 'silver',
 };
 
-class Trajectory extends THREE.Group {
+export default class Orbit extends THREE.Group {
 
-  constructor(body, trajectory, periapsis, apoapsis) {
+  constructor(body, trajectory, periapsis, apoapsis, maneuvers = []) {
     super();
 
     this.body = body;
     this.trajectory = trajectory;
     this.periapsis = periapsis;
     this.apoapsis = apoapsis;
+    this.maneuvers = maneuvers;
     this.name = `${body.orbit.hashCode()}`;
 
     this.add(trajectory);
@@ -39,10 +41,10 @@ class Trajectory extends THREE.Group {
     if (apoapsis) {
       this.add(apoapsis);
     }
-  }
 
-  updateCenter(center) {
-    this.trajectory.position.copy(center);
+    if (maneuvers && maneuvers.length > 0) {
+      this.add(...maneuvers);
+    }
   }
 
   hideApses() {
@@ -69,7 +71,55 @@ class Trajectory extends THREE.Group {
     this.trajectory.material.color.set(color);
   }
 
-  static createTrajectory(body, fonts) {
+  update(focus, camera) {
+
+    const stats = this.body.orbit.stats;
+    // Update center position of trajectory
+    adjustCoordinates(this.trajectory.position, focus, stats.center);
+
+    const cameraDistance = camera.position.distanceTo(this.trajectory.position);
+    const maxApsisScale = 2e-4;
+    const apsisScale = Math.min(maxApsisScale, 8e-3 * cameraDistance);
+
+    if (this.periapsis) {
+      adjustCoordinates(this.periapsis.position, focus, stats.periapsis);
+      this.periapsis.scale.set(apsisScale, apsisScale, apsisScale);
+      this.periapsis.setRotationFromQuaternion(camera.quaternion);
+    }
+
+    if (this.apoapsis) {
+      adjustCoordinates(this.apoapsis.position, focus, stats.apoapsis);
+      this.apoapsis.scale.set(apsisScale, apsisScale, apsisScale);
+      this.apoapsis.setRotationFromQuaternion(camera.quaternion);
+    }
+
+    if (this.maneuvers && this.maneuvers.length > 0) {
+      this.maneuvers.forEach((m) => {
+        adjustCoordinates(m.position, focus, m.maneuver.orbit.stats.position);
+        m.scale.set(6 * apsisScale, 6 * apsisScale, 6 * apsisScale);
+        // m.setRotationFromQuaternion(camera.quaternion);
+      });
+    }
+  }
+
+  addManeuver(maneuver) {
+    const M0 = this.body.orbit.M;
+
+    this.add(maneuver);
+    this.maneuvers.push(maneuver);
+    this.maneuvers.sort((m1, m2) => {
+
+      let M1 = m1.maneuver.orbit.M;
+      let M2 = m2.maneuver.orbit.M;
+
+      M1 += (M1 < M0 ? 2 * Math.PI : 0);
+      M2 += (M2 < M0 ? 2 * Math.PI : 0);
+
+      return M1 - M2;
+    });
+  }
+
+  static createOrbit(body, fonts) {
 
     const e = body.orbit.e;
 
@@ -128,14 +178,12 @@ class Trajectory extends THREE.Group {
     trajectory.scale.set(body.orbit.stats.semiMajorAxis, body.orbit.stats.semiMinorAxis, 1);
 
     if (body.isShip()) {
-      const periapsis = Apsis.createApsis('Pe', fonts);
-      const apoapsis = hasApoapsis ? Apsis.createApsis('Ap', fonts) : null;
-      return new Trajectory(body, trajectory, periapsis, apoapsis);
+      const periapsis = UIApsis.createApsis('Pe', fonts);
+      const apoapsis = hasApoapsis ? UIApsis.createApsis('Ap', fonts) : null;
+      return new Orbit(body, trajectory, periapsis, apoapsis);
     }
 
-    return new Trajectory(body, trajectory);
+    return new Orbit(body, trajectory);
   }
 
 }
-
-export default Trajectory;

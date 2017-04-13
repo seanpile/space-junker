@@ -13,6 +13,11 @@ class ParabolicOrbit extends Orbit {
     this.p = p;
   }
 
+  clone() {
+    return new ParabolicOrbit(
+      this.body, this.p, this.e, this.I, this.omega, this.argumentPerihelion, this.M);
+  }
+
   /**
    * Override hashCode to include p
    */

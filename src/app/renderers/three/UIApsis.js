@@ -1,7 +1,7 @@
 
 import * as THREE from 'three';
 
-class Apsis extends THREE.Group {
+class UIApsis extends THREE.Group {
 
   static createApsis(text, fonts) {
 
@@ -36,15 +36,12 @@ class Apsis extends THREE.Group {
           }),
         );
 
-    const boxGeometry = new THREE.ShapeBufferGeometry(boxshape);
-    boxGeometry.computeBoundingBox();
-    const boxSize = boxGeometry.boundingBox.getSize();
-    textObject.translateY(boxSize.y / 2);
-    textObject.translateX(-boxSize.x / 2);
-    boxObject.translateY(boxSize.y / 2);
-    boxObject.translateX(-boxSize.x / 2);
+    textObject.translateY((textSize.y / 2) + padding);
+    boxObject.translateY((textSize.y / 2) + padding);
+    textObject.translateX(-textSize.x / 2);
+    boxObject.translateX(-textSize.x / 2);
 
-    const apsis = new Apsis();
+    const apsis = new UIApsis();
     apsis.add(boxObject);
     apsis.add(textObject);
 
@@ -53,4 +50,4 @@ class Apsis extends THREE.Group {
 
 }
 
-export default Apsis;
+export default UIApsis;

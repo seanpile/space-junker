@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 
 import { AU } from '../../Constants';
-import Body from './Body';
-import Trajectory from './Trajectory';
+import UIBody from './UIBody';
+import UIOrbit from './UIOrbit';
 
-export default class Planet extends Body {
+export default class UIPlanet extends UIBody {
 
   applyPlanetaryRotation() {
     const orbit = this.body.orbit;
@@ -53,11 +53,11 @@ export default class Planet extends Body {
     threeBody.castShadow = true;
 
     if (mapView) {
-      const trajectory = Trajectory.createTrajectory(body, fonts);
-      return new Planet(body, threeBody, trajectory);
+      const orbit = UIOrbit.createOrbit(body, fonts);
+      return new UIPlanet(body, threeBody, orbit);
     }
 
-    return new Planet(body, threeBody);
+    return new UIPlanet(body, threeBody);
   }
 
 }
