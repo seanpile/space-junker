@@ -11,18 +11,13 @@ const degToRad = threeMath.degToRad;
 
 class HyperbolicOrbit extends Orbit {
 
-  constructor(body, a, e, I, omega, argumentPerihelion, M) {
-    super(body);
-    this.a = a;
-    this.e = e;
-    this.I = I;
-    this.omega = omega;
-    this.argumentPerihelion = argumentPerihelion;
-    this.M = M;
-  }
-
   static supports(e) {
     return e > 1;
+  }
+
+  clone() {
+    return new HyperbolicOrbit(
+      this.body, this.a, this.e, this.I, this.omega, this.argumentPerihelion, this.M);
   }
 
   setFromKeplerElements(keplerElements, t) {
@@ -95,13 +90,18 @@ class HyperbolicOrbit extends Orbit {
 
     let argumentPerihelion;
     if (n.length() <= 0) {
-      argumentPerihelion = 0;
-    } else {
-      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
-    }
+      // Zero Inclination
+      argumentPerihelion = Math.atan2(ecc.y, ecc.x);
+      if (h.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
 
-    if (ecc.z < 0) {
-      argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+    } else {
+
+      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+      if (ecc.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
     }
 
     const F = 2 * Math.atanh(Math.sqrt((e - 1) / (e + 1)) * Math.tan(trueAnomaly / 2));
@@ -118,15 +118,15 @@ class HyperbolicOrbit extends Orbit {
     return this;
   }
 
-  advance(dt) {
+  meanAngularMotion() {
     const u = this.body.primary.constants.u;
+    return Math.sqrt(u / (Math.pow(-this.a, 3)));
+  }
 
-    /**
-     * For elliptical orbits, M - M0 = n(t - t0)
-     */
-    const n = Math.sqrt(u / (Math.pow(-this.a, 3)));
-    this.M = this.M + (n * (dt / 1000));
-    this.updateStats();
+  toMeanAnomaly(trueAnomaly) {
+    const e = this.e;
+    const F = 2 * Math.atanh((Math.sqrt(e - 1) / Math.sqrt(e + 1)) * Math.tan(trueAnomaly / 2));
+    return (e * Math.sinh(F)) - F;
   }
 
   updateStats() {

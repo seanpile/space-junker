@@ -32,6 +32,9 @@ module.exports = function (env) {
       inline: true,
     },
     module: {
+      noParse: [
+        /moment-precise-range-plugin/,
+      ],
       rules: [
         {
           test: /\.css$/,
@@ -39,9 +42,7 @@ module.exports = function (env) {
         },
         {
           test: /img\/.*\.(jpg|png)$/,
-          use: [{
-            loader: 'file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/',
-          }],
+          use: [{ loader: 'file-loader?name=[name].[ext]&publicPath=img/&outputPath=img/' }],
         },
         {
           test: /models\/(.*)\.(jpg|png)$/,
@@ -57,9 +58,7 @@ module.exports = function (env) {
         },
         {
           test: /\.(dae)$/,
-          use: [{
-            loader: 'file-loader?name=[name].[ext]&publicPath=models/&outputPath=models/',
-          }],
+          use: [{ loader: 'file-loader?name=[name].[ext]&publicPath=models/&outputPath=models/' }],
         },
         {
           test: /\.vue$/,
@@ -73,9 +72,7 @@ module.exports = function (env) {
             loader: 'babel-loader',
             options: {
               presets: [
-                ['es2015', {
-                  modules: false,
-                }],
+                ['es2015', { modules: false }],
                 'stage-2',
               ],
             },
@@ -93,9 +90,7 @@ module.exports = function (env) {
         template: 'src/index.template.ejs',
         inject: 'body',
       }),
-      new webpack.optimize.CommonsChunkPlugin({
-        name: 'vendor',
-      }),
+      new webpack.optimize.CommonsChunkPlugin({ name: 'vendor' }),
       new webpack.NamedModulesPlugin(),
     ],
   };

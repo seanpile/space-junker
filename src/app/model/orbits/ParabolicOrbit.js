@@ -1,4 +1,6 @@
 import { Vector3, Math as threeMath } from 'three';
+import hash from 'string-hash';
+
 import { JulianDate, TransformToEcliptic, CalculateMeanAnomaly } from './OrbitUtils';
 import Orbit from './Orbit';
 
@@ -7,13 +9,21 @@ const degToRad = threeMath.degToRad;
 class ParabolicOrbit extends Orbit {
 
   constructor(body, p, e, I, omega, argumentPerihelion, M) {
-    super(body);
+    super(body, 0, e, I, omega, argumentPerihelion, M);
     this.p = p;
-    this.e = e;
-    this.I = I;
-    this.omega = omega;
-    this.argumentPerihelion = argumentPerihelion;
-    this.M = M;
+  }
+
+  clone() {
+    return new ParabolicOrbit(
+      this.body, this.p, this.e, this.I, this.omega, this.argumentPerihelion, this.M);
+  }
+
+  /**
+   * Override hashCode to include p
+   */
+  hashCode() {
+    const prime = 37;
+    return (super.hashCode() * prime) + hash(`${this.p}`);
   }
 
   static supports(e) {
@@ -90,14 +100,19 @@ class ParabolicOrbit extends Orbit {
 
     const D = Math.sqrt(2 * q) * Math.tan(trueAnomaly / 2);
 
-    if (n.length() <= 0 || ecc.length() <= 0) {
-      argumentPerihelion = 0;
-    } else {
-      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
-    }
+    if (n.length() <= 0) {
+      // Zero Inclination
+      argumentPerihelion = Math.atan2(ecc.y, ecc.x);
+      if (h.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
 
-    if (ecc.z < 0) {
-      argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+    } else {
+
+      argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+      if (ecc.z < 0) {
+        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+      }
     }
 
     const M = (q * D) + ((D ** 3) / 6);
@@ -113,16 +128,15 @@ class ParabolicOrbit extends Orbit {
     return this;
   }
 
-  advance(dt) {
+  meanAngularMotion() {
     const u = this.body.primary.constants.u;
+    return Math.sqrt(u / Math.pow(this.p, 3));
+  }
 
-    /**
-     * For elliptical orbits, M - M0 = n(t - t0)
-     */
-    const n = Math.sqrt(u / Math.pow(this.p, 3));
-    this.M = this.M + (n * (dt / 1000));
-
-    this.updateStats();
+  toMeanAnomaly(trueAnomaly) {
+    const q = this.p / 2;
+    const D = Math.sqrt(2 * q) * Math.tan(trueAnomaly / 2);
+    return (q * D) + ((D ** 3) / 6);
   }
 
   updateStats() {
@@ -164,7 +178,7 @@ class ParabolicOrbit extends Orbit {
     this.stats = Object.assign({}, this.stats, {
       orbitalPeriod,
       semiMajorAxis: p,
-      semiMinorAxis: q,
+      semiMinorAxis: p,
       position: TransformToEcliptic(offset, perifocalPosition, argumentPerihelion, omega, I),
       velocity: TransformToEcliptic(null, perifocalVelocity, argumentPerihelion, omega, I),
       center: TransformToEcliptic(offset, center, argumentPerihelion, omega, I),

@@ -40,7 +40,7 @@ SolarSystem.prototype.seed = function () {
     if (data.type === PLANET_TYPE) {
       body = new Planet(name, constants);
     } else if (data.type === SHIP_TYPE) {
-      body = new Ship(name, constants, data.stages);
+      body = new Ship(name, constants, data.model, data.stages);
       body.motion = {
         heading0: new Vector3(0, 1, 0),
         rotation: new Quaternion(),
@@ -99,12 +99,13 @@ SolarSystem.prototype.update = function update(t, dt) {
       let orbit;
       if (body.name === 'sun') {
         orbit = new StationaryOrbit(body);
+        body.orbit = orbit;
       } else {
         const OrbitType = this._orbitType(e);
         orbit = new OrbitType(body).setFromKeplerElements(keplerElements, t + dt);
+        body.orbit = orbit;
       }
 
-      body.orbit = orbit;
       if (body.isPlanet()) {
         body.constants.sphereOfInfluence = OrbitUtils.SphereOfInfluence(body);
       }
@@ -120,11 +121,14 @@ SolarSystem.prototype.update = function update(t, dt) {
     if (body.isPlanet()) {
       this._applyPlanetaryRotation(body, dt);
     } else if (body.isShip()) {
+      this._updateManeuvers(body);
       this._checkSphereOfInfluence(body);
       this._applyRotation(body, dt);
       this._applyThrust(body, dt);
     }
   });
+
+  this.time = t + dt;
 };
 
 SolarSystem.prototype._orbitType = function (e) {
@@ -137,6 +141,14 @@ SolarSystem.prototype._orbitType = function (e) {
   }
 
   return found;
+};
+
+SolarSystem.prototype._updateManeuvers = function (body) {
+  // TODO: Need to ensure that if a body enters a new SOI, it's always placed after
+  // its primary in the 'this.bodies' list.
+  if (body.maneuvers && body.maneuvers.length > 0) {
+    body.maneuvers.forEach(m => m.orbit.updateStats());
+  }
 };
 
 SolarSystem.prototype._applyPlanetaryRotation = function (planet, dt) {
@@ -270,7 +282,7 @@ SolarSystem.prototype._applyThrust = (function () {
 
     const velocity = body.velocity.clone().add(deltaV);
     const position = body.position.clone().add(
-      velocity.clone().multiplyScalar(dt / 1000),
+      deltaV.clone().multiplyScalar(dt / 1000),
     );
 
     // Check to see if the modified orbit is still supported by the current Orbit; if not,

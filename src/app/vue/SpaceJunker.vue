@@ -9,7 +9,7 @@
 
       <component :is="activeView" :renderer="activeRenderer" :key="activeRendererId"></component>
 
-      <hud :elapsed="elapsed" :timeWarpIdx="timeWarpIdx" :timeWarpValues="timeWarpValues" :focus="focus" :stats="stats"></hud>
+      <hud v-if="showHud" :elapsed="elapsed" :timeWarpIdx="timeWarpIdx" :timeWarpValues="timeWarpValues" :focus="focus" :stats="stats"></hud>
 
       <help-overlay />
 
@@ -74,7 +74,6 @@ export default {
       solarSystem,
       resourceLoader,
       sharedState,
-      focus: solarSystem.find(sharedState.focus),
       renderers: {
         'map-view': {
           id: rendererId++,
@@ -97,6 +96,7 @@ export default {
       // Animation / Time Management
       frameId: null,
       paused: false,
+      showHud: false,
       initialized: false,
       elapsed: moment.duration(0),
       time: now,
@@ -116,16 +116,12 @@ export default {
     }
   },
 
-  watch: {
-    sharedState: {
-      deep: true,
-      handler: function(val, oldVal) {
-        this.focus = this.solarSystem.find(this.sharedState.focus);
-      }
-    },
-  },
-
   computed: {
+
+    focus: function() {
+      return this.solarSystem.find(this.sharedState.focus);
+    },
+
     activeView: function() {
       return this.views[this.viewIdx];
     },
@@ -164,7 +160,8 @@ export default {
       const solarSystem = this.solarSystem;
       this.animationFrame((frameTime) => {
 
-        this.stats.begin();
+        const trackFps = this.showHud;
+        trackFps && this.stats.begin();
 
         const t = this.time;
         const scaledDt = this.timeWarpValues[this.timeWarpIdx] *
@@ -180,7 +177,7 @@ export default {
 
         this.time += scaledDt;
         this.elapsed.add(scaledDt);
-        this.stats.end();
+        trackFps && this.stats.end();
 
         return this.api.onRender(this);
       });
@@ -248,6 +245,10 @@ export default {
           });
         });
 
+        Mousetrap.bind('h', () => {
+          this.showHud = !this.showHud;
+        });
+
         // Toggle Focus backwards between bodies
         Mousetrap.bind('[', () => {
           const solarSystem = this.solarSystem;
@@ -296,12 +297,15 @@ export default {
         }, true);
 
         window.addEventListener('mousemove', (event) => {
-          const target = new THREE.Vector2(event.clientX, event.clientY);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
+
+          const location = new THREE.Vector2(event.clientX, event.clientY);
 
           if (this.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'mouseover',
-              location: target,
+              location
             });
           }
         }, false);
@@ -319,25 +323,27 @@ export default {
         singleTap.requireFailure([doubleTap]);
 
         hammer.on('singletap', (event) => {
-          const target = new THREE.Vector2(event.center.x, event.center
-            .y);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
 
+          const location = new THREE.Vector2(event.center.x, event.center.y);
           if (this.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'tap',
-              location: target,
+              location: location,
             });
           }
         });
 
         hammer.on('doubletap', (event) => {
-          const target = new THREE.Vector2(event.center.x, event.center
-            .y);
+          const width = window.innerWidth;
+          const height = window.innerHeight;
 
+          const location = new THREE.Vector2(event.center.x, event.center.y);
           if (this.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'doubletap',
-              location: target,
+              location: location,
             });
           }
         });
@@ -350,57 +356,6 @@ export default {
         console.error(error);
         throw error;
       });
-
-    /**
-     * If Hot Module Replacement is enabled, setup callbacks to reload the rendering (canvas) layer.
-     * If a renderer is modified, we want to re-initialize the renderer instead of reloading
-     * the entire application.
-     *
-     * To accomplish this, we'll listen to two specific endpoints:
-     *  - ../renderers/OrbitalMapRenderer
-     *  - ../renderers/CameraViewRenderer
-     *
-     * If the HMR system notices a change in these modules, we will get notified and attempt to
-     * re-initialize the renderer and swap it into the Vue Component.
-     *
-     * We could simply reload the entire app, but this method allows us to maintain the existing
-     * state of the game.
-     */
-    if (module.hot) {
-
-      const solarSystem = this.solarSystem;
-      const resourceLoader = this.loader;
-      const sharedState = this.sharedState;
-      const scope = this;
-
-      function reloadRenderer(Renderer, view) {
-
-        const staleRenderer = scope.renderers[view].renderer;
-        const newRenderer = new Renderer(
-          solarSystem,
-          resourceLoader,
-          sharedState);
-
-        newRenderer.viewDidLoad()
-          .then(() => {
-
-            // By increasing the id, we will force Vue to update the component with the new
-            // renderer
-            scope.renderers[view].id = rendererId++;
-            scope.renderers[view].renderer = newRenderer;
-
-            staleRenderer.viewWillDisappear();
-            staleRenderer.viewWillUnload();
-          });
-      }
-
-      module.hot.accept(`../renderers/OrbitalMapRenderer`, () => {
-        reloadRenderer(OrbitalMapRenderer, 'map-view');
-      });
-      module.hot.accept(`../renderers/CameraViewRenderer`, () => {
-        reloadRenderer(CameraViewRenderer, 'camera-view');
-      });
-    }
   },
 
   destroyed: function() {

@@ -28,6 +28,12 @@
     </div>
     <div class="key-entry">
       <div class="keys">
+        <div class="key">h</div>
+      </div>
+      <div class="description">Toggle Hud</div>
+    </div>
+    <div class="key-entry">
+      <div class="keys">
         <div class="key">m</div>
       </div>
       <div class="description">Toggle View</div>

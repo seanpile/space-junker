@@ -14,6 +14,10 @@ class StationaryOrbit extends Orbit {
     });
   }
 
+  hashCode() {
+    return 13;
+  }
+
   advance(dt) {
     // No-op
   }
