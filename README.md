@@ -36,10 +36,6 @@ $ npm start
 # Simulation is available at http://localhost:8080/index.html
 ```
 
-## Live build
-
-The [docs](/docs) folder contains a live-build of the project.  To access, visit http://github.seanpile.io/space-junker
-
 ## Meta
 
 Sean Dawson – [@seanpiled](https://twitter.com/seanpiled)
