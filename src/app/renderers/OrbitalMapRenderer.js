@@ -320,10 +320,7 @@ OrbitalMapRenderer.prototype._onRecenter = function () {
     }
 
     this.orbitControls && this.orbitControls.reset();
-
-    const spherical = new THREE.Spherical(cameraDistance, Math.PI / 1.5, Math.PI / 6);
-    spherical.makeSafe();
-    this.camera.position.setFromSpherical(spherical);
+    this.camera.position.set(0, -1e-8, cameraDistance);
   };
 
   return recenter;

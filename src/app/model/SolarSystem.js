@@ -170,7 +170,7 @@ SolarSystem.prototype._checkSphereOfInfluence = function (body) {
       .filter(b => b !== body && b !== sun)
       .map(b => ({ body: b, distance: body.relativePosition(b).length() }))
       .filter(({ body: b, distance }) => distance < b.constants.sphereOfInfluence)
-      .sort(({ b1, d1 }, { b2, d2 }) => d1 - d2);
+      .sort((b1, b2) => b1.distance - b2.distance);
 
   // This body has escaped the influence of a body, it should now orbit the sun!
   if (spheresOfInfluence.length === 0) {
@@ -178,7 +178,6 @@ SolarSystem.prototype._checkSphereOfInfluence = function (body) {
       this._switchSphereOfInfluence(body, sun);
     }
   } else {
-
   }
 };
 
