@@ -1,4 +1,5 @@
-import { Vector3, Math as threeMath } from 'three';
+import { Quaternion, Vector3, Math as threeMath } from 'three';
+import hash from 'string-hash';
 import Orbit from './Orbit';
 import {
   JulianDate,
@@ -11,18 +12,13 @@ const degToRad = threeMath.degToRad;
 
 class EllipticalOrbit extends Orbit {
 
-  constructor(body, a, e, I, omega, argumentPerihelion, M) {
-    super(body);
-    this.a = a;
-    this.e = e;
-    this.I = I;
-    this.omega = omega;
-    this.argumentPerihelion = argumentPerihelion;
-    this.M = M;
-  }
-
   static supports(e) {
     return e >= 0 && e < 1;
+  }
+
+  clone() {
+    return new EllipticalOrbit(
+      this.body, this.a, this.e, this.I, this.omega, this.argumentPerihelion, this.M);
   }
 
   setFromKeplerElements(keplerElements, t) {
@@ -124,15 +120,21 @@ class EllipticalOrbit extends Orbit {
 
       const E = 2 * Math.atan(Math.sqrt((1 - e) / (1 + e)) * Math.tan(trueAnomaly / 2));
 
-      if (n.length() <= 0 || ecc.length() <= 0) {
-        argumentPerihelion = 0;
+      if (n.length() <= 0) {
+        // Zero Inclination
+        argumentPerihelion = Math.atan2(ecc.y, ecc.x);
+        if (h.z < 0) {
+          argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+        }
+
       } else {
+
         argumentPerihelion = Math.acos(n.dot(ecc) / (n.length() * ecc.length()));
+        if (ecc.z < 0) {
+          argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
+        }
       }
 
-      if (ecc.z < 0) {
-        argumentPerihelion = (2 * Math.PI) - argumentPerihelion;
-      }
 
       M = E - (e * Math.sin(E));
     }
@@ -148,16 +150,21 @@ class EllipticalOrbit extends Orbit {
     return this;
   }
 
-  advance(dt) {
+  meanAngularMotion() {
     const u = this.body.primary.constants.u;
+    return Math.sqrt(u / (this.a ** 3));
+  }
 
-    /**
-     * For elliptical orbits, M - M0 = n(t - t0)
-     */
-    const n = Math.sqrt(u / (this.a ** 3));
-    this.M = (this.M + (n * (dt / 1000))) % (2 * Math.PI);
+  toMeanAnomaly(trueAnomaly) {
+    const E = 2 * Math.atan(
+      (Math.sqrt(1 - this.e) / Math.sqrt(1 + this.e)) * Math.tan(trueAnomaly / 2));
 
-    this.updateStats();
+    let M = E - (this.e * Math.sin(E));
+    if (M < 0) {
+      M = (2 * Math.PI) + M;
+    }
+
+    return M;
   }
 
   updateStats() {

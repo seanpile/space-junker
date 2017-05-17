@@ -27,15 +27,11 @@ class MockModelLoader {
   constructor() {
     this.threeBody = new THREE.Mesh(
       new THREE.ConeGeometry(50, 200, 32, 32),
-      new THREE.MeshPhongMaterial({
-        color: 'lightgray',
-      }));
+      new THREE.MeshPhongMaterial({ color: 'lightgray' }));
   }
 
   load(key, callback) {
-    callback({
-      scene: this.threeBody,
-    });
+    callback({ scene: this.threeBody });
   }
 
 }
@@ -68,15 +64,15 @@ ResourceLoader.prototype.loadTexture = function (key) {
       resolve([key, cache.get(key)]);
     } else {
       this.textureLoader.load(key,
-        (texture) => {
-          cache.set(key, texture);
-          resolve([key, texture]);
-        },
-        () => {},
-        (error) => {
-          console.error(error);
-          reject(`Failed to load texture '${key}'`);
-        });
+                              (texture) => {
+                                cache.set(key, texture);
+                                resolve([key, texture]);
+                              },
+                              () => {},
+                              (error) => {
+                                console.error(error);
+                                reject(`Failed to load texture '${key}'`);
+                              });
     }
   });
 };
@@ -88,15 +84,15 @@ ResourceLoader.prototype.loadModel = function (key) {
       resolve([key, cache.get(key)]);
     } else {
       this.modelLoader.load(key,
-        (model) => {
-          cache.set(key, model);
-          resolve([key, model]);
-        },
-        () => {},
-        (error) => {
-          console.error(error);
-          reject(`Failed to load model '${key}'`);
-        });
+                            (model) => {
+                              cache.set(key, model);
+                              resolve([key, model]);
+                            },
+                            () => {},
+                            (error) => {
+                              console.error(error);
+                              reject(`Failed to load model '${key}'`);
+                            });
     }
   });
 };

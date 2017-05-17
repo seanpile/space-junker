@@ -23,11 +23,13 @@ const TEXTURES = {
   neptune: require('../../img/neptunemap.jpg'), // eslint-disable-line global-require
   uranus: require('../../img/uranusmap.jpg'), // eslint-disable-line global-require
   lensflare: require('../../img/lensflare.png'), // eslint-disable-line global-require
-  'apollo 11': require('../../models/apollo/OldGlory.jpg'), // eslint-disable-line global-require
+  apollo: require('../../models/apollo/OldGlory.jpg'), // eslint-disable-line global-require
   navball: require('../../img/navball.png'), // eslint-disable-line global-require
 };
 
-const MODELS = { 'apollo 11': require('../../models/apollo.dae') };
+const MODELS = { apollo: require('../../models/apollo.dae') };
+
+const FONTS = { helvetiker: new THREE.Font(require('../../fonts/helvetiker_regular.typeface.json')) };
 
 export default function BaseRenderer(solarSystem, resourceLoader, state) {
   this.solarSystem = solarSystem;
@@ -57,6 +59,10 @@ BaseRenderer.prototype._onWindowResize =
       this.renderer.setSize(window.innerWidth, window.innerHeight);
     };
   };
+
+BaseRenderer.prototype._loadFonts = function () {
+  return Promise.resolve(FONTS);
+};
 
 BaseRenderer.prototype._loadTextures = function () {
   const allKeys = Object.keys(TEXTURES);
@@ -224,237 +230,11 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       shininess: 10,
     }));
 
-  const prograde = (() => {
-    const shapes = [
-      // Circle
-      (() => {
-        const shape = new THREE.Shape();
-        shape.moveTo(0, 0);
-        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        const innerHole = new THREE.Path();
-        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
-        shape.holes.push(innerHole);
-        return shape;
-      })(),
-      (() => {
-        const lineShape = new THREE.Shape();
-        lineShape.moveTo(-1, 8);
-        lineShape.lineTo(-1, 13);
-        lineShape.lineTo(1, 13);
-        lineShape.lineTo(1, 8);
-        return lineShape;
-      })(),
-      (() => {
-        const lineShape = new THREE.Shape();
-        lineShape.moveTo(8, 1);
-        lineShape.lineTo(13, 1);
-        lineShape.lineTo(13, -1);
-        lineShape.lineTo(8, -1);
-        return lineShape;
-      })(),
-      (() => {
-        const lineShape = new THREE.Shape();
-        lineShape.moveTo(-8, 1);
-        lineShape.lineTo(-13, 1);
-        lineShape.lineTo(-13, -1);
-        lineShape.lineTo(-8, -1);
-        return lineShape;
-      })(),
-      (() => {
-        const dotShape = new THREE.Shape();
-        dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
-        return dotShape;
-      })(),
-    ];
-
-    return new THREE.Mesh(
-      new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({ color: 'yellow' }),
-    );
-  })();
-
-  const retrograde = (() => {
-    const shapes = [
-      // Circle
-      (() => {
-        const shape = new THREE.Shape();
-        shape.moveTo(0, 0);
-        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        const innerHole = new THREE.Path();
-        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
-        shape.holes.push(innerHole);
-        return shape;
-      })(),
-      (() => {
-        // Up line
-        const lineShape = new THREE.Shape();
-        lineShape.moveTo(-1, 8);
-        lineShape.lineTo(-1, 13);
-        lineShape.lineTo(1, 13);
-        lineShape.lineTo(1, 8);
-        return lineShape;
-      })(),
-      (() => {
-        // Cross X
-        const lineShape = new THREE.Shape();
-        const e = (3 / 180) * Math.PI;
-        lineShape.moveTo(
-          7 * Math.cos((Math.PI / 4) - e),
-          7 * Math.sin((Math.PI / 4) - e));
-        lineShape.lineTo(
-          7 * Math.cos((Math.PI / 4) + e),
-          7 * Math.sin((Math.PI / 4) + e));
-        lineShape.lineTo(
-          7 * Math.cos(((5 / 4) * Math.PI) - e),
-          7 * Math.sin(((5 / 4) * Math.PI) - e));
-        lineShape.lineTo(
-          7 * Math.cos(((5 / 4) * Math.PI) + e),
-          7 * Math.sin(((5 / 4) * Math.PI) + e));
-
-        return lineShape;
-      })(),
-      (() => {
-        // Cross X
-        const lineShape = new THREE.Shape();
-        const e = (3 / 180) * Math.PI;
-        lineShape.moveTo(
-          7 * Math.cos(((3 / 4) * Math.PI) - e),
-          7 * Math.sin(((3 / 4) * Math.PI) - e));
-        lineShape.lineTo(
-          7 * Math.cos(((3 / 4) * Math.PI) + e),
-          7 * Math.sin(((3 / 4) * Math.PI) + e));
-        lineShape.lineTo(
-          7 * Math.cos(-(Math.PI / 4) - e),
-          7 * Math.sin(-(Math.PI / 4) - e));
-        lineShape.lineTo(
-          7 * Math.cos(-(Math.PI / 4) + e),
-          7 * Math.sin(-(Math.PI / 4) + e));
-        return lineShape;
-      })(),
-      (() => {
-        // Cross X
-        const lineShape = new THREE.Shape();
-        const e = (5 / 180) * Math.PI;
-        const angle = -(30 / 180) * Math.PI;
-        const baseRadius = 7;
-        const length = 6;
-        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
-        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-        lineShape.lineTo(
-          (baseRadius + length) * Math.cos(angle + e),
-          (baseRadius + length) * Math.sin(angle + e));
-        lineShape.lineTo(
-          (baseRadius + length) * Math.cos(angle - e),
-          (baseRadius + length) * Math.sin(angle - e));
-        return lineShape;
-      })(),
-      (() => {
-        // Cross X
-        const lineShape = new THREE.Shape();
-        const e = (5 / 180) * Math.PI;
-        const angle = (-150 / 180) * Math.PI;
-        const baseRadius = 7;
-        const length = 6;
-        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
-        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-        lineShape.lineTo(
-          (baseRadius + length) * Math.cos(angle + e),
-          (baseRadius + length) * Math.sin(angle + e));
-        lineShape.lineTo(
-          (baseRadius + length) * Math.cos(angle - e),
-          (baseRadius + length) * Math.sin(angle - e));
-        return lineShape;
-      })(),
-    ];
-
-    return new THREE.Mesh(
-      new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({ color: 'yellow' }),
-    );
-  })();
-
-  const radialIn = (() => {
-    const shapes = [
-      // Circle
-      (() => {
-        const shape = new THREE.Shape();
-        shape.moveTo(0, 0);
-        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        const innerHole = new THREE.Path();
-        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
-        shape.holes.push(innerHole);
-        return shape;
-      })(),
-    ];
-
-    [(1 / 4) * Math.PI, (3 / 4) * Math.PI, (5 / 4) * Math.PI, (7 / 4) * Math.PI].forEach(
-      (angle) => {
-        const lineShape = new THREE.Shape();
-        const e = (5 / 180) * Math.PI;
-        const baseRadius = 7;
-        const length = 4;
-        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
-        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-        lineShape.lineTo(
-        (baseRadius - length) * Math.cos(angle + e),
-        (baseRadius - length) * Math.sin(angle + e));
-        lineShape.lineTo(
-        (baseRadius - length) * Math.cos(angle - e),
-        (baseRadius - length) * Math.sin(angle - e));
-        shapes.push(lineShape);
-      });
-
-    return new THREE.Mesh(
-      new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({ color: 'aqua' }),
-    );
-  })();
-
-  const radialOut = (() => {
-    const shapes = [
-      // Circle
-      (() => {
-        const shape = new THREE.Shape();
-        shape.moveTo(0, 0);
-        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
-        const innerHole = new THREE.Path();
-        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
-        shape.holes.push(innerHole);
-        return shape;
-      })(),
-      (() => {
-        const dotShape = new THREE.Shape();
-        dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
-        return dotShape;
-      })(),
-    ];
-
-    [(1 / 4) * Math.PI, (3 / 4) * Math.PI, (5 / 4) * Math.PI, (7 / 4) * Math.PI].forEach(
-      (angle) => {
-        const lineShape = new THREE.Shape();
-        const e = (5 / 180) * Math.PI;
-        const baseRadius = 7;
-        const length = 4;
-        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
-        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
-        lineShape.lineTo(
-        (baseRadius + length) * Math.cos(angle + e),
-        (baseRadius + length) * Math.sin(angle + e));
-        lineShape.lineTo(
-        (baseRadius + length) * Math.cos(angle - e),
-        (baseRadius + length) * Math.sin(angle - e));
-        shapes.push(lineShape);
-      });
-
-    return new THREE.Mesh(
-      new THREE.ShapeBufferGeometry(shapes, 64),
-      new THREE.MeshBasicMaterial({ color: 'aqua' }),
-    );
-  })();
+  const { prograde, retrograde, radialIn, radialOut } = this._createOrbitalMarkers();
 
   const level = (() => {
     const shapes = [
-      // Circle
+            // Circle
       (() => {
         const shape = new THREE.Shape();
         shape.moveTo(-1.5, 0);
@@ -480,20 +260,20 @@ BaseRenderer.prototype.loadNavball = function (textures) {
     ];
 
     return new THREE.Mesh(
-      // new THREE.ShapeGeometry(shapes, 64),
-      new THREE.ExtrudeGeometry(shapes, {
-        steps: 2,
-        amount: 8,
-        bevelEnabled: true,
-        bevelThickness: 0.75,
-        bevelSize: 0.75,
-        bevelSegments: 4,
-      }),
-      new THREE.MeshPhongMaterial({
-        color: '#e8a739',
-        shininess: 20,
-      }),
-    );
+            // new THREE.ShapeGeometry(shapes, 64),
+            new THREE.ExtrudeGeometry(shapes, {
+              steps: 2,
+              amount: 8,
+              bevelEnabled: true,
+              bevelThickness: 0.75,
+              bevelSize: 0.75,
+              bevelSegments: 4,
+            }),
+            new THREE.MeshPhongMaterial({
+              color: '#e8a739',
+              shininess: 20,
+            }),
+          );
   })();
 
   prograde.scale.set(0.008, 0.008, 0.008);
@@ -539,6 +319,240 @@ BaseRenderer.prototype.loadNavball = function (textures) {
       level,
     },
   };
+};
+
+BaseRenderer.prototype._createOrbitalMarkers = function () {
+
+  const prograde = (() => {
+    const shapes = [
+        // Circle
+      (() => {
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        const innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+      (() => {
+        const lineShape = new THREE.Shape();
+        lineShape.moveTo(-1, 8);
+        lineShape.lineTo(-1, 13);
+        lineShape.lineTo(1, 13);
+        lineShape.lineTo(1, 8);
+        return lineShape;
+      })(),
+      (() => {
+        const lineShape = new THREE.Shape();
+        lineShape.moveTo(8, 1);
+        lineShape.lineTo(13, 1);
+        lineShape.lineTo(13, -1);
+        lineShape.lineTo(8, -1);
+        return lineShape;
+      })(),
+      (() => {
+        const lineShape = new THREE.Shape();
+        lineShape.moveTo(-8, 1);
+        lineShape.lineTo(-13, 1);
+        lineShape.lineTo(-13, -1);
+        lineShape.lineTo(-8, -1);
+        return lineShape;
+      })(),
+      (() => {
+        const dotShape = new THREE.Shape();
+        dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
+        return dotShape;
+      })(),
+    ];
+
+    return new THREE.Mesh(
+        new THREE.ShapeBufferGeometry(shapes, 64),
+        new THREE.MeshBasicMaterial({ color: 'yellow' }),
+      );
+  })();
+
+  const retrograde = (() => {
+    const shapes = [
+        // Circle
+      (() => {
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        const innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+      (() => {
+          // Up line
+        const lineShape = new THREE.Shape();
+        lineShape.moveTo(-1, 8);
+        lineShape.lineTo(-1, 13);
+        lineShape.lineTo(1, 13);
+        lineShape.lineTo(1, 8);
+        return lineShape;
+      })(),
+      (() => {
+          // Cross X
+        const lineShape = new THREE.Shape();
+        const e = (3 / 180) * Math.PI;
+        lineShape.moveTo(
+            7 * Math.cos((Math.PI / 4) - e),
+            7 * Math.sin((Math.PI / 4) - e));
+        lineShape.lineTo(
+            7 * Math.cos((Math.PI / 4) + e),
+            7 * Math.sin((Math.PI / 4) + e));
+        lineShape.lineTo(
+            7 * Math.cos(((5 / 4) * Math.PI) - e),
+            7 * Math.sin(((5 / 4) * Math.PI) - e));
+        lineShape.lineTo(
+            7 * Math.cos(((5 / 4) * Math.PI) + e),
+            7 * Math.sin(((5 / 4) * Math.PI) + e));
+
+        return lineShape;
+      })(),
+      (() => {
+          // Cross X
+        const lineShape = new THREE.Shape();
+        const e = (3 / 180) * Math.PI;
+        lineShape.moveTo(
+            7 * Math.cos(((3 / 4) * Math.PI) - e),
+            7 * Math.sin(((3 / 4) * Math.PI) - e));
+        lineShape.lineTo(
+            7 * Math.cos(((3 / 4) * Math.PI) + e),
+            7 * Math.sin(((3 / 4) * Math.PI) + e));
+        lineShape.lineTo(
+            7 * Math.cos(-(Math.PI / 4) - e),
+            7 * Math.sin(-(Math.PI / 4) - e));
+        lineShape.lineTo(
+            7 * Math.cos(-(Math.PI / 4) + e),
+            7 * Math.sin(-(Math.PI / 4) + e));
+        return lineShape;
+      })(),
+      (() => {
+          // Cross X
+        const lineShape = new THREE.Shape();
+        const e = (5 / 180) * Math.PI;
+        const angle = -(30 / 180) * Math.PI;
+        const baseRadius = 7;
+        const length = 6;
+        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+        lineShape.lineTo(
+            (baseRadius + length) * Math.cos(angle + e),
+            (baseRadius + length) * Math.sin(angle + e));
+        lineShape.lineTo(
+            (baseRadius + length) * Math.cos(angle - e),
+            (baseRadius + length) * Math.sin(angle - e));
+        return lineShape;
+      })(),
+      (() => {
+          // Cross X
+        const lineShape = new THREE.Shape();
+        const e = (5 / 180) * Math.PI;
+        const angle = (-150 / 180) * Math.PI;
+        const baseRadius = 7;
+        const length = 6;
+        lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+        lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+        lineShape.lineTo(
+            (baseRadius + length) * Math.cos(angle + e),
+            (baseRadius + length) * Math.sin(angle + e));
+        lineShape.lineTo(
+            (baseRadius + length) * Math.cos(angle - e),
+            (baseRadius + length) * Math.sin(angle - e));
+        return lineShape;
+      })(),
+    ];
+
+    return new THREE.Mesh(
+        new THREE.ShapeBufferGeometry(shapes, 64),
+        new THREE.MeshBasicMaterial({ color: 'yellow' }),
+      );
+  })();
+
+  const radialIn = (() => {
+    const shapes = [
+        // Circle
+      (() => {
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        const innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+    ];
+
+    [(1 / 4) * Math.PI, (3 / 4) * Math.PI, (5 / 4) * Math.PI, (7 / 4) * Math.PI].forEach(
+        (angle) => {
+          const lineShape = new THREE.Shape();
+          const e = (5 / 180) * Math.PI;
+          const baseRadius = 7;
+          const length = 4;
+          lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+          lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+          lineShape.lineTo(
+          (baseRadius - length) * Math.cos(angle + e),
+          (baseRadius - length) * Math.sin(angle + e));
+          lineShape.lineTo(
+          (baseRadius - length) * Math.cos(angle - e),
+          (baseRadius - length) * Math.sin(angle - e));
+          shapes.push(lineShape);
+        });
+
+    return new THREE.Mesh(
+        new THREE.ShapeBufferGeometry(shapes, 64),
+        new THREE.MeshBasicMaterial({ color: 'aqua' }),
+      );
+  })();
+
+  const radialOut = (() => {
+    const shapes = [
+        // Circle
+      (() => {
+        const shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.absarc(0, 0, 8, 0, Math.PI * 2, false);
+        const innerHole = new THREE.Path();
+        innerHole.absellipse(0, 0, 6, 6, 0, Math.PI * 2, true);
+        shape.holes.push(innerHole);
+        return shape;
+      })(),
+      (() => {
+        const dotShape = new THREE.Shape();
+        dotShape.absarc(0, 0, 1, 0, 2 * Math.PI);
+        return dotShape;
+      })(),
+    ];
+
+    [(1 / 4) * Math.PI, (3 / 4) * Math.PI, (5 / 4) * Math.PI, (7 / 4) * Math.PI].forEach(
+        (angle) => {
+          const lineShape = new THREE.Shape();
+          const e = (5 / 180) * Math.PI;
+          const baseRadius = 7;
+          const length = 4;
+          lineShape.moveTo(baseRadius * Math.cos(angle - e), baseRadius * Math.sin(angle - e));
+          lineShape.lineTo(baseRadius * Math.cos(angle + e), baseRadius * Math.sin(angle + e));
+          lineShape.lineTo(
+          (baseRadius + length) * Math.cos(angle + e),
+          (baseRadius + length) * Math.sin(angle + e));
+          lineShape.lineTo(
+          (baseRadius + length) * Math.cos(angle - e),
+          (baseRadius + length) * Math.sin(angle - e));
+          shapes.push(lineShape);
+        });
+
+    return new THREE.Mesh(
+        new THREE.ShapeBufferGeometry(shapes, 64),
+        new THREE.MeshBasicMaterial({ color: 'aqua' }),
+      );
+  })();
+
+
+  return { prograde, retrograde, radialIn, radialOut };
 };
 
 BaseRenderer.prototype.setNavballOrientation = (function () {
@@ -719,14 +733,15 @@ BaseRenderer.prototype.createKeyBindings = function (additionalKeys) {
   };
 };
 
-BaseRenderer.prototype._lookupNearbyBodies = function lookupNearbyBodies(focus, bodies, nearbyThreshold) {
-  const partitioned = bodies.map((body) => {
-    const distance = new THREE.Vector3()
+BaseRenderer.prototype._lookupNearbyBodies =
+  function lookupNearbyBodies(focus, bodies, nearbyThreshold) {
+    const partitioned = bodies.filter(b => b.name !== 'sun').map((body) => {
+      const distance = new THREE.Vector3()
         .subVectors(focus.position, body.position);
-    return [body, distance.lengthSq()];
-  })
+      return [body, distance.lengthSq()];
+    })
     .reduce((acc, [body, distance]) => {
-      if (distance < nearbyThreshold || body.name === 'sun' || (focus.primary && focus.primary.name === body.name)) {
+      if (distance < nearbyThreshold || (focus.primary && focus.primary.name === body.name)) {
         acc[0].push(body);
       } else {
         acc[1].push(body);
@@ -737,7 +752,7 @@ BaseRenderer.prototype._lookupNearbyBodies = function lookupNearbyBodies(focus, 
       [],
     ]);
 
-  const neighbours = partitioned[0];
-  const outliers = partitioned[1];
-  return [neighbours, outliers];
-};
+    const neighbours = partitioned[0];
+    const outliers = partitioned[1];
+    return [neighbours, outliers];
+  };
