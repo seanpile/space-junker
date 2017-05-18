@@ -124,8 +124,6 @@ export default {
     left: 35%;
     display: flex;
     flex-direction: column;
-    border-radius: 10px;
-    border-style: ridge;
     background-color: lightgray;
     opacity: 0.9;
     padding-top: 5px;

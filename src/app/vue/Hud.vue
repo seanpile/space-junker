@@ -7,7 +7,9 @@
 
   <ship-stats :focus="focus"></ship-stats>
 
-  <div class="hud-overlay" id="stats-overlay" v-canvas="stats">
+  <div class="fps-overlay">
+    <div class="label">FPS</div>
+    <div class="value">{{fps.toFixed(2)}}</div>
   </div>
 
 </div>
@@ -17,17 +19,13 @@
 import WarpOverlay from './WarpOverlay';
 import OrbitalStats from './OrbitalStats';
 import ShipStats from './ShipStats';
+import MainLoop from 'mainloop.js'
 
 export default {
 
-  directives: {
-    canvas: {
-      bind: function(el, binding) {
-        const stats = binding.value;
-        stats.dom.id = 'stats';
-        stats.dom.style.cssText = '';
-        el.appendChild(stats.dom);
-      }
+  data: function() {
+    return {
+      fps: 0
     }
   },
 
@@ -42,17 +40,28 @@ export default {
     'timeWarpValues',
     'elapsed',
     'focus',
-    'stats',
-  ]
+  ],
+
+  mounted: function() {
+    setInterval(() => {
+      this.fps = MainLoop.getFPS()
+    }, 500);
+  }
 }
 </script>
 
 <style scoped>
-#stats-overlay {
+.fps-overlay {
     flex: 0 1 auto;
-    border-radius: 0;
-    border-style: none;
-    background-color: inherit;
-    opacity: 1.0;
+    opacity: 0.8;
+    color: white;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.fps-overlay .label {
+    padding-right: 5px;
+    margin-bottom: 5px;
 }
 </style>

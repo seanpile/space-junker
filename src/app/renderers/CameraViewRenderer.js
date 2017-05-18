@@ -30,8 +30,8 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
 
   return new Promise((resolve, reject) => {
     Promise.all([
-      this._loadTextures(),
-      this._loadModels(),
+      this.resourceLoader.loadTextures(),
+      this.resourceLoader.loadModels(),
     ]).then(([textures, models]) => {
 
       this.renderer = new THREE.WebGLRenderer({
@@ -50,15 +50,11 @@ CameraViewRenderer.prototype.viewDidLoad = function () {
 
       // initialize camera and scene
       this.scene = new THREE.Scene();
-      this.scene.background = new THREE.Color('black');
-      this.camera = new THREE.PerspectiveCamera(45, width / height, 1e-10, 2);
+      this.scene.background = this.resourceLoader.loadSkybox();
+      this.camera = new THREE.PerspectiveCamera(60, width / height, 1e-10, 2);
       this.camera.up = new THREE.Vector3(0, 0, 1);
 
       this.navball = this.loadNavball(textures);
-
-      // Background stars
-      const skybox = this._createSkyBox();
-      this.scene.add(skybox);
 
       // Setup light
       this.lightSources = this._setupLightSources(textures);

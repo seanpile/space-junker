@@ -8,29 +8,6 @@ import {
 const MOTION_STEP = Math.PI / 16;
 const THRUST_STEP = 0.1;
 
-// Textures
-const TEXTURES = {
-  moon: require('../../img/moonmap.jpg'),  // eslint-disable-line global-require
-  earth: require('../../img/earthmap.jpg'), // eslint-disable-line global-require
-  earthspec: require('../../img/earthspec.jpg'), // eslint-disable-line global-require
-  earthbump: require('../../img/earthbump.jpg'), // eslint-disable-line global-require
-  jupiter: require('../../img/jupitermap.jpg'), // eslint-disable-line global-require
-  saturn: require('../../img/saturnmap.jpg'), // eslint-disable-line global-require
-  mercury: require('../../img/mercurymap.jpg'), // eslint-disable-line global-require
-  venus: require('../../img/venusmap.jpg'), // eslint-disable-line global-require
-  mars: require('../../img/marsmap.jpg'), // eslint-disable-line global-require
-  pluto: require('../../img/plutomap.jpg'), // eslint-disable-line global-require
-  neptune: require('../../img/neptunemap.jpg'), // eslint-disable-line global-require
-  uranus: require('../../img/uranusmap.jpg'), // eslint-disable-line global-require
-  lensflare: require('../../img/lensflare.png'), // eslint-disable-line global-require
-  apollo: require('../../models/apollo/OldGlory.jpg'), // eslint-disable-line global-require
-  navball: require('../../img/navball.png'), // eslint-disable-line global-require
-};
-
-const MODELS = { apollo: require('../../models/apollo.dae') };
-
-const FONTS = { helvetiker: new THREE.Font(require('../../fonts/helvetiker_regular.typeface.json')) };
-
 export default function BaseRenderer(solarSystem, resourceLoader, state) {
   this.solarSystem = solarSystem;
   this.resourceLoader = resourceLoader;
@@ -59,90 +36,6 @@ BaseRenderer.prototype._onWindowResize =
       this.renderer.setSize(window.innerWidth, window.innerHeight);
     };
   };
-
-BaseRenderer.prototype._loadFonts = function () {
-  return Promise.resolve(FONTS);
-};
-
-BaseRenderer.prototype._loadTextures = function () {
-  const allKeys = Object.keys(TEXTURES);
-
-  return Promise.all(allKeys
-      .map(key => this.resourceLoader.loadTexture(TEXTURES[key])),
-    )
-      .then(values => Promise.resolve(
-      new Map(values.map(([url, texture], idx) => [allKeys[idx], texture]))));
-};
-
-BaseRenderer.prototype._loadModels = function () {
-  const allKeys = Object.keys(MODELS);
-
-  return Promise.all(allKeys
-      .map(key => this.resourceLoader.loadModel(MODELS[key])),
-    )
-      .then(values => Promise.resolve(
-      new Map(values.map(([url, model], idx) => [allKeys[idx], model]))));
-};
-
-BaseRenderer.prototype._createSkyBox = function () {
-  // This will add a starfield to the background of a scene
-  const stars = [{
-    color: 'blue',
-    number: 500,
-  },
-  {
-    color: 'red',
-    number: 500,
-  },
-  {
-    color: 0x888888,
-    number: 10000,
-  },
-  {
-    color: 0xdddddd,
-    number: 10000,
-  },
-  ];
-
-  const skyBox = new THREE.Group();
-
-  stars.forEach(({
-    color,
-    number,
-  }) => {
-    const vertices = [];
-    for (let i = 0; i < number; i += 1) {
-      let r;
-
-      // Generate stars that are a minimum distance away
-      do {
-        r = new THREE.Vector3(
-          THREE.Math.randFloatSpread(3000),
-          THREE.Math.randFloatSpread(3000),
-          THREE.Math.randFloatSpread(3000));
-      } while (r.lengthSq() < 500);
-
-      vertices.push(r.x, r.y, r.z);
-    }
-
-    const starsGeometry = new THREE.BufferGeometry();
-    starsGeometry.addAttribute('position',
-                               new THREE.BufferAttribute(Float32Array.from(vertices), 3));
-
-    const starsMaterial = new THREE.PointsMaterial({
-      color,
-      size: (Math.random() * 0.8) + 0.2,
-      depthWrite: false,
-    });
-
-    const field = new THREE.Points(starsGeometry, starsMaterial);
-    field.matrixAutoUpdate = false;
-    skyBox.add(field);
-  });
-
-  skyBox.matrixAutoUpdate = false;
-  return skyBox;
-};
 
 /**
  * Recenter the coordinate system on the focus being the 'center'.

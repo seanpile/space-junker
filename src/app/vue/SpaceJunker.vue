@@ -9,7 +9,7 @@
 
       <component :is="activeView" :renderer="activeRenderer" :key="activeRendererId"></component>
 
-      <hud v-if="showHud" :elapsed="elapsed" :timeWarpIdx="timeWarpIdx" :timeWarpValues="timeWarpValues" :focus="focus" :stats="stats"></hud>
+      <hud v-if="showHud" :elapsed="elapsed" :timeWarpIdx="timeWarpIdx" :timeWarpValues="timeWarpValues" :focus="focus"></hud>
 
       <help-overlay />
 
@@ -31,7 +31,7 @@ import * as THREE from 'three';
 import moment from 'moment';
 import Hammer from 'hammerjs';
 import Mousetrap from 'mousetrap';
-import Stats from 'stats.js';
+import MainLoop from 'mainloop.js'
 
 import SpaceJunkerAPI from '../api/SpaceJunkerAPI';
 import SharedState from '../SharedState';
@@ -63,14 +63,12 @@ export default {
   // Initial Data
   data: function() {
 
-    const stats = new Stats();
     const now = Date.now();
     const solarSystem = new SolarSystem();
     const resourceLoader = this.loader;
     const sharedState = new SharedState('apollo 11');
 
     return {
-      stats,
       solarSystem,
       resourceLoader,
       sharedState,
@@ -94,7 +92,6 @@ export default {
       ],
 
       // Animation / Time Management
-      frameId: null,
       paused: false,
       showHud: false,
       initialized: false,
@@ -137,71 +134,36 @@ export default {
 
   methods: {
 
-    isRunning: function() {
-      return this.frameId !== null;
-    },
-
-    pause: function() {
-      if (this.frameId) {
-        window.cancelAnimationFrame(this.frameId);
-        this.frameId = null;
-        this.paused = true;
+    toggleRun: function() {
+      if (MainLoop.isRunning()) {
+        MainLoop.stop();
+        this.paused = true
+      } else {
+        MainLoop.start();
+        this.paused = false;
       }
     },
 
     run: function() {
 
-      if (this.isRunning()) {
-        return;
-      }
-
-      this.paused = false;
-
-      const solarSystem = this.solarSystem;
-      this.animationFrame((frameTime) => {
-
-        const trackFps = this.showHud;
-        trackFps && this.stats.begin();
-
+      MainLoop.setUpdate(dt =>
+      {
         const t = this.time;
         const scaledDt = this.timeWarpValues[this.timeWarpIdx] *
-          frameTime;
+          dt;
 
         // Update physics
-        solarSystem.update(t, scaledDt);
-
-        this.api.onUpdate(this);
-
-        // Repaint canvas
-        this.activeRenderer.render();
-
+        this.solarSystem.update(t, scaledDt);
         this.time += scaledDt;
         this.elapsed.add(scaledDt);
-        trackFps && this.stats.end();
 
-        return this.api.onRender(this);
-      });
+      }).setDraw(() => {
+
+        this.activeRenderer.render();
+
+      }).start();
+
     },
-
-    animationFrame(frameFunc) {
-      let lastTime = null;
-
-      const frame = (time) => {
-        let stop = false;
-        if (lastTime != null) {
-          const timeStep = (time - lastTime);
-          stop = frameFunc(timeStep) === true;
-        }
-        lastTime = time;
-        if (!stop) {
-          this.frameId = requestAnimationFrame(frame);
-        } else {
-          this.frameId = null;
-        }
-      };
-
-      this.frameId = requestAnimationFrame(frame);
-    }
   },
 
   mounted: function() {
@@ -214,8 +176,12 @@ export default {
     this.api = api;
 
     // Initialize Renderers
-    Promise.all(this.views.map(v => this.renderers[v].renderer.viewDidLoad()))
-      .then(() => {
+    Promise.all([
+      this.resourceLoader.loadTextures(),
+      this.resourceLoader.loadModels()
+    ]).then(() => {
+
+      Promise.all(this.views.map(v => this.renderers[v].renderer.viewDidLoad())).then(() => {
 
         this.initialized = true;
 
@@ -232,11 +198,7 @@ export default {
 
         // Toggle Pause/Run Game
         Mousetrap.bind('space', () => {
-          if (this.isRunning()) {
-            this.pause();
-          } else {
-            this.run();
-          }
+          this.toggleRun();
         });
 
         Mousetrap.bind('c', () => {
@@ -302,7 +264,7 @@ export default {
 
           const location = new THREE.Vector2(event.clientX, event.clientY);
 
-          if (this.isRunning()) {
+          if (MainLoop.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'mouseover',
               location
@@ -327,7 +289,7 @@ export default {
           const height = window.innerHeight;
 
           const location = new THREE.Vector2(event.center.x, event.center.y);
-          if (this.isRunning()) {
+          if (MainLoop.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'tap',
               location: location,
@@ -340,7 +302,7 @@ export default {
           const height = window.innerHeight;
 
           const location = new THREE.Vector2(event.center.x, event.center.y);
-          if (this.isRunning()) {
+          if (MainLoop.isRunning()) {
             this.activeRenderer.dispatchEvent({
               type: 'doubletap',
               location: location,
@@ -350,16 +312,16 @@ export default {
 
         this.initialized = true;
         this.run();
-
       })
-      .catch((error) => {
+    .catch((error) => {
         console.error(error);
         throw error;
       });
+    })
   },
 
   destroyed: function() {
-    this.pause();
+    MainLoop.stop();
     this.views.forEach(v => {
       const renderer = this.renderers[v].renderer;
       renderer.viewWillDisappear();
@@ -412,7 +374,7 @@ body {
 #hud {
     position: absolute;
     top: 0;
-    left: 0;
+    left: 5px;
     height: 100%;
     opacity: 0.6;
     z-index: 100;
@@ -425,13 +387,13 @@ body {
     flex: 0 1 auto;
     display: flex;
     flex-direction: column;
-    border-radius: 10px;
-    border-style: ridge;
     background-color: lightgray;
     padding-top: 5px;
     padding-bottom: 5px;
     padding-left: 10px;
     padding-right: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .hud-overlay .title {
@@ -453,5 +415,17 @@ body {
 
 .hud-overlay-entry .value {
     flex: 0 1 auto;
+}
+
+#fps-tracker {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    flex-direction: row;
+    opacity: 0.5;
+}
+
+#fps-tracker .label {
+    padding-right: 4px;
 }
 </style>

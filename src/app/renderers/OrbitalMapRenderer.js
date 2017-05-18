@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import Maneuver from '../model/Maneuver';
 import BaseRenderer from './BaseRenderer';
+import UIOrbit from './three/UIOrbit';
 import UIPlanet from './three/UIPlanet';
 import UIShip from './three/UIShip';
 import UIManeuver from './three/UIManeuver';
@@ -20,11 +21,10 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
 
   return new Promise((resolve, reject) => {
     Promise.all([
-      this._loadTextures(),
-      this._loadModels(),
-      this._loadFonts(),
+      this.resourceLoader.loadTextures(),
+      this.resourceLoader.loadFonts(),
     ])
-        .then(([textures, models, fonts]) => {
+        .then(([textures, fonts]) => {
 
           this.renderer = new THREE.WebGLRenderer({
             antialias: true,
@@ -35,7 +35,7 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
           this.dom = this.renderer.domElement;
 
           this.bodyMap = new Map();
-          this.resources = { textures, models, fonts };
+          this.resources = { textures, fonts };
 
           this.mouseOverTimeout = null;
           this.mouseOverCallback = null;
@@ -48,13 +48,10 @@ OrbitalMapRenderer.prototype.viewDidLoad = function () {
           const height = window.innerHeight;
 
           this.scene = new THREE.Scene();
-          this.scene.background = new THREE.Color('black');
+          this.scene.background = this.resourceLoader.loadSkybox();
 
           this.camera = new THREE.PerspectiveCamera(60, width / height, 1, 1000);
           this.camera.up = new THREE.Vector3(0, 0, 1);
-
-          const skyBox = this._createSkyBox();
-          this.scene.add(skyBox);
 
           // Setup light
           this.lightSources = this._setupLightSources(textures);
@@ -210,6 +207,7 @@ OrbitalMapRenderer.prototype._setupLightSources = function (textures) {
   const ambientLight = new THREE.AmbientLight(0x606060);
   const pointLight = new THREE.PointLight(0xffffff, 1);
   const lensFlare = new THREE.LensFlare(textures.get('lensflare'), 150, 0.0, THREE.AdditiveBlending, new THREE.Color(0xffffff));
+  lensFlare.name = 'lensflare';
 
   pointLight.castShadow = true;
 
@@ -224,6 +222,14 @@ OrbitalMapRenderer.prototype._adjustLightSource = function (focus, sun) {
   this.lightSources.forEach((light) => {
     const lightPosition = this._adjustCoordinates(focus, sun.position);
     light.position.set(lightPosition.x, lightPosition.y, lightPosition.z);
+
+    if (light.name === 'lensflare') {
+      // Bug Fix: LensFlare is showing both in front of the scene and behind;
+      // Hide the lensflare if we are not pointing the camera toward the sun
+      const cameraOrientation = this.camera.position.clone()
+        .negate();
+      light.visible = cameraOrientation.angleTo(lightPosition) <= Math.PI / 2;
+    }
   });
 };
 
@@ -250,10 +256,10 @@ OrbitalMapRenderer.prototype._scaleBody = function (body) {
 
   if (body.isPlanet()) {
     const scale = Math.max(0.005 * cameraDistance, body.constants.radius) / body.constants.radius;
-    threeBody.sphere.scale.set(scale, scale, scale);
+    threeBody.updateScale(scale);
   } else {
     const scale = 2 * Math.max(0.005 * cameraDistance, body.constants.radius) / body.constants.radius;
-    threeBody.sphere.scale.set(scale, scale, scale);
+    threeBody.updateScale(scale);
   }
 };
 

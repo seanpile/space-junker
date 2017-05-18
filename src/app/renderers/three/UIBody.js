@@ -27,6 +27,10 @@ class UIBody extends THREE.Group {
     this.sphere.position.copy(position);
   }
 
+  updateScale(scale) {
+    this.sphere.scale.set(scale, scale, scale);
+  }
+
   refreshOrbit(newOrbit) {
     this.remove(this.orbit);
     this.add(newOrbit);

@@ -28,9 +28,10 @@ export default class UIPlanet extends UIBody {
       material = new THREE.MeshBasicMaterial({ color: 'yellow' });
     } else {
       material = new THREE.MeshPhongMaterial();
+      material.precision = 'highp';
       if (textures.has(`${body.name}bump`)) {
         material.bumpMap = textures.get(`${body.name}bump`);
-        material.bumpScale = 100000 / AU;
+        material.bumpScale = 200000 / AU;
       }
 
       if (textures.has(`${body.name}spec`)) {
@@ -45,8 +46,10 @@ export default class UIPlanet extends UIBody {
       }
     }
 
+    const numSegments = mapView ? 32 : 256;
+
     const threeBody = new THREE.Mesh(
-        new THREE.SphereBufferGeometry(body.constants.radius, 32, 32),
+        new THREE.SphereBufferGeometry(body.constants.radius, numSegments, numSegments),
         material);
 
     threeBody.receiveShadow = true;
