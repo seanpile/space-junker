@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "hammerjs": "^2.0.8",
+    "mainloop.js": "^1.0.3",
     "moment": "^2.17.1",
     "moment-duration-format": "^1.3.0",
     "mousetrap": "^1.6.0",
